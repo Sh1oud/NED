@@ -9,7 +9,7 @@ GitHub. Nothing here is code; it is the paperwork a first release needs.
 
 | Field | Published value |
 | --- | --- |
-| GitHub owner | [`Nov1ce`](https://github.com/Nov1ce) |
+| GitHub owner | [`Sh1oud`](https://github.com/Sh1oud) |
 | Repository | [`Sh1oud/NED`](https://github.com/Sh1oud/NED) |
 | Conduct / enforcement contact | `zhaoyizhuoying@icloud.com` |
 
