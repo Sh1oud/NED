@@ -1,0 +1,43 @@
+{
+  "version": "0.1.0",
+  "comment": "Evidence Asymmetry Detector configuration. The 'prior' block is NED's explicit assumption about how a person in an anxious state treats evidence when they tell us nothing else: positive evidence is discounted hard, negative evidence is accepted almost immediately. It is an assumption, declared in configuration, not a measurement of anybody.",
+  "config": {
+    "id": "asymmetry",
+    "weight_gap_weight": 0.45,
+    "information_gap_weight": 0.25,
+    "categorical_weight": 0.3,
+    "prior_positive_discount_multiplier": 0.35,
+    "prior_negative_amplification_multiplier": 1.0,
+    "categorical_negative_threshold": 75,
+    "categorical_positive_threshold": 25,
+    "high_positive_threshold": 25,
+    "low_negative_threshold": 75,
+    "bands": [
+      [0, 19.999, "NEGLIGIBLE"],
+      [20, 39.999, "MILD"],
+      [40, 59.999, "MODERATE"],
+      [60, 79.999, "SEVERE"],
+      [80, 100, "EXTREME"]
+    ]
+  },
+  "scoring": {
+    "reaching_positive_weight": 0.62,
+    "reaching_escape_weight": 28,
+    "reaching_history_weight": 20,
+    "capacity_positive_weight": 0.6,
+    "capacity_history_weight": 0.4,
+    "capacity_exhausted_threshold": 0.95,
+    "capacity_warning_threshold": 0.8,
+    "discount_escape_bonus": 12,
+    "discount_amplification_bonus": 8,
+    "negative_amplification_floor": 5,
+    "reaching_bands": [
+      { "min": 0, "max": 19.999, "label": "Reasonable skepticism" },
+      { "min": 20, "max": 39.999, "label": "Routine doubt" },
+      { "min": 40, "max": 59.999, "label": "Advanced overthinking" },
+      { "min": 60, "max": 79.999, "label": "Industrial-grade denial" },
+      { "min": 80, "max": 99.999, "label": "NED is currently reaching." },
+      { "min": 100, "max": 100, "label": "人好。👍" }
+    ]
+  }
+}

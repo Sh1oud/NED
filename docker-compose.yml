@@ -1,0 +1,22 @@
+services:
+  ned:
+    build: .
+    image: ned:0.1.0
+    container_name: ned
+    ports:
+      # Bound to localhost on purpose: NED is a local-first tool, not a service
+      # you expose. Change to "8000:8000" only if you know why you want that.
+      - "127.0.0.1:8000:8000"
+    environment:
+      PYTHONUTF8: "1"
+      # Point NED at your own rule packs (mounted read-only below).
+      # NED_RULES_DIR: /rules
+    # No volumes by default: NED stores nothing. Uncomment to use custom rules.
+    # volumes:
+    #   - ./my-rules:/rules:ro
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true

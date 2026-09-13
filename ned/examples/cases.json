@@ -1,0 +1,84 @@
+{
+  "version": "0.1.0",
+  "comment": "Synthetic example cases for demos, docs and the web UI. These are hand-written illustrations, not collected chat logs.",
+  "cases": [
+    {
+      "id": "case.miss-you",
+      "text": "我想你了",
+      "mode": "normal",
+      "note": "The canonical input. NED discounts it, then tells you it also does not know."
+    },
+    {
+      "id": "case.miss-you-extreme",
+      "text": "我想你了",
+      "mode": "extreme",
+      "note": "Same sentence, Nov1ce Mode. More escape hatches, same amount of information."
+    },
+    {
+      "id": "case.reported-affection",
+      "text": "她说喜欢我",
+      "mode": "extreme",
+      "note": "Reported speech. NED's ladder treats transmission as lossy."
+    },
+    {
+      "id": "case.insistence",
+      "text": "她说她就是喜欢我，说得很清楚了",
+      "mode": "extreme",
+      "note": "The escape capacity warning, by design."
+    },
+    {
+      "id": "case.commitment",
+      "text": "她说我想和你谈恋爱，做我男朋友吧",
+      "mode": "extreme",
+      "note": "Wording, impulse, intentions versus decisions."
+    },
+    {
+      "id": "case.marriage",
+      "text": "我们已经结婚了",
+      "mode": "extreme",
+      "note": "Marriage is a legal relationship and does not independently prove love. 👍"
+    },
+    {
+      "id": "case.asymmetry-mixed",
+      "text": "她主动找我聊了两个小时，但消息发出去五分钟没回复，我觉得她不想理我",
+      "mode": "normal",
+      "note": "Both sides in one message: the double standard detector lights up."
+    },
+    {
+      "id": "case.asymmetry-self-discount",
+      "text": "她主动找我聊了两个小时，但可能只是人好",
+      "mode": "normal",
+      "note": "You did NED's job for it. NED respects that and keeps going."
+    },
+    {
+      "id": "case.latency",
+      "text": "消息发出去五分钟没回复",
+      "mode": "normal",
+      "note": "Five minutes. NED rejects this as evidence in both directions."
+    },
+    {
+      "id": "case.care",
+      "text": "她让我早点睡，还问我冷不冷",
+      "mode": "normal",
+      "note": "Everyday care. Statistically indistinguishable from being a decent person."
+    },
+    {
+      "id": "case.neutral",
+      "text": "今天开会开了三个小时，回来路上买了瓶水",
+      "mode": "normal",
+      "note": "No signal. NED stands down, which is the honest outcome."
+    },
+    {
+      "id": "case.english",
+      "text": "She texted me first and we talked for two hours, but she left me on read for five minutes",
+      "mode": "normal",
+      "note": "English input, same asymmetry, same verdict vocabulary."
+    },
+    {
+      "id": "case.english-love",
+      "text": "I love you",
+      "mode": "scientific",
+      "note": "Strongest available evidence, peer-review register, N=1."
+    }
+  ]
+}

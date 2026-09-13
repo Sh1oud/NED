@@ -1,0 +1,51 @@
+{
+  "version": "0.1.0",
+  "comment": "Reality checks are the honest half of NED: after the jokes, they say what the evidence can actually support. Template placeholders are filled from the analysis context; unknown placeholders degrade to an em dash instead of raising.",
+  "checks": [
+    {
+      "id": "latency_only",
+      "zh": "只有 {duration}未有回复。这个时长本身几乎不携带信息：在忙、在睡、手机不在身边、正在开会都足以解释。它无法支持任何关于对方态度的结论。",
+      "en": "The only datum is {duration} without a reply. That interval carries almost no information: being busy, asleep, away from the phone, or in a meeting all explain it equally well. It cannot support any conclusion about the other person's attitude."
+    },
+    {
+      "id": "negative_only",
+      "zh": "输入描述的是不利或中性事件（{negative_desc}）。NED 指出一个对称的事实：这类事件同样不构成关于态度的证据，把它当作结论只是在换一个方向重复同一个错误。",
+      "en": "The input describes an unfavourable or neutral event ({negative_desc}). NED notes the symmetric fact: such an event is equally not evidence about anyone's attitude, and treating it as a conclusion simply repeats the same mistake in the other direction."
+    },
+    {
+      "id": "strong_positive_only",
+      "zh": "文本只能证明对方说了这句话。{signal_label} 与内心状态之间没有可验证的映射，所以 NED 既不确认也不否认，它只是拒绝把一句话当成测量结果。",
+      "en": "Text only proves that the sentence was said. There is no verifiable mapping from {signal_label} to an internal state, so NED neither confirms nor denies; it simply refuses to treat a sentence as a measurement."
+    },
+    {
+      "id": "moderate_positive",
+      "zh": "存在真实的正向互动：{signal_label}。但样本量 N=1。要支持更强的结论，需要更多相互独立的事件，而不是对同一个事件做更深的解读。",
+      "en": "There is a genuine positive interaction ({signal_label}), but the sample size is N=1. A stronger conclusion would need more independent events, not deeper interpretation of one event."
+    },
+    {
+      "id": "asymmetry_pair",
+      "zh": "「{negative_desc}」的信息量远低于「{positive_desc}」。这两份证据不应该被放在同一把尺子上比较：一份是持续发生的互动，另一份是一个尚未过去的时间间隔。",
+      "en": "\"{negative_desc}\" carries far less information than \"{positive_desc}\". These two pieces of evidence do not belong on the same scale: one is a sustained interaction, the other is a time interval that has not finished yet."
+    },
+    {
+      "id": "self_discount_only",
+      "zh": "输入里只有降权语言，没有可用证据。NED 无法对自己进行降权，这是它唯一做不到的事。",
+      "en": "The input contains only discounting language and no usable evidence. NED cannot de-weight itself; that is the one thing it cannot do."
+    },
+    {
+      "id": "no_signal",
+      "zh": "输入中没有可分类的情感证据，因此没有可降权的对象。这不是坏消息，只是没有消息。",
+      "en": "No classifiable emotional evidence was detected, so there is nothing to de-weight. That is not bad news; it is simply no news."
+    },
+    {
+      "id": "asymmetry_insufficient",
+      "zh": "比较需要两份证据，但你只给了一份。NED 无法在单个样本上测量双重标准——这大概也是它最诚实的一句话。",
+      "en": "A comparison needs two pieces of evidence and only one was supplied. NED cannot measure a double standard from a single sample, which is probably the most honest sentence here."
+    },
+    {
+      "id": "default",
+      "zh": "现有证据不足以支持任何方向的结论。建议的做法：直接问，而不是继续分析文本。",
+      "en": "The available evidence does not support a conclusion in any direction. Recommended procedure: ask directly instead of continuing to analyse text."
+    }
+  ]
+}

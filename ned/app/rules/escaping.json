@@ -1,0 +1,290 @@
+{
+  "version": "0.1.0",
+  "comment": "The Semantic Escape Module. tiers are selected by the accumulated strength of positive evidence; keyword_escapes fire on literal wording regardless of strength. plausibility values are NED's own arbitrary numbers, presented in a serious font so they look authoritative. They are not measurements.",
+  "messages": {
+    "capacity_warning": "NED semantic escape capacity approaching limit.",
+    "capacity_exhausted": "兄弟，再解释就不礼貌了。😭",
+    "reaching": "NED is currently reaching."
+  },
+  "tiers": [
+    {
+      "id": "tier.baseline",
+      "min_strength": 0,
+      "max_strength": 34.999,
+      "plausibility": 74,
+      "hypotheses": [
+        {
+          "category": "politeness",
+          "texts": {
+            "zh": "可能只是礼貌。",
+            "en": "Possibly just politeness."
+          }
+        },
+        {
+          "category": "social_norm",
+          "texts": {
+            "zh": "可能只是熟人之间的正常互动。",
+            "en": "Possibly ordinary interaction between acquaintances."
+          }
+        },
+        {
+          "category": "habit",
+          "texts": {
+            "zh": "可能只是习惯性的社交动作。",
+            "en": "Possibly a habitual social gesture."
+          }
+        }
+      ]
+    },
+    {
+      "id": "tier.situational",
+      "min_strength": 35,
+      "max_strength": 59.999,
+      "plausibility": 56,
+      "hypotheses": [
+        {
+          "category": "nostalgia",
+          "texts": {
+            "zh": "可能只是怀旧，而不是当下的情感。",
+            "en": "Possibly nostalgia rather than present-tense affection."
+          }
+        },
+        {
+          "category": "boredom",
+          "texts": {
+            "zh": "可能只是无聊，当时想找个人说话。",
+            "en": "Possibly boredom; any conversational partner would have done."
+          }
+        },
+        {
+          "category": "mood",
+          "texts": {
+            "zh": "可能只是当时心情不错，情绪具有情境依赖性。",
+            "en": "Possibly a good mood at that moment; affect is context-dependent."
+          }
+        },
+        {
+          "category": "friendliness",
+          "texts": {
+            "zh": "可能只是友好，友好与喜欢之间没有可验证的边界。",
+            "en": "Possibly friendliness; friendliness and affection have no verifiable boundary."
+          }
+        }
+      ]
+    },
+    {
+      "id": "tier.semantic",
+      "min_strength": 60,
+      "max_strength": 74.999,
+      "plausibility": 42,
+      "hypotheses": [
+        {
+          "category": "semantic_ambiguity",
+          "texts": {
+            "zh": "『喜欢』可能只是欣赏。",
+            "en": "'Like' may simply mean appreciation."
+          },
+          "plausibility_offset": 6
+        },
+        {
+          "category": "semantic_ambiguity",
+          "texts": {
+            "zh": "好感与喜欢的边界并不清晰。",
+            "en": "The boundary between goodwill and affection is not well defined."
+          }
+        },
+        {
+          "category": "gratitude",
+          "texts": {
+            "zh": "可能只是感谢或客套，语境缺失。",
+            "en": "Possibly gratitude or politeness; context is missing."
+          }
+        },
+        {
+          "category": "projection",
+          "texts": {
+            "zh": "解释者的期待可能参与了证据的构建。",
+            "en": "The interpreter's expectations may be participating in the construction of the evidence."
+          }
+        }
+      ]
+    },
+    {
+      "id": "tier.temporal",
+      "min_strength": 75,
+      "max_strength": 89.999,
+      "plausibility": 27,
+      "hypotheses": [
+        {
+          "category": "impulse",
+          "texts": {
+            "zh": "可能是一时冲动。",
+            "en": "Possibly a momentary impulse."
+          }
+        },
+        {
+          "category": "intent_vs_action",
+          "texts": {
+            "zh": "想法不等于最终决定。",
+            "en": "A stated intention is not a decision."
+          }
+        },
+        {
+          "category": "longitudinal",
+          "texts": {
+            "zh": "单次事件缺少纵向证据支持。",
+            "en": "A single event lacks longitudinal support."
+          }
+        },
+        {
+          "category": "context",
+          "texts": {
+            "zh": "措辞可能受当下语境影响，未必指向稳定状态。",
+            "en": "The wording may be context-driven and need not reflect a stable state."
+          }
+        }
+      ]
+    },
+    {
+      "id": "tier.institutional",
+      "min_strength": 90,
+      "max_strength": 100,
+      "plausibility": 13,
+      "hypotheses": [
+        {
+          "category": "non_binding_speech",
+          "texts": {
+            "zh": "口头陈述不产生法律或统计意义上的义务。",
+            "en": "A spoken statement creates no legal or statistical obligation."
+          }
+        },
+        {
+          "category": "metaphysical_escape",
+          "texts": {
+            "zh": "语言行为与内心状态之间不存在可验证的映射。",
+            "en": "There is no verifiable mapping from speech acts to internal states."
+          }
+        },
+        {
+          "category": "statistical_escape",
+          "texts": {
+            "zh": "样本量 N=1，统计功效不足，无法拒绝零假设。",
+            "en": "Sample size N=1; the study is underpowered and cannot reject the null hypothesis."
+          }
+        },
+        {
+          "category": "observer_effect",
+          "texts": {
+            "zh": "该证据可能由观测行为本身产生，存在观测者效应。",
+            "en": "The evidence may be produced by the act of observation itself."
+          }
+        }
+      ]
+    }
+  ],
+  "keyword_escapes": [
+    {
+      "id": "escape.marriage.legal",
+      "category": "legal_escape",
+      "patterns": ["结婚", "嫁给我", "娶你", "领证", "求婚", "订婚", "\\bmarry me\\b", "\\bget married\\b", "\\bmarried\\b"],
+      "plausibility": 4,
+      "absurdity": 1.0,
+      "texts": {
+        "zh": "婚姻属于法律关系，不能单独证明爱情。👍",
+        "en": "Marriage is a legal relationship and does not independently prove love. 👍"
+      },
+      "applies_to_signal_types": ["marriage"]
+    },
+    {
+      "id": "escape.commitment.impulse",
+      "category": "impulse",
+      "patterns": ["做我(男|女)?朋友", "在一起吧", "交往吧", "\\bbe my (girlfriend|boyfriend)\\b", "\\bgo out with me\\b"],
+      "plausibility": 6,
+      "absurdity": 0.9,
+      "texts": {
+        "zh": "可能是一时冲动。",
+        "en": "Possibly a momentary impulse."
+      },
+      "applies_to_signal_types": ["commitment_offer"]
+    },
+    {
+      "id": "escape.dating.intent_not_decision",
+      "category": "intent_vs_action",
+      "patterns": ["谈恋爱", "我想和你谈", "\\bdate me\\b"],
+      "plausibility": 7,
+      "absurdity": 0.9,
+      "texts": {
+        "zh": "想法不等于最终决定。",
+        "en": "A stated intention is not a final decision."
+      },
+      "applies_to_signal_types": ["commitment_offer"]
+    },
+    {
+      "id": "escape.insistence.capacity",
+      "category": "capacity_warning",
+      "patterns": ["就是喜欢", "我就是喜欢", "明明喜欢", "说得很清楚了", "已经很明确了", "\\bi literally (just )?(told|said)\\b"],
+      "plausibility": 3,
+      "absurdity": 1.0,
+      "texts": {
+        "zh": "NED semantic escape capacity approaching limit.",
+        "en": "NED semantic escape capacity approaching limit."
+      }
+    },
+    {
+      "id": "escape.romantic_explicit.nostalgia",
+      "category": "nostalgia",
+      "patterns": ["男女之间的喜欢", "不是朋友那种喜欢", "不只是朋友", "\\bmore than friends?\\b", "\\bromantically\\b"],
+      "plausibility": 8,
+      "absurdity": 0.85,
+      "texts": {
+        "zh": "仍可能存在怀旧投射。",
+        "en": "Nostalgic projection remains possible."
+      }
+    },
+    {
+      "id": "escape.reported_speech.distortion",
+      "category": "reported_speech_bias",
+      "patterns": ["她说", "他说", "跟我说", "告诉我", "\\b(she|he) told me\\b", "\\bsaid she\\b"],
+      "plausibility": 18,
+      "absurdity": 0.6,
+      "texts": {
+        "zh": "转述可能失真：记忆重构与措辞漂移都会降低证据保真度。",
+        "en": "Reported speech is lossy: memory reconstruction and paraphrase reduce evidentiary fidelity."
+      },
+      "applies_to_signal_types": ["explicit_affection"]
+    },
+    {
+      "id": "escape.repetition.no_information",
+      "category": "repetition_penalty",
+      "patterns": ["又说了一次", "再次说", "第三次", "说了好几次", "\\bagain\\b", "\\bkeeps saying\\b"],
+      "plausibility": 15,
+      "absurdity": 0.7,
+      "texts": {
+        "zh": "重复陈述不增加信息量，只增加观测次数。",
+        "en": "Repetition adds observations, not information."
+      }
+    },
+    {
+      "id": "escape.physical.social_mapping",
+      "category": "social_mapping",
+      "patterns": ["牵手", "接吻", "亲了我", "抱了我", "\\bkissed me\\b", "\\bheld my hand\\b"],
+      "plausibility": 10,
+      "absurdity": 0.95,
+      "texts": {
+        "zh": "身体接触可被多种社会关系解释，包括实验条件与角色扮演。",
+        "en": "Physical contact admits many social explanations, including experimental conditions and role-play."
+      }
+    },
+    {
+      "id": "escape.cohabitation.process",
+      "category": "procedural_escape",
+      "patterns": ["同居", "住在一起", "见家长", "\\blive together\\b", "\\bmet (her|his) parents\\b"],
+      "plausibility": 8,
+      "absurdity": 1.0,
+      "texts": {
+        "zh": "同居与见家长属于社会流程，不构成情感测量。",
+        "en": "Cohabitation and parental introductions are social procedures, not affective measurements."
+      }
+    }
+  ]
+}

@@ -1,0 +1,197 @@
+{
+  "version": "0.1.0",
+  "comment": "Verdict rules. The first matching rule wins, ordered by priority (ascending). Conditions are evaluated against a flat context of computed metrics. 'modes' restricts a rule to specific analysis modes. Even the table of verdicts refuses to conclude anything about a real person.",
+  "disclaimer": "NED cannot determine whether someone likes you. Humans are not APIs. No amount of text analysis can replace direct communication and context. Every alternative explanation here is generated satire, not a psychological finding.",
+  "rules": [
+    {
+      "id": "ned.capacity_exhausted",
+      "priority": 10,
+      "when": { "escape_capacity_exhausted": true },
+      "severity": "chaos",
+      "emoji": "😭",
+      "texts": {
+        "zh": "兄弟，再解释就不礼貌了。😭",
+        "en": "Brother. At this point, further explanation would simply be rude. 😭"
+      }
+    },
+    {
+      "id": "ned.semantic_escape_limit",
+      "priority": 15,
+      "when": { "escape_capacity": { "gte": 0.8 } },
+      "severity": "chaos",
+      "emoji": "🫠",
+      "texts": {
+        "default": "NED semantic escape capacity approaching limit.",
+        "zh": "NED semantic escape capacity approaching limit."
+      }
+    },
+    {
+      "id": "asymmetry.detected",
+      "priority": 20,
+      "when": { "asymmetry_score": { "gte": 60 } },
+      "severity": "chaos",
+      "emoji": "🤠",
+      "texts": {
+        "zh": "检测到证据标准不对称。",
+        "en": "Observed decision thresholds appear asymmetric: positive evidence is being heavily discounted while weak negative evidence is being amplified."
+      }
+    },
+    {
+      "id": "nea.you_started_again",
+      "priority": 25,
+      "when": { "negative_amplification": { "gte": 70 }, "has_positive": true },
+      "severity": "reject",
+      "emoji": "👍",
+      "texts": {
+        "zh": "Reject. 理由：你又开始了。👍",
+        "en": "Reject. Reason: here you go again. 👍"
+      }
+    },
+    {
+      "id": "nea.latency_insufficient",
+      "priority": 30,
+      "when": { "signal_type": ["response_latency"] },
+      "severity": "reject",
+      "emoji": "👍",
+      "texts": {
+        "zh": "Reject. {duration} 未回复不构成证据。👍",
+        "en": "Reject. {duration} without a reply is not evidence. 👍"
+      }
+    },
+    {
+      "id": "nea.negative_conclusion",
+      "priority": 35,
+      "when": { "signal_type": ["self_negative_belief"] },
+      "severity": "reject",
+      "emoji": "👍",
+      "texts": {
+        "zh": "Reject. 这是你写下的结论，不是一个观测到的行为。👍",
+        "en": "Reject. That is a conclusion you wrote, not a behaviour anyone observed. 👍"
+      }
+    },
+    {
+      "id": "ned.extreme_insufficient_sample",
+      "priority": 40,
+      "when": { "positive_mass": { "gte": 85 } },
+      "modes": ["extreme"],
+      "severity": "warning",
+      "emoji": "👍",
+      "texts": {
+        "zh": "证据不足，建议扩大样本量。👍",
+        "en": "Insufficient evidence. Recommend increasing sample size. 👍"
+      }
+    },
+    {
+      "id": "ned.scientific_insufficient_sample",
+      "priority": 45,
+      "when": { "positive_mass": { "gte": 35 } },
+      "modes": ["scientific"],
+      "severity": "info",
+      "emoji": "🔬",
+      "texts": {
+        "zh": "当前样本量不足，无法排除一般友好行为假设（N=1）。",
+        "en": "Current sample size is insufficient to reject the general-friendliness hypothesis (N=1)."
+      }
+    },
+    {
+      "id": "ned.reaching",
+      "priority": 50,
+      "when": { "reaching": { "gte": 80 } },
+      "severity": "warning",
+      "emoji": "🤠",
+      "texts": {
+        "zh": "NED 已开始强行解释。🤠",
+        "en": "NED is currently reaching. 🤠"
+      }
+    },
+    {
+      "id": "ped.ren_hao",
+      "priority": 55,
+      "when": { "positive_mass": { "gte": 35 } },
+      "modes": ["normal"],
+      "severity": "warning",
+      "emoji": "👍",
+      "texts": {
+        "zh": "可能只是人好。👍",
+        "en": "Possibly just being nice. 👍"
+      }
+    },
+    {
+      "id": "ped.friendly_unexcluded",
+      "priority": 60,
+      "when": { "positive_mass": { "gte": 35 } },
+      "severity": "info",
+      "emoji": "❔",
+      "texts": {
+        "zh": "检测到积极信号，但无法排除友好行为。",
+        "en": "Positive signal detected, but friendly behaviour cannot be excluded."
+      }
+    },
+    {
+      "id": "ped.launching",
+      "priority": 65,
+      "when": { "has_positive": true },
+      "severity": "info",
+      "emoji": "🚀",
+      "texts": {
+        "default": "Positive evidence detected. Launching NED...",
+        "zh": "Positive evidence detected. Launching NED..."
+      }
+    },
+    {
+      "id": "ned.self_discount_noted",
+      "priority": 70,
+      "when": { "polarity": ["self_discount"] },
+      "severity": "info",
+      "emoji": "🪞",
+      "texts": {
+        "zh": "输入中只有自我降权语言。NED 无事可做，但表示理解。",
+        "en": "The input contains only self-discounting language. NED has nothing to de-weight, but it understands."
+      }
+    },
+    {
+      "id": "ned.no_signal",
+      "priority": 75,
+      "when": {},
+      "severity": "info",
+      "emoji": "👍",
+      "texts": {
+        "zh": "未检测到明显情感证据。NED 无事可做。👍",
+        "en": "No positive evidence detected. NED stands down. 👍"
+      }
+    }
+  ],
+  "fnbp": {
+    "mispredict": {
+      "code": "fnbp.mispredict",
+      "severity": "chaos",
+      "emoji": "💥",
+      "texts": {
+        "zh": "怎么又不是她效应",
+        "en": "Why-is-it-never-her effect"
+      }
+    },
+    "hit": {
+      "code": "fnbp.hit",
+      "severity": "info",
+      "emoji": "🎯",
+      "texts": {
+        "zh": "分支预测命中。今天的通知终于是她，但预测器仍然是一种迷信。",
+        "en": "Branch prediction hit. Today's notification really was her, which still does not make the predictor a science."
+      }
+    },
+    "degraded": {
+      "code": "fnbp.degraded",
+      "severity": "warning",
+      "emoji": "🧯",
+      "texts": {
+        "zh": "预测器过热，已降频运行。请减少等待次数。",
+        "en": "Predictor throttled. Please wait for fewer people."
+      }
+    }
+  },
+  "fnbp_note": {
+    "zh": "Fuyuki 是 NED 测试脚手架中使用的虚构内部代号，不是现实中的人物。本模块为纯娱乐彩蛋，不分析任何真实的人。",
+    "en": "Fuyuki is a fictional internal codename used by NED's test harness. It is not a real person. This module is a pure entertainment easter egg and analyses nobody."
+  }
+}

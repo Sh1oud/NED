@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="description" content="NED - Nov1ce Evidence Denier. A satirical emotional evidence de-weighting engine. Entertainment software; it cannot determine whether someone likes you." />
+  <title>NED - Nov1ce Evidence Denier</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div id="app" class="app">
+
+    <header class="hero">
+      <div class="hero-glow" aria-hidden="true"></div>
+      <div class="hero-body">
+        <div class="hero-meta">
+          <span class="badge badge-state" id="health-pill" data-state="pending">
+            <span class="dot" aria-hidden="true"></span><span id="health-text">Checking engine</span>
+          </span>
+          <span class="badge mono" id="version-badge">v{{ version }}</span>
+          <span class="badge badge-quiet" id="privacy-note">{{ privacy_note }}</span>
+        </div>
+
+        <h1 class="hero-title">
+          <span class="hero-title-main">NED</span>
+          <span class="hero-title-sub">Nov1ce Evidence Denier</span>
+        </h1>
+
+        <p class="hero-tagline">Systematically explaining away good news since 2026.</p>
+
+        <blockquote class="hero-quote">
+          When reality becomes suspiciously positive, NED restores uncertainty.
+        </blockquote>
+
+        <p class="hero-motto">Everything may be affection. Everything may also be 人好. 👍</p>
+
+        <dl class="spec-strip">
+          <div class="spec">
+            <dt>Engine</dt>
+            <dd class="mono">ned-local-rules</dd>
+          </div>
+          <div class="spec">
+            <dt>Modes</dt>
+            <dd class="mono">{{ modes|length }}</dd>
+          </div>
+          <div class="spec">
+            <dt>Reaching bands</dt>
+            <dd class="mono">{{ reaching_labels|length }}</dd>
+          </div>
+          <div class="spec">
+            <dt>Provider</dt>
+            <dd class="mono">local</dd>
+          </div>
+          <div class="spec">
+            <dt>API</dt>
+            <dd class="mono">/api/analyze</dd>
+          </div>
+        </dl>
+      </div>
+    </header>
+
+    <nav class="tabs" role="tablist" aria-label="NED modules">
+      <button type="button" class="tab is-active" id="tab-analyze" role="tab" aria-selected="true" aria-controls="panel-analyze" tabindex="0" data-tab="analyze">Analyze Evidence</button>
+      <button type="button" class="tab" id="tab-asymmetry" role="tab" aria-selected="false" aria-controls="panel-asymmetry" tabindex="-1" data-tab="asymmetry">Asymmetry Detector</button>
+      <button type="button" class="tab" id="tab-lab" role="tab" aria-selected="false" aria-controls="panel-lab" tabindex="-1" data-tab="lab">Lab (FNBP)</button>
+    </nav>
+
+    <main class="main">
+      <noscript>
+        <p class="notice">NED needs JavaScript to run its analysis pipeline. Nothing is uploaded anywhere; the interface only talks to this local server.</p>
+      </noscript>
+
+      <!-- ============================ ANALYZE ============================ -->
+      <section class="panel" id="panel-analyze" role="tabpanel" aria-labelledby="tab-analyze" tabindex="0">
+        <div class="card">
+          <div class="card-head">
+            <h2 class="label">Evidence Intake</h2>
+            <p class="hint">Paste a chat message, or describe what actually happened. NED will look for positive-affection signals and then, with great rigor, explain them away.</p>
+          </div>
+
+          <label class="field-label" for="analyze-input">Message or event</label>
+          <textarea id="analyze-input" class="input" rows="5" placeholder="Paste a message or describe what happened..." spellcheck="false"></textarea>
+
+          <div class="row-inline">
+            <div class="field">
+              <label class="field-label" for="mode-select">Analysis mode</label>
+              <select id="mode-select" class="input select">
+                {% for m in modes %}
+                <option value="{{ m.id }}" data-blurb="{{ m.blurb }}"{% if m.id == modes_default %} selected{% endif %}>{{ m.label }}</option>
+                {% endfor %}
+              </select>
+              <p class="mode-blurb" id="mode-blurb">{% for m in modes %}{% if m.id == modes_default %}{{ m.blurb }}{% endif %}{% endfor %}</p>
+            </div>
+            <div class="field field-actions">
+              <button type="button" class="btn btn-primary" id="analyze-submit">Analyze Evidence</button>
+              <p class="status" id="analyze-status" role="status" aria-live="polite"></p>
+            </div>
+          </div>
+
+          <div class="chips-wrap">
+            <div class="label">Example cases</div>
+            <div class="chips" id="example-chips">
+              {% for ex in examples %}
+              <button type="button" class="chip" data-text="{{ ex.text }}" data-mode="{{ ex.mode }}"{% if ex.note %} title="{{ ex.note }}"{% endif %}>
+                <span class="chip-text">{{ ex.text }}</span>
+                <span class="chip-foot">
+                  {% if ex.note %}<span class="chip-note">{{ ex.note }}</span>{% endif %}
+                  <span class="chip-mode mono">{{ ex.mode }}</span>
+                </span>
+              </button>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <section class="report" id="analyze-results" data-severity="info" hidden aria-live="polite">
+          <div class="report-head">
+            <div>
+              <div class="label">Analysis Report</div>
+              <p class="satire-line">This output is satire. It does not measure anyone's feelings.</p>
+            </div>
+            <div class="report-tools">
+              <div class="report-meta">
+                <span class="meta-item">mode <b class="mono" id="result-mode">—</b></span>
+                <span class="meta-item">lang <b class="mono" id="result-language">—</b></span>
+                <span class="meta-item">signal <b class="mono" id="result-signal-type">—</b></span>
+              </div>
+              <button type="button" class="btn btn-ghost" id="copy-json">Copy JSON</button>
+            </div>
+          </div>
+
+          <div class="grid">
+            <section class="card">
+              <div class="label">Signal Classification</div>
+              <div id="signal-classification" class="kv">
+                <div class="kv-row"><span class="kv-k">Signal type</span><span class="kv-v mono" id="sc-signal-type">—</span></div>
+                <div class="kv-row"><span class="kv-k">Label</span><span class="kv-v" id="sc-signal-label">—</span></div>
+                <div class="kv-row"><span class="kv-k">Language</span><span class="kv-v mono" id="sc-language">—</span></div>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="label">Evidence Strength</div>
+              <div id="evidence-strength" class="stack">
+                <div class="readout">
+                  <span class="readout-value mono" id="evidence-strength-value">—</span>
+                  <span class="readout-unit">signal strength</span>
+                </div>
+                <div class="bar" role="progressbar" aria-label="Evidence strength" aria-valuemin="0" aria-valuemax="100">
+                  <span class="bar-fill" id="evidence-strength-bar"></span>
+                </div>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="label">Discount</div>
+              <div id="discount-block" class="stack">
+                <div class="bar-meta">
+                  <span class="bar-label">Positive evidence discount</span>
+                  <span class="bar-value mono" id="discount-value">—</span>
+                </div>
+                <div class="bar" role="progressbar" aria-label="Positive evidence discount" aria-valuemin="0" aria-valuemax="100">
+                  <span class="bar-fill sev-warning" id="discount-bar"></span>
+                </div>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="label">Amplification</div>
+              <div id="amplification-block" class="stack">
+                <div class="bar-meta">
+                  <span class="bar-label">Negative evidence amplification</span>
+                  <span class="bar-value mono" id="amplification-value">—</span>
+                </div>
+                <div class="bar" role="progressbar" aria-label="Negative evidence amplification" aria-valuemin="0" aria-valuemax="100">
+                  <span class="bar-fill sev-reject" id="amplification-bar"></span>
+                </div>
+              </div>
+            </section>
+
+            <section class="card card-wide">
+              <div class="label">Hypotheses</div>
+              <div id="alternative-hypotheses" class="stack">
+                <h3 class="subhead">Alternative Hypotheses</h3>
+                <p class="note">These are alternative hypotheses, not findings. Each one exists to re-open the possibility that 可能只是人好。👍</p>
+                <ol class="hypo-list" id="hypotheses-list">
+                  <li class="hypo hypo-empty">No alternative hypotheses computed yet.</li>
+                </ol>
+              </div>
+            </section>
+
+            <section class="card card-wide">
+              <div class="label">NED Reaching Level</div>
+              <div id="reaching-block" class="stack">
+                <div class="readout readout-lg">
+                  <span class="readout-value mono" id="reaching-value">—</span>
+                  <span class="readout-label" id="reaching-label">—</span>
+                  <span class="reaching-alert" id="reaching-alert" hidden>NED is currently reaching.</span>
+                </div>
+                <div class="bar bar-lg" id="reaching-track" data-state="contained" role="progressbar" aria-label="NED reaching level" aria-valuemin="0" aria-valuemax="100">
+                  <span class="bar-fill" id="reaching-bar"></span>
+                </div>
+                <ul class="legend" id="reaching-legend">
+                  {% for band in reaching_labels %}
+                  <li class="legend-item" data-min="{{ band.min }}" data-max="{{ band.max }}">
+                    <span class="legend-range mono">{{ band.min }}–{{ band.max }}</span>
+                    <span class="legend-label">{{ band.label }}</span>
+                  </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="label">Reality Check</div>
+              <div id="reality-check" class="stack">
+                <h3 class="subhead">Reality Check</h3>
+                <p class="prose" id="reality-check-text">—</p>
+              </div>
+            </section>
+
+            <section class="card card-wide" id="nea-block" hidden>
+              <div class="label">Negative Evidence Amplifier</div>
+              <div class="stack">
+                <h3 class="subhead">Observed evidence vs amplified reading</h3>
+                <div class="kv">
+                  <div class="kv-row">
+                    <span class="kv-k">Observed evidence</span>
+                    <span class="kv-v" id="nea-observed">—</span>
+                  </div>
+                  <div class="kv-row">
+                    <span class="kv-k">Amplified reading</span>
+                    <span class="kv-v alarm" id="nea-amplified">—</span>
+                  </div>
+                </div>
+                <p class="note">NED prints the inflated reading only in order to measure it. Nothing here is advice, and nothing here is a fact about anyone.</p>
+              </div>
+            </section>
+
+            <section class="card verdict-card">
+              <div class="label">Verdict</div>
+              <div id="final-verdict" class="stack">
+                <h3 class="subhead">Final Verdict</h3>
+                <p class="verdict-line">
+                  <span class="verdict-emoji" id="verdict-emoji" aria-hidden="true"></span>
+                  <span class="verdict-text" id="verdict-text">—</span>
+                </p>
+                <div class="chip-row">
+                  <span class="severity-chip mono" id="verdict-severity">—</span>
+                  <span class="code-chip mono" id="verdict-code">—</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="card card-wide" id="analyze-asymmetry" hidden>
+              <div class="label">Attached Asymmetry Reading</div>
+              <div class="kv">
+                <div class="kv-row"><span class="kv-k">Asymmetry score</span><span class="kv-v mono" id="analyze-asym-score">—</span></div>
+                <div class="kv-row"><span class="kv-k">Label</span><span class="kv-v mono" id="analyze-asym-label">—</span></div>
+              </div>
+              <div class="bar" role="progressbar" aria-label="Asymmetry score" aria-valuemin="0" aria-valuemax="100">
+                <span class="bar-fill sev-chaos" id="analyze-asym-bar"></span>
+              </div>
+              <p class="note" id="analyze-asym-reality">—</p>
+            </section>
+
+            <section class="card card-wide" id="engine-notes-block" hidden>
+              <div class="label">Engine Notes</div>
+              <div class="stack">
+                <ul class="notes" id="mode-notes"></ul>
+                <ul class="notes notes-eggs" id="egg-list" hidden></ul>
+              </div>
+            </section>
+          </div>
+
+          <details class="disclosure">
+            <summary>Raw interpretation &amp; matched evidence</summary>
+            <div class="disclosure-body">
+              <div class="label">Raw Interpretation</div>
+              <p class="prose" id="raw-interpretation">—</p>
+              <div class="label">Evidence Rows</div>
+              <div class="table-wrap">
+                <table class="table" id="evidence-table">
+                  <thead>
+                    <tr>
+                      <th>Rule ID</th>
+                      <th>Evidence text</th>
+                      <th>Signal</th>
+                      <th>Polarity</th>
+                      <th class="num">Base</th>
+                      <th class="num">Info</th>
+                      <th>Matched keywords</th>
+                    </tr>
+                  </thead>
+                  <tbody id="evidence-rows">
+                    <tr><td colspan="7" class="muted">No evidence rows.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </details>
+
+          <details class="disclosure">
+            <summary>Internal scoring breakdown (non-authoritative)</summary>
+            <div class="disclosure-body">
+              <div class="table-wrap">
+                <table class="table table-kv" id="breakdown">
+                  <tbody id="breakdown-rows">
+                    <tr><th scope="row" class="mono">—</th><td class="mono">—</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </details>
+
+          <footer class="report-foot">
+            <p class="engine-line">Engine <b class="mono" id="engine-name">—</b> · provider <b class="mono" id="engine-provider">—</b> · escapes used <b class="mono" id="engine-escapes">—</b></p>
+            <p class="disclaimer" id="result-disclaimer">{{ disclaimer }}</p>
+            <p class="foot-meta mono" id="result-generated-at">—</p>
+          </footer>
+        </section>
+      </section>
+
+      <!-- ============================ ASYMMETRY ============================ -->
+      <section class="panel" id="panel-asymmetry" role="tabpanel" aria-labelledby="tab-asymmetry" tabindex="0" hidden>
+        <div class="card">
+          <div class="card-head">
+            <h2 class="label">Evidence Standard Comparison</h2>
+            <p class="hint">Feed NED one piece of good news and one piece of bad news. It will compare the standards applied to each. Both fields are optional, but at least one is required.</p>
+          </div>
+
+          <div class="grid">
+            <div class="stack">
+              <label class="field-label" for="asym-positive">Positive evidence</label>
+              <textarea id="asym-positive" class="input" rows="3" spellcheck="false">她主动找我聊了两个小时</textarea>
+            </div>
+            <div class="stack">
+              <label class="field-label" for="asym-negative">Negative evidence</label>
+              <textarea id="asym-negative" class="input" rows="3" spellcheck="false">五分钟没回复</textarea>
+            </div>
+          </div>
+
+          <div class="field-actions">
+            <button type="button" class="btn btn-primary" id="asym-submit">Compare Evidence Standards</button>
+            <p class="status" id="asym-status" role="status" aria-live="polite"></p>
+          </div>
+        </div>
+
+        <section class="report" id="asym-results" data-severity="info" hidden aria-live="polite">
+          <div class="report-head">
+            <div>
+              <div class="label">Evidence Asymmetry Detector</div>
+              <p class="satire-line">This output is satire. It does not measure anyone's feelings.</p>
+            </div>
+          </div>
+
+          <div class="grid">
+            <section class="card card-wide">
+              <div class="label">Applied Weights</div>
+              <div id="asym-weights" class="stack">
+                <div class="stack">
+                  <div class="bar-meta">
+                    <span class="bar-label">Positive weight</span>
+                    <span class="bar-value mono" id="asym-pos-weight-value">—</span>
+                  </div>
+                  <div class="bar" role="progressbar" aria-label="Positive weight" aria-valuemin="0" aria-valuemax="100">
+                    <span class="bar-fill sev-info" id="asym-pos-weight-bar"></span>
+                  </div>
+                </div>
+                <div class="stack">
+                  <div class="bar-meta">
+                    <span class="bar-label">Negative weight</span>
+                    <span class="bar-value mono" id="asym-neg-weight-value">—</span>
+                  </div>
+                  <div class="bar" role="progressbar" aria-label="Negative weight" aria-valuemin="0" aria-valuemax="100">
+                    <span class="bar-fill sev-reject" id="asym-neg-weight-bar"></span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="label">Admission Thresholds</div>
+              <div id="asym-thresholds" class="stack">
+                <div class="threshold-row">
+                  <span class="threshold-k">Positive evidence</span>
+                  <span class="threshold-chip mono" id="asym-pos-threshold">—</span>
+                </div>
+                <div class="threshold-row">
+                  <span class="threshold-k">Negative evidence</span>
+                  <span class="threshold-chip mono" id="asym-neg-threshold">—</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="label">Asymmetry Score</div>
+              <div id="asym-score" class="stack">
+                <div class="readout readout-lg">
+                  <span class="readout-value mono" id="asym-score-value">—</span>
+                  <span class="readout-label mono" id="asym-score-label">—</span>
+                </div>
+                <div class="bar bar-lg" id="asym-score-track" data-state="contained" role="progressbar" aria-label="Asymmetry score" aria-valuemin="0" aria-valuemax="100">
+                  <span class="bar-fill sev-chaos" id="asym-score-bar"></span>
+                </div>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="label">Reality Check</div>
+              <div id="asym-reality" class="stack">
+                <p class="prose" id="asym-reality-text">—</p>
+              </div>
+            </section>
+
+            <section class="card card-wide">
+              <div class="label">Internal Sub-scores (non-authoritative)</div>
+              <div class="kv" id="asym-subscores">
+                <div class="kv-row"><span class="kv-k">Weight gap</span><span class="kv-v mono" id="asym-sub-weight-gap">—</span></div>
+                <div class="kv-row"><span class="kv-k">Information gap</span><span class="kv-v mono" id="asym-sub-information-gap">—</span></div>
+                <div class="kv-row"><span class="kv-k">Categorical</span><span class="kv-v mono" id="asym-sub-categorical">—</span></div>
+                <p class="note">NED's own arbitrary numbers, printed for auditability. They are not measurements of anyone.</p>
+              </div>
+            </section>
+
+            <section class="card verdict-card">
+              <div class="label">Verdict</div>
+              <div id="asym-verdict" class="stack">
+                <p class="verdict-line">
+                  <span class="verdict-emoji" id="asym-verdict-emoji" aria-hidden="true"></span>
+                  <span class="verdict-text" id="asym-verdict-text">—</span>
+                </p>
+                <div class="chip-row">
+                  <span class="severity-chip mono" id="asym-verdict-severity">—</span>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <details class="disclosure" open>
+            <summary>Side-by-side comparison</summary>
+            <div class="disclosure-body">
+              <div class="table-wrap">
+                <table class="table" id="asym-table">
+                  <thead>
+                    <tr><th>Metric</th><th>Positive</th><th>Negative</th></tr>
+                  </thead>
+                  <tbody id="asym-rows">
+                    <tr><td class="muted">—</td><td class="mono">—</td><td class="mono">—</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </details>
+
+          <footer class="report-foot">
+            <p class="disclaimer" id="asym-disclaimer">—</p>
+          </footer>
+        </section>
+      </section>
+
+      <!-- ============================== LAB ============================== -->
+      <section class="panel" id="panel-lab" role="tabpanel" aria-labelledby="tab-lab" tabindex="0" hidden>
+        <div class="card">
+          <div class="card-head">
+            <h2 class="label">Lab — Fuyuki Notification Branch Predictor</h2>
+            <p class="hint">An easter-egg module. It models a speculative-execution pipeline that bets on who is messaging you, mispredicts, and flushes everything.</p>
+            <p class="notice notice-strong">
+              This is a fictional easter-egg module. <b>Fuyuki</b> is a fictional internal codename used by NED's test harness — it is not a real person, and no real person is being modelled here.
+            </p>
+          </div>
+
+          <div class="grid grid-4">
+            <div class="stack">
+              <label class="field-label" for="fnbp-expected">Expected sender</label>
+              <input class="input mono" id="fnbp-expected" type="text" value="Fuyuki" spellcheck="false" />
+            </div>
+            <div class="stack">
+              <label class="field-label" for="fnbp-actual">Actual senders (comma separated)</label>
+              <input class="input mono" id="fnbp-actual" type="text" value="张三, 李四" spellcheck="false" />
+            </div>
+            <div class="stack">
+              <label class="field-label" for="fnbp-count">Notifications</label>
+              <input class="input mono" id="fnbp-count" type="number" min="1" max="64" step="1" value="5" />
+            </div>
+            <div class="stack">
+              <label class="field-label" for="fnbp-seed">Seed</label>
+              <input class="input mono" id="fnbp-seed" type="number" min="0" step="1" value="7" />
+            </div>
+          </div>
+
+          <div class="field-actions">
+            <button type="button" class="btn btn-primary" id="fnbp-submit">Run Branch Predictor</button>
+            <p class="status" id="fnbp-status" role="status" aria-live="polite"></p>
+          </div>
+        </div>
+
+        <section class="report report-lab" id="fnbp-results" data-severity="chaos" hidden aria-live="polite">
+          <div class="report-head">
+            <div>
+              <div class="label">Pipeline Trace</div>
+              <p class="satire-line">This output is satire. It does not measure anyone's feelings.</p>
+            </div>
+          </div>
+
+          <div class="grid">
+            <section class="card card-wide">
+              <div class="label">Branch Predictor Log</div>
+              <pre class="log" id="fnbp-log">no trace collected</pre>
+            </section>
+
+            <section class="card">
+              <div class="label">Pipeline Statistics</div>
+              <dl class="kv" id="fnbp-stats">
+                <div class="kv-row"><span class="kv-k">Prediction hits</span><span class="kv-v mono" id="fnbp-hits">—</span></div>
+                <div class="kv-row"><span class="kv-k">Prediction misses</span><span class="kv-v mono" id="fnbp-misses">—</span></div>
+                <div class="kv-row"><span class="kv-k">Mispredict rate</span><span class="kv-v mono" id="fnbp-rate">—</span></div>
+                <div class="kv-row"><span class="kv-k">Pipeline flushes</span><span class="kv-v mono" id="fnbp-flushes">—</span></div>
+                <div class="kv-row"><span class="kv-k">Wasted cycles</span><span class="kv-v mono" id="fnbp-wasted">—</span></div>
+              </dl>
+            </section>
+
+            <section class="card verdict-card">
+              <div class="label">Verdict</div>
+              <div id="fnbp-verdict" class="stack">
+                <p class="verdict-line">
+                  <span class="verdict-emoji" id="fnbp-verdict-emoji" aria-hidden="true"></span>
+                  <span class="verdict-text" id="fnbp-verdict-text">—</span>
+                </p>
+                <div class="chip-row">
+                  <span class="severity-chip mono" id="fnbp-verdict-severity">—</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="card card-wide">
+              <div class="label">Codename Note</div>
+              <p class="disclaimer" id="fnbp-codename-note">—</p>
+            </section>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-row">
+        <span class="footer-license">Released under the MIT License.</span>
+        <a class="footer-link" href="/docs">API docs</a>
+        <a class="footer-link" href="/api/version">/api/version</a>
+        <span class="mono footer-version">v{{ version }}</span>
+      </div>
+      <p class="footer-note">NED is entertainment software. It cannot determine whether someone likes you. Humans are not APIs.</p>
+      <p class="footer-meta">All input stays in this browser session and is sent only to this local server. No telemetry, no analytics, no cookies, no third-party requests.</p>
+    </footer>
+  </div>
+
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

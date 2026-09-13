@@ -1,0 +1,33 @@
+{
+  "version": "0.1.0",
+  "comment": "Analysis modes. discount_base is the share of positive evidence NED throws away before it even looks at your case: this is the joke, expressed as configuration.",
+  "modes": [
+    {
+      "id": "normal",
+      "label": "Normal",
+      "blurb": "Moderate meme density. NED discounts your evidence, then tells you what it actually means.",
+      "discount_base": 35,
+      "escape_count": 3,
+      "plausibility_scale": 1.0,
+      "tone": "dry"
+    },
+    {
+      "id": "scientific",
+      "label": "Scientific",
+      "blurb": "Peer-review voice. Same conclusion, more syllables, and a sample size of N=1.",
+      "discount_base": 45,
+      "escape_count": 4,
+      "plausibility_scale": 1.15,
+      "tone": "formal"
+    },
+    {
+      "id": "extreme",
+      "label": "Nov1ce Extreme",
+      "blurb": "Nov1ce Mode. Every escape hatch is opened at once, including the legal ones.",
+      "discount_base": 60,
+      "escape_count": 5,
+      "plausibility_scale": 0.75,
+      "tone": "maximal"
+    }
+  ]
+}

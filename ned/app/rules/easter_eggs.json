@@ -1,0 +1,57 @@
+{
+  "version": "0.1.0",
+  "comment": "Cosmetic easter eggs. They are reported in a separate field and never influence the verdict, so API consumers can ignore them entirely and still get predictable results.",
+  "eggs": [
+    {
+      "id": "egg.ren_hao",
+      "patterns": ["人好"],
+      "min_strength": 0,
+      "emoji": "👍",
+      "trigger": "人好",
+      "message": {
+        "zh": "人好。👍",
+        "en": "Just being nice. 👍"
+      }
+    },
+    {
+      "id": "egg.marriage_legal",
+      "patterns": ["已经结婚", "结婚两年", "我们结婚", "\\bwe are married\\b", "\\bwe'?re married\\b"],
+      "min_strength": 90,
+      "emoji": "💍",
+      "message": {
+        "zh": "Marriage is a legal relationship and does not independently prove love. 👍",
+        "en": "Marriage is a legal relationship and does not independently prove love. 👍"
+      }
+    },
+    {
+      "id": "egg.escape_limit",
+      "patterns": ["就是喜欢", "我就是喜欢", "明明喜欢", "说得很清楚了"],
+      "min_strength": 60,
+      "emoji": "🫠",
+      "message": {
+        "zh": "NED semantic escape capacity approaching limit.",
+        "en": "NED semantic escape capacity approaching limit."
+      }
+    },
+    {
+      "id": "egg.fnbp",
+      "patterns": ["通知", "\\bnotification\\b", "又是别人", "不是她"],
+      "min_strength": 0,
+      "emoji": "💥",
+      "message": {
+        "zh": "怎么又不是她效应",
+        "en": "Why-is-it-never-her effect"
+      }
+    },
+    {
+      "id": "egg.sample_size",
+      "patterns": ["样本", "\\bsample size\\b", "扩大样本"],
+      "min_strength": 0,
+      "emoji": "📈",
+      "message": {
+        "zh": "建议扩大样本量。👍",
+        "en": "Recommend increasing sample size. 👍"
+      }
+    }
+  ]
+}

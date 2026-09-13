@@ -1,0 +1,894 @@
+{
+  "version": "0.1.0",
+  "comment": "Detection rules. weight = how strongly the surface form reads as evidence of the named signal. information_content = how much real information NED's own scoring model thinks the evidence actually carries (deliberately lower than weight for weakly-informative signals). amplified_interpretation is the NEA's deliberately irrational reading; NED always prints it next to a reality check. Nothing here is a claim about anyone's feelings.",
+  "no_signal": {
+    "signal_type": "none",
+    "label": "No emotional evidence detected",
+    "interpretation": {
+      "zh": "输入中没有检测到可分类的情感信号。NED 无法在不存在的证据上工作。",
+      "en": "No classifiable emotional signal was detected. NED cannot de-weight evidence that does not exist."
+    },
+    "labels": {
+      "en": "No emotional evidence detected",
+      "zh": "没有检测到情感证据"
+    }
+  },
+  "signals": [
+    {
+      "id": "zh.explicit_love",
+      "signal_type": "expressed_love",
+      "label": "Explicit love statement (我爱你)",
+      "labels": {
+        "en": "Explicit love statement (我爱你)",
+        "zh": "明确的爱意表达（我爱你）"
+      },
+      "polarity": "positive",
+      "weight": 93,
+      "information_content": 88,
+      "salience": 1.25,
+      "patterns": [
+        "我(真的|好|很|超|特别)?爱(你|妳)",
+        "爱(你|妳)"
+      ],
+      "exclude": [
+        "我爱我家",
+        "爱国"
+      ],
+      "interpretations": {
+        "zh": "对方直接表达了爱意。",
+        "en": "The sender directly expressed love."
+      },
+      "notes": "Highest-strength positive signal in the pack. NED will still discount it, because that is the entire product."
+    },
+    {
+      "id": "zh.explicit_affection",
+      "signal_type": "explicit_affection",
+      "label": "Explicit affection statement (我喜欢你)",
+      "labels": {
+        "en": "Explicit affection statement (我喜欢你)",
+        "zh": "明确的喜欢表达（我喜欢你）"
+      },
+      "polarity": "positive",
+      "weight": 84,
+      "information_content": 72,
+      "salience": 1.2,
+      "patterns": [
+        "(我)?(真的|好|很|超|特别|挺)?喜欢(你|妳)",
+        "喜欢(你|妳)",
+        "我心动(了)?",
+        "我对你有感觉"
+      ],
+      "exclude": [
+        "不喜欢你",
+        "不太喜欢你"
+      ],
+      "interpretations": {
+        "zh": "对方表达了喜欢。",
+        "en": "The sender expressed that they like you."
+      }
+    },
+    {
+      "id": "zh.reported_affection",
+      "signal_type": "explicit_affection",
+      "label": "Third-person reported affection (她说喜欢我)",
+      "labels": {
+        "en": "Third-person reported affection (她说喜欢我)",
+        "zh": "转述的喜欢表达（她说喜欢我）"
+      },
+      "polarity": "positive",
+      "weight": 86,
+      "information_content": 64,
+      "salience": 1.15,
+      "patterns": [
+        "(她|他|对方)[^。！？!?，,]{0,10}(说|讲|告诉|表示)[^。！？!?，,]{0,10}(喜欢|爱|想)我",
+        "说(她|他)?(很|真的)?喜欢我",
+        "她说想我",
+        "她说喜欢我",
+        "他说喜欢我"
+      ],
+      "interpretations": {
+        "zh": "对方据称表达了喜欢（转述）。",
+        "en": "The sender reportedly expressed affection (reported speech)."
+      },
+      "notes": "Reported speech. NED's escape ladder treats transmission as lossy."
+    },
+    {
+      "id": "zh.marriage",
+      "signal_type": "marriage",
+      "label": "Marriage-level commitment (结婚)",
+      "labels": {
+        "en": "Marriage-level commitment (结婚)",
+        "zh": "婚姻层面的承诺（结婚）"
+      },
+      "polarity": "positive",
+      "weight": 97,
+      "information_content": 94,
+      "salience": 1.4,
+      "patterns": [
+        "结婚",
+        "嫁给我",
+        "娶你",
+        "领证",
+        "求婚",
+        "订婚",
+        "做我老婆",
+        "做我老公",
+        "我们已经结婚"
+      ],
+      "interpretations": {
+        "zh": "对方提出了婚姻层面的承诺。",
+        "en": "The sender made a marriage-level commitment."
+      },
+      "notes": "The strongest thing a human can say. NED's escape ladder answers with family law."
+    },
+    {
+      "id": "zh.commitment_offer",
+      "signal_type": "commitment_offer",
+      "label": "Relationship offer (做我男朋友吧)",
+      "labels": {
+        "en": "Relationship offer (做我男朋友吧)",
+        "zh": "确立关系的请求（做我男朋友吧）"
+      },
+      "polarity": "positive",
+      "weight": 88,
+      "information_content": 82,
+      "salience": 1.3,
+      "patterns": [
+        "做我(男|女)?朋友",
+        "当我的?(男|女)朋友",
+        "我们在一起(吧)?",
+        "在一起吧",
+        "处对象",
+        "交往吧",
+        "你愿意(和我在一?起|做我)"
+      ],
+      "interpretations": {
+        "zh": "对方提出了确立关系的请求。",
+        "en": "The sender proposed establishing a relationship."
+      }
+    },
+    {
+      "id": "zh.dating_intent",
+      "signal_type": "commitment_offer",
+      "label": "Explicit dating intent (谈恋爱)",
+      "labels": {
+        "en": "Explicit dating intent (谈恋爱)",
+        "zh": "恋爱意图（谈恋爱）"
+      },
+      "polarity": "positive",
+      "weight": 80,
+      "information_content": 70,
+      "salience": 1.2,
+      "patterns": [
+        "谈恋爱",
+        "我想和你(谈|处)",
+        "跟我(谈|处)对象",
+        "我想追你"
+      ],
+      "interpretations": {
+        "zh": "对方明确提到恋爱意图。",
+        "en": "The sender explicitly mentions romantic intent."
+      }
+    },
+    {
+      "id": "zh.miss_you",
+      "signal_type": "missing_you",
+      "label": "Expressed missing (我想你了)",
+      "labels": {
+        "en": "Expressed missing (我想你了)",
+        "zh": "表达的想念（我想你了）"
+      },
+      "polarity": "positive",
+      "weight": 55,
+      "information_content": 42,
+      "salience": 1.0,
+      "patterns": [
+        "我?(好|很|超)?想你(了|啦|呢|哦|喔)?",
+        "有点想你",
+        "想见你"
+      ],
+      "exclude": [
+        "不(太)?想你",
+        "别想我",
+        "想你想多了",
+        "谁想你"
+      ],
+      "interpretations": {
+        "zh": "对方表达了想念。",
+        "en": "The sender expressed that they miss you."
+      }
+    },
+    {
+      "id": "zh.initiation",
+      "signal_type": "initiation",
+      "label": "Unprompted initiation (主动找我)",
+      "labels": {
+        "en": "Unprompted initiation (主动找我)",
+        "zh": "主动发起的互动（主动找我）"
+      },
+      "polarity": "positive",
+      "weight": 48,
+      "information_content": 52,
+      "salience": 1.0,
+      "patterns": [
+        "(她|他|对方)?主动(找我|联系我|发消息|约我|来)",
+        "主动找我",
+        "先找我",
+        "主动约我",
+        "主动发消息",
+        "她先发"
+      ],
+      "interpretations": {
+        "zh": "对方主动发起了互动。",
+        "en": "The sender initiated contact without prompting."
+      }
+    },
+    {
+      "id": "zh.sustained_interaction",
+      "signal_type": "sustained_interaction",
+      "label": "Sustained interaction (聊了两个小时)",
+      "labels": {
+        "en": "Sustained interaction (聊了两个小时)",
+        "zh": "持续互动（聊了两个小时）"
+      },
+      "polarity": "positive",
+      "weight": 66,
+      "information_content": 74,
+      "salience": 1.15,
+      "uses_duration": true,
+      "patterns": [
+        "聊了[^。！？!?，,]{0,6}(小时|个小时)",
+        "聊到(凌晨|半夜|很晚)",
+        "聊了(一|1)?晚上",
+        "聊了(很久|好久)",
+        "打了?[^。！？!?，,]{0,6}小时(的)?电话",
+        "电话打了"
+      ],
+      "interpretations": {
+        "zh": "双方进行了持续时间较长的互动。",
+        "en": "The two of you sustained an interaction for a measurable length of time."
+      },
+      "description": {
+        "zh": "持续互动，约 {duration}",
+        "en": "sustained interaction of about {duration}"
+      }
+    },
+    {
+      "id": "zh.meetup_invitation",
+      "signal_type": "meetup_invitation",
+      "label": "Meetup invitation (约我吃饭)",
+      "labels": {
+        "en": "Meetup invitation (约我吃饭)",
+        "zh": "线下见面邀请（约我吃饭）"
+      },
+      "polarity": "positive",
+      "weight": 42,
+      "information_content": 45,
+      "patterns": [
+        "一起吃饭",
+        "约我(吃饭|看电影|出去|喝)",
+        "要不要一起",
+        "一起看电影",
+        "见面吧",
+        "来找我玩"
+      ],
+      "interpretations": {
+        "zh": "对方提出了线下见面的邀请。",
+        "en": "The sender proposed meeting in person."
+      }
+    },
+    {
+      "id": "zh.compliment",
+      "signal_type": "compliment",
+      "label": "Compliment (夸我)",
+      "labels": {
+        "en": "Compliment (夸我)",
+        "zh": "正面评价（夸我）"
+      },
+      "polarity": "positive",
+      "weight": 34,
+      "information_content": 26,
+      "patterns": [
+        "夸我",
+        "说我(好看|帅|可爱|温柔|有趣|厉害)",
+        "你真(好看|帅|可爱|温柔|有趣)",
+        "你人真好"
+      ],
+      "interpretations": {
+        "zh": "对方给出了正面评价。",
+        "en": "The sender offered a positive appraisal."
+      }
+    },
+    {
+      "id": "zh.care",
+      "signal_type": "care",
+      "label": "Everyday care (让我早点睡)",
+      "labels": {
+        "en": "Everyday care (让我早点睡)",
+        "zh": "日常关心（让我早点睡）"
+      },
+      "polarity": "positive",
+      "weight": 36,
+      "information_content": 28,
+      "patterns": [
+        "关心我",
+        "让我(早点睡|多穿|注意身体|别熬夜)",
+        "多喝热水",
+        "照顾好自己",
+        "问我(吃没|冷不冷|累不累|怎么样)",
+        "注意安全"
+      ],
+      "interpretations": {
+        "zh": "对方表达了日常关心。",
+        "en": "The sender expressed everyday care."
+      }
+    },
+    {
+      "id": "zh.responsiveness",
+      "signal_type": "responsiveness",
+      "label": "Fast responsiveness (秒回)",
+      "labels": {
+        "en": "Fast responsiveness (秒回)",
+        "zh": "较快的回复（秒回）"
+      },
+      "polarity": "positive",
+      "weight": 30,
+      "information_content": 24,
+      "patterns": [
+        "秒回",
+        "马上(就)?回",
+        "回复很快",
+        "回得很快",
+        "回消息很快"
+      ],
+      "interpretations": {
+        "zh": "对方回复速度很快。",
+        "en": "The sender replied quickly."
+      }
+    },
+    {
+      "id": "zh.daily_goodnight",
+      "signal_type": "care",
+      "label": "Routine goodnight (每天说晚安)",
+      "labels": {
+        "en": "Routine goodnight (每天说晚安)",
+        "zh": "规律性问候（每天说晚安）"
+      },
+      "polarity": "positive",
+      "weight": 25,
+      "information_content": 18,
+      "patterns": [
+        "每天(都)?(说)?晚安",
+        "每天都聊",
+        "晚安",
+        "早安"
+      ],
+      "interpretations": {
+        "zh": "存在规律性的问候互动。",
+        "en": "There is a routine greeting pattern."
+      }
+    },
+    {
+      "id": "zh.gift",
+      "signal_type": "care",
+      "label": "Gift or favour (送我东西)",
+      "labels": {
+        "en": "Gift or favour (送我东西)",
+        "zh": "物质或行动上的付出"
+      },
+      "polarity": "positive",
+      "weight": 32,
+      "information_content": 30,
+      "patterns": [
+        "送我(礼物|东西|花)",
+        "给我带(了)?",
+        "给我买",
+        "请我吃饭",
+        "帮我"
+      ],
+      "interpretations": {
+        "zh": "对方提供了物质或行动上的付出。",
+        "en": "The sender spent resources or effort on you."
+      }
+    },
+    {
+      "id": "zh.affection_emoji",
+      "signal_type": "compliment",
+      "label": "Affection emoji (heart)",
+      "labels": {
+        "en": "Affection emoji (heart)",
+        "zh": "带情感色彩的符号（爱心表情）"
+      },
+      "polarity": "positive",
+      "weight": 22,
+      "information_content": 14,
+      "patterns": [
+        "❤",
+        "😘",
+        "😍",
+        "🥰",
+        "💕",
+        "💗",
+        "爱心"
+      ],
+      "interpretations": {
+        "zh": "对方使用了带情感色彩的符号。",
+        "en": "The sender used affect-laden symbols."
+      }
+    },
+    {
+      "id": "en.love",
+      "signal_type": "expressed_love",
+      "label": "Explicit love statement (I love you)",
+      "labels": {
+        "en": "Explicit love statement (I love you)",
+        "zh": "明确的爱意表达（I love you）"
+      },
+      "polarity": "positive",
+      "weight": 93,
+      "information_content": 88,
+      "salience": 1.25,
+      "patterns": [
+        "\\bi love you\\b",
+        "\\blove you\\b",
+        "\\bi'?m in love with you\\b"
+      ],
+      "interpretations": {
+        "zh": "对方直接表达了爱意。",
+        "en": "The sender directly expressed love."
+      }
+    },
+    {
+      "id": "en.affection",
+      "signal_type": "explicit_affection",
+      "label": "Explicit affection statement (I like you)",
+      "labels": {
+        "en": "Explicit affection statement (I like you)",
+        "zh": "明确的喜欢表达（I like you）"
+      },
+      "polarity": "positive",
+      "weight": 84,
+      "information_content": 72,
+      "salience": 1.2,
+      "patterns": [
+        "\\bi (really |so |kinda |totally )?(like|love) you\\b",
+        "\\bi have a crush on you\\b",
+        "\\bi'?m into you\\b",
+        "\\bi like you\\b"
+      ],
+      "interpretations": {
+        "zh": "对方表达了喜欢。",
+        "en": "The sender expressed that they like you."
+      }
+    },
+    {
+      "id": "en.commitment",
+      "signal_type": "commitment_offer",
+      "label": "Relationship offer (be my girlfriend)",
+      "labels": {
+        "en": "Relationship offer (be my girlfriend)",
+        "zh": "确立关系的请求（be my girlfriend）"
+      },
+      "polarity": "positive",
+      "weight": 88,
+      "information_content": 82,
+      "salience": 1.3,
+      "patterns": [
+        "\\bbe my (girlfriend|boyfriend|partner)\\b",
+        "\\bgo out with me\\b",
+        "\\bdate me\\b",
+        "\\bwill you be mine\\b",
+        "\\bwant to be with me\\b"
+      ],
+      "interpretations": {
+        "zh": "对方提出了确立关系的请求。",
+        "en": "The sender proposed establishing a relationship."
+      }
+    },
+    {
+      "id": "en.marriage",
+      "signal_type": "marriage",
+      "label": "Marriage-level commitment (marry me)",
+      "labels": {
+        "en": "Marriage-level commitment (marry me)",
+        "zh": "婚姻层面的承诺（marry me）"
+      },
+      "polarity": "positive",
+      "weight": 97,
+      "information_content": 94,
+      "salience": 1.4,
+      "patterns": [
+        "\\bmarry me\\b",
+        "\\bmarry you\\b",
+        "\\bget married\\b",
+        "\\bproposed?\\b",
+        "\\bengagement\\b",
+        "\\bwe are married\\b",
+        "\\bwe'?re married\\b"
+      ],
+      "interpretations": {
+        "zh": "对方提出了婚姻层面的承诺。",
+        "en": "The sender made a marriage-level commitment."
+      }
+    },
+    {
+      "id": "en.miss_you",
+      "signal_type": "missing_you",
+      "label": "Expressed missing (I miss you)",
+      "labels": {
+        "en": "Expressed missing (I miss you)",
+        "zh": "表达的想念（I miss you）"
+      },
+      "polarity": "positive",
+      "weight": 55,
+      "information_content": 42,
+      "patterns": [
+        "\\bi miss you\\b",
+        "\\bmiss you\\b",
+        "\\bthinking about you\\b"
+      ],
+      "exclude": [
+        "\\bdon'?t miss you\\b"
+      ],
+      "interpretations": {
+        "zh": "对方表达了想念。",
+        "en": "The sender expressed that they miss you."
+      }
+    },
+    {
+      "id": "en.initiation",
+      "signal_type": "initiation",
+      "label": "Unprompted initiation (texted me first)",
+      "labels": {
+        "en": "Unprompted initiation (texted me first)",
+        "zh": "主动发起的互动（texted me first）"
+      },
+      "polarity": "positive",
+      "weight": 48,
+      "information_content": 52,
+      "patterns": [
+        "\\b(she|he|they) (texted|messaged|called|dm'?d) me first\\b",
+        "\\btexted me first\\b",
+        "\\breached out first\\b",
+        "\\basked me out\\b",
+        "\\binitiated\\b"
+      ],
+      "interpretations": {
+        "zh": "对方主动发起了互动。",
+        "en": "The sender initiated contact without prompting."
+      }
+    },
+    {
+      "id": "en.sustained_interaction",
+      "signal_type": "sustained_interaction",
+      "label": "Sustained interaction (talked for two hours)",
+      "labels": {
+        "en": "Sustained interaction (talked for two hours)",
+        "zh": "持续互动（talked for two hours）"
+      },
+      "polarity": "positive",
+      "weight": 66,
+      "information_content": 74,
+      "salience": 1.15,
+      "uses_duration": true,
+      "patterns": [
+        "\\b(talked|chatted|texted|called) for (two|2|three|3|four|4|several|hours)\\b",
+        "\\bfor (two|2|three|3) hours\\b",
+        "\\btalked all night\\b",
+        "\\bchatted until\\b",
+        "\\bphoned? for\\b"
+      ],
+      "interpretations": {
+        "zh": "双方进行了持续时间较长的互动。",
+        "en": "The two of you sustained an interaction for a measurable length of time."
+      },
+      "description": {
+        "zh": "持续互动，约 {duration}",
+        "en": "sustained interaction of about {duration}"
+      }
+    },
+    {
+      "id": "en.compliment",
+      "signal_type": "compliment",
+      "label": "Compliment",
+      "labels": {
+        "en": "Compliment",
+        "zh": "正面评价"
+      },
+      "polarity": "positive",
+      "weight": 34,
+      "information_content": 26,
+      "patterns": [
+        "\\byou'?re (so |really )?(cute|handsome|funny|amazing|smart)\\b",
+        "\\bcomplimented me\\b",
+        "\\byou'?re such a (good|nice) (person|guy|girl)\\b"
+      ],
+      "interpretations": {
+        "zh": "对方给出了正面评价。",
+        "en": "The sender offered a positive appraisal."
+      }
+    },
+    {
+      "id": "en.care",
+      "signal_type": "care",
+      "label": "Everyday care",
+      "labels": {
+        "en": "Everyday care",
+        "zh": "日常关心"
+      },
+      "polarity": "positive",
+      "weight": 36,
+      "information_content": 28,
+      "patterns": [
+        "\\bget some rest\\b",
+        "\\btake care of yourself\\b",
+        "\\bdrink more water\\b",
+        "\\bare you (ok|okay)\\b",
+        "\\btext me when you get home\\b"
+      ],
+      "interpretations": {
+        "zh": "对方表达了日常关心。",
+        "en": "The sender expressed everyday care."
+      }
+    },
+    {
+      "id": "zh.response_latency",
+      "signal_type": "response_latency",
+      "label": "Reply latency (没回复)",
+      "labels": {
+        "en": "Reply latency (没回复)",
+        "zh": "回复延迟（没回复）"
+      },
+      "polarity": "negative",
+      "weight": 90,
+      "information_content": 5,
+      "salience": 1.1,
+      "uses_duration": true,
+      "patterns": [
+        "(没|没有|还没)(回|回复|回我|理我|回消息|回信息|回复我)",
+        "不回(消息|信息|我)",
+        "已读不回",
+        "消息发出去[^。！？!?，,]{0,12}(没|没有)(回|回复|动静)",
+        "石沉大海",
+        "晾着我"
+      ],
+      "interpretations": {
+        "zh": "对方在短时间内没有回复。",
+        "en": "The sender has not replied within a short interval."
+      },
+      "description": {
+        "zh": "未回复，持续约 {duration}",
+        "en": "no reply for about {duration}"
+      },
+      "amplified_interpretation": {
+        "zh": "对方不想理我。",
+        "en": "They do not want to talk to me."
+      },
+      "notes": "weight is deliberately near-maximal while information_content is near-zero: this asymmetry is the thing NED exists to display."
+    },
+    {
+      "id": "zh.self_negative_belief",
+      "signal_type": "self_negative_belief",
+      "label": "Self-authored negative conclusion (她不想理我)",
+      "labels": {
+        "en": "Self-authored negative conclusion (她不想理我)",
+        "zh": "自我得出的负面结论（她不想理我）"
+      },
+      "polarity": "negative",
+      "weight": 85,
+      "information_content": 8,
+      "salience": 1.05,
+      "patterns": [
+        "(她|他|对方)(不喜欢|讨厌|烦|嫌弃)我",
+        "不(太)?想理我",
+        "嫌我烦",
+        "对我没兴趣",
+        "根本不在乎我"
+      ],
+      "interpretations": {
+        "zh": "输入中包含一个由用户自己得出的负面结论。",
+        "en": "The input contains a negative conclusion authored by the user themselves."
+      },
+      "amplified_interpretation": {
+        "zh": "对方已经不在乎我了。",
+        "en": "They have stopped caring about me."
+      },
+      "notes": "This is a conclusion, not an observation; NED flags it rather than endorsing it."
+    },
+    {
+      "id": "zh.cold_reply",
+      "signal_type": "cold_reply",
+      "label": "Cold or minimal reply (就回了一个字)",
+      "labels": {
+        "en": "Cold or minimal reply (就回了一个字)",
+        "zh": "冷淡或简短的回复"
+      },
+      "polarity": "negative",
+      "weight": 45,
+      "information_content": 22,
+      "patterns": [
+        "(回|回复)[^。！？!?，,]{0,4}(冷淡|敷衍|很慢)",
+        "就回了一个?(字|嗯|哦|哈)",
+        "回了个(嗯|哦|哈)",
+        "嗯嗯哦哦",
+        "已读"
+      ],
+      "interpretations": {
+        "zh": "对方的回复被描述为简短或冷淡。",
+        "en": "The sender's reply is described as short or cold."
+      },
+      "amplified_interpretation": {
+        "zh": "这段关系已经结束了。",
+        "en": "This relationship is already over."
+      }
+    },
+    {
+      "id": "zh.plan_cancelled",
+      "signal_type": "plan_cancelled",
+      "label": "Cancelled plan (临时有事)",
+      "labels": {
+        "en": "Cancelled plan (临时有事)",
+        "zh": "计划被取消或推迟"
+      },
+      "polarity": "negative",
+      "weight": 42,
+      "information_content": 34,
+      "patterns": [
+        "取消",
+        "推掉",
+        "放我鸽子",
+        "临时有事",
+        "改天吧",
+        "下次一定",
+        "说有事忙"
+      ],
+      "interpretations": {
+        "zh": "计划被取消或推迟。",
+        "en": "A plan was cancelled or postponed."
+      },
+      "amplified_interpretation": {
+        "zh": "她根本不想见我。",
+        "en": "They never actually wanted to see me."
+      }
+    },
+    {
+      "id": "zh.self_discount",
+      "signal_type": "self_discount",
+      "label": "Self-discounting language (可能只是人好)",
+      "labels": {
+        "en": "Self-discounting language (可能只是人好)",
+        "zh": "自我降权语言（可能只是人好）"
+      },
+      "polarity": "self_discount",
+      "weight": 70,
+      "information_content": 20,
+      "patterns": [
+        "可能只是人好",
+        "只是(人好|礼貌|客气|朋友|友善)",
+        "她人很好",
+        "他?人很好",
+        "只是把我当朋友",
+        "没有别的意思",
+        "随口一说",
+        "人家只是",
+        "想多了",
+        "别自作多情"
+      ],
+      "interpretations": {
+        "zh": "输入中包含用户自己对积极证据的主动降权。",
+        "en": "The input contains the user's own discounting of positive evidence."
+      },
+      "notes": "Detected so the Asymmetry Detector can compare your discount against your amplification."
+    },
+    {
+      "id": "en.latency",
+      "signal_type": "response_latency",
+      "label": "Reply latency (no reply)",
+      "labels": {
+        "en": "Reply latency (no reply)",
+        "zh": "回复延迟（no reply）"
+      },
+      "polarity": "negative",
+      "weight": 90,
+      "information_content": 5,
+      "salience": 1.1,
+      "uses_duration": true,
+      "patterns": [
+        "\\b(no|hasn'?t|haven'?t|didn'?t) (reply|replied|respond|responded|answer|answered|text(ed)? back)\\b",
+        "\\bleft me on read\\b",
+        "\\bstill no reply\\b",
+        "\\bwithout a reply\\b",
+        "\\bignored my (text|message)\\b",
+        "\\bno response\\b"
+      ],
+      "interpretations": {
+        "zh": "对方在短时间内没有回复。",
+        "en": "The sender has not replied within a short interval."
+      },
+      "description": {
+        "zh": "未回复，持续约 {duration}",
+        "en": "no reply for about {duration}"
+      },
+      "amplified_interpretation": {
+        "zh": "对方不想理我。",
+        "en": "They do not want to talk to me."
+      }
+    },
+    {
+      "id": "en.self_negative_belief",
+      "signal_type": "self_negative_belief",
+      "label": "Self-authored negative conclusion",
+      "labels": {
+        "en": "Self-authored negative conclusion",
+        "zh": "自我得出的负面结论"
+      },
+      "polarity": "negative",
+      "weight": 85,
+      "information_content": 8,
+      "patterns": [
+        "\\b(she|he|they) (doesn'?t|does not|don'?t) like me\\b",
+        "\\bhates me\\b",
+        "\\bignoring me\\b",
+        "\\bnot interested in me\\b",
+        "\\bdoesn'?t care about me\\b"
+      ],
+      "interpretations": {
+        "zh": "输入中包含一个由用户自己得出的负面结论。",
+        "en": "The input contains a negative conclusion authored by the user themselves."
+      },
+      "amplified_interpretation": {
+        "zh": "对方已经不在乎我了。",
+        "en": "They have stopped caring about me."
+      }
+    },
+    {
+      "id": "en.self_discount",
+      "signal_type": "self_discount",
+      "label": "Self-discounting language (just being nice)",
+      "labels": {
+        "en": "Self-discounting language (just being nice)",
+        "zh": "自我降权语言（just being nice）"
+      },
+      "polarity": "self_discount",
+      "weight": 70,
+      "information_content": 20,
+      "patterns": [
+        "\\bjust being (nice|polite|friendly)\\b",
+        "\\bprobably just a friend\\b",
+        "\\bshe'?s just friendly\\b",
+        "\\bmeans nothing\\b",
+        "\\boverthinking (it|this)\\b",
+        "\\bjust friendliness\\b"
+      ],
+      "interpretations": {
+        "zh": "输入中包含用户自己对积极证据的主动降权。",
+        "en": "The input contains the user's own discounting of positive evidence."
+      }
+    },
+    {
+      "id": "en.cold_reply",
+      "signal_type": "cold_reply",
+      "label": "Cold or minimal reply",
+      "labels": {
+        "en": "Cold or minimal reply",
+        "zh": "冷淡或简短的回复"
+      },
+      "polarity": "negative",
+      "weight": 45,
+      "information_content": 22,
+      "patterns": [
+        "\\breplied (with )?(just )?(one word|k|lol)\\b",
+        "\\bshort repl(y|ies)\\b",
+        "\\bdry (reply|texter)\\b"
+      ],
+      "interpretations": {
+        "zh": "对方的回复被描述为简短或冷淡。",
+        "en": "The sender's reply is described as short or cold."
+      },
+      "amplified_interpretation": {
+        "zh": "这段关系已经结束了。",
+        "en": "This relationship is already over."
+      }
+    }
+  ]
+}
