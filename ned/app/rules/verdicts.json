@@ -54,7 +54,7 @@
       "severity": "reject",
       "emoji": "👍",
       "texts": {
-        "zh": "Reject. {duration} 未回复不构成证据。👍",
+        "zh": "Reject. {duration}未回复不构成证据。👍",
         "en": "Reject. {duration} without a reply is not evidence. 👍"
       }
     },

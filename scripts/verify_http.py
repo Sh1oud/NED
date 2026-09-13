@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+import sys
 import urllib.error
 import urllib.request
 
-BASE = "http://127.0.0.1:8742"
+PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8742
+BASE = f"http://127.0.0.1:{PORT}"
 
 
 def req(method: str, path: str, payload: dict | None = None) -> tuple[int, str]:

@@ -54,7 +54,10 @@ def create_app() -> FastAPI:
         ),
         version=__version__,
         lifespan=lifespan,
-        contact={"name": "NED Contributors", "url": "https://github.com/your-org/ned"},
+        contact={
+            "name": "NED Contributors",
+            "url": "https://github.com/REPLACE-WITH-GITHUB-OWNER/ned",
+        },
         license_info={"name": "MIT"},
     )
     app.include_router(router)

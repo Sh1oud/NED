@@ -7,11 +7,12 @@
 Everything may be affection.
 Everything may also be 人好. 👍
 
-[![tests](https://github.com/your-org/ned/actions/workflows/test.yml/badge.svg)](https://github.com/your-org/ned/actions/workflows/test.yml)
+[![tests](https://github.com/REPLACE-WITH-GITHUB-OWNER/ned/actions/workflows/test.yml/badge.svg)](https://github.com/REPLACE-WITH-GITHUB-OWNER/ned/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](pyproject.toml)
 
-<!-- TODO: replace your-org with the real repository owner before publishing. -->
+<!-- Before publishing: replace REPLACE-WITH-GITHUB-OWNER and REPLACE-WITH-CONTACT-EMAIL.
+     Every occurrence is listed in RELEASE_CHECKLIST.md. -->
 
 ---
 
@@ -80,14 +81,26 @@ discarded.
 
 ## Screenshots
 
-> Placeholder — add images here before publishing.
+| View | Image | Status |
+| --- | --- | --- |
+| Web UI — analysis | [`docs/screenshots/analysis.png`](docs/screenshots/analysis.png) | not captured yet |
+| Web UI — asymmetry detector | [`docs/screenshots/asymmetry.png`](docs/screenshots/asymmetry.png) | not captured yet |
+| Web UI — FNBP lab | [`docs/screenshots/fnpb-lab.png`](docs/screenshots/fnpb-lab.png) | not captured yet |
+| CLI — extreme mode | [`docs/screenshots/cli-extreme.png`](docs/screenshots/cli-extreme.png) | not captured yet |
 
-| View | File to add |
-| --- | --- |
-| Web UI, analysis view | `docs/screenshot-analyze.png` |
-| Web UI, asymmetry detector | `docs/screenshot-asymmetry.png` |
-| Web UI, FNBP lab | `docs/screenshot-lab.png` |
-| CLI, extreme mode | `docs/screenshot-cli.png` |
+All four views exist and are exercised by the test suite (`tests/test_api.py`,
+`tests/test_cli.py`); the PNGs are intentionally not committed yet, because a
+screenshot has to be taken on a machine that can run a browser. To capture them on
+your machine:
+
+```bash
+ned serve --port 8742                          # terminal 1
+python scripts/capture_screenshots.py          # terminal 2
+```
+
+The raw CLI output for the fourth shot is committed as
+[`docs/cli-extreme.txt`](docs/cli-extreme.txt), so the image can be re-taken from a
+known-good capture at any time. See [`docs/screenshots/README.md`](docs/screenshots/README.md).
 
 The web UI is designed to look like a clinical instrument panel: dark, hairline
 borders, monospace read-outs, one accent colour, and progress bars that escalate
@@ -127,7 +140,7 @@ from calm cyan to "Industrial-grade denial" magenta.
 Requires **Python 3.12+**. No API keys, no services, no accounts.
 
 ```bash
-git clone https://github.com/your-org/ned.git
+git clone https://github.com/REPLACE-WITH-GITHUB-OWNER/ned.git
 cd ned
 
 python -m venv .venv
@@ -350,7 +363,7 @@ Inputs and their classic outcomes (all available as `ned examples`):
 | --- | --- | --- |
 | `我想你了` | normal | `可能只是人好。👍` |
 | `我想你了` | extreme | `检测到积极信号，但无法排除友好行为。` |
-| `她说喜欢我` | extreme | reaching 86.8 — `NED is currently reaching.` → `证据不足，建议扩大样本量。👍` |
+| `她说喜欢我` | extreme | reaching 76.7 (Industrial-grade denial) → `证据不足，建议扩大样本量。👍` |
 | `我们已经结婚了` | extreme | `婚姻属于法律关系，不能单独证明爱情。👍` |
 | `她主动找我聊了两个小时，但五分钟没回复` | normal | `检测到证据标准不对称。` (score ≈ 82/100) |
 | `消息发出去五分钟没回复` | normal | `Reject. 5 分钟未回复不构成证据。👍` |
@@ -539,8 +552,8 @@ internal coherence. Two tests exist purely as guard rails:
 For a release check against a real server:
 
 ```bash
-ned serve --port 8742 &
-python scripts/verify_http.py     # hits every endpoint and the rendered UI
+ned serve --port 8742               # terminal 1
+python scripts/verify_http.py 8742  # terminal 2: every endpoint + the rendered UI
 ```
 
 ## Docker

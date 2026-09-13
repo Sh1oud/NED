@@ -1,0 +1,47 @@
+
+┌─────────────────────────────────────────── Analysis ────────────────────────────────────────────┐
+│ NED — Nov1ce Evidence Denier                                                                    │
+│ Systematically explaining away good news since 2026.                                            │
+│                                                                                                 │
+│ input      : 她说喜欢我                                                                         │
+│ mode       : extreme                                                                            │
+│ language   : zh                                                                                 │
+│ signal     : explicit_affection — 转述的喜欢表达（她说喜欢我）                                  │
+│ raw reading: 对方据称表达了喜欢（转述）。                                                       │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────── Scoring ────────────────────────────────────────────┐
+│   Evidence strength         ████████████████████████░░░░   86.0%                                │
+│   Positive discount         ████████████████████░░░░░░░░   70.0%                                │
+│   Negative amplification    ░░░░░░░░░░░░░░░░░░░░░░░░░░░░    0.0%                                │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────── NED Reaching Level ───────────────────────────────────────┐
+│   NED Reaching Level    █████████████████████░░░░░░░   76.7%                                    │
+│                         Industrial-grade denial                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────── Alternative Hypotheses ─────────────────────────────────────┐
+│    #  Alternative hypothesis                                Category              Plausibility  │
+│    1  转述可能失真：记忆重构与措辞漂移都会降低证据保真度。  reported_speech_bias           12%  │
+│    2  可能是一时冲动。                                      impulse                        18%  │
+│    3  想法不等于最终决定。                                  intent_vs_action               18%  │
+│    4  单次事件缺少纵向证据支持。                            longitudinal                   18%  │
+│    5  措辞可能受当下语境影响，未必指向稳定状态。            context                        18%  │
+│ These are generated alternative hypotheses, not findings.                                       │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────── Reality Check ─────────────────────────────────────────┐
+│ 文本只能证明对方说了这句话。转述的喜欢表达（她说喜欢我）与内心状态之间没有可验证的映射，所以    │
+│ NED 既不确认也不否认，它只是拒绝把一句话当成测量结果。                                          │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────── Final Verdict (ned.extreme_insufficient_sample) ────────────────────────┐
+│ 证据不足，建议扩大样本量。👍                                                                    │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────── Mode Notes ───────────────────────────────────────────┐
+│  · mode: Nov1ce Extreme (extreme) — Nov1ce Mode. Every escape hatch is opened at once,          │
+│  including the legal ones.                                                                      │
+│  · engine: local-rule (offline=True), 5 alternative explanation(s) generated                    │
+│  · no input text was stored, transmitted or logged; NED has no database and no telemetry.       │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+NED cannot determine whether someone likes you. Humans are not APIs. No amount of text analysis can
+replace direct communication and context. Every alternative explanation here is generated satire, 
+not a psychological finding.
+engine ned-local-rules v0.1.0 (provider=local-rule, offline=True)
+

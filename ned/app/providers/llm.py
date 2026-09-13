@@ -1,4 +1,4 @@
-"""Placeholder LLM provider.
+"""Declared-but-unimplemented LLM provider.
 
 NED v0.1 never calls a remote model. This class exists so the provider interface
 is exercised by a second implementation and so a future contributor has an

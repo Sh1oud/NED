@@ -14,7 +14,7 @@
     },
     {
       "id": "strong_positive_only",
-      "zh": "文本只能证明对方说了这句话。{signal_label} 与内心状态之间没有可验证的映射，所以 NED 既不确认也不否认，它只是拒绝把一句话当成测量结果。",
+      "zh": "文本只能证明对方说了这句话。{signal_label}与内心状态之间没有可验证的映射，所以 NED 既不确认也不否认，它只是拒绝把一句话当成测量结果。",
       "en": "Text only proves that the sentence was said. There is no verifiable mapping from {signal_label} to an internal state, so NED neither confirms nor denies; it simply refuses to treat a sentence as a measurement."
     },
     {

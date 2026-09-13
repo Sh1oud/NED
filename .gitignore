@@ -104,7 +104,7 @@ celerybeat.pid
 .env
 .env.*
 !.env.example
-.venv
+.venv*
 env/
 venv/
 ENV/
@@ -160,6 +160,9 @@ desktop.ini
 # NED
 *.log
 .ned/
+
+# Scratch space used by scripts/capture_screenshots.py and local checks
+.tmp/
 
 # pytest cache directories left behind when the cache dir is not writable
 pytest-cache-files-*

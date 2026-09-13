@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Web UI i18n.
 - Saved report export.
 
-## [0.1.0] - 2026-01-01
+## [0.1.0] - 2026-09-13
 
 Initial public release of **NED — Nov1ce Evidence Denier**, a fully-offline
 emotional evidence de-weighting engine.
@@ -66,7 +66,7 @@ emotional evidence de-weighting engine.
   no database, no accounts, no paid APIs. v0.1 never calls an external LLM; the
   `LLMProvider` interface exists as a stub for future work.
 
-[Unreleased]: https://github.com/your-org/ned/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/your-org/ned/releases/tag/v0.1.0
+[Unreleased]: https://github.com/REPLACE-WITH-GITHUB-OWNER/ned/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/REPLACE-WITH-GITHUB-OWNER/ned/releases/tag/v0.1.0
 
-<!-- TODO: replace your-org -->
+<!-- Repository URLs use the REPLACE-WITH-GITHUB-OWNER token; see RELEASE_CHECKLIST.md. -->
