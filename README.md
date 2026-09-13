@@ -7,12 +7,11 @@
 Everything may be affection.
 Everything may also be 人好. 👍
 
-[![tests](https://github.com/REPLACE-WITH-GITHUB-OWNER/ned/actions/workflows/test.yml/badge.svg)](https://github.com/REPLACE-WITH-GITHUB-OWNER/ned/actions/workflows/test.yml)
+[![tests](https://github.com/Nov1ce/ned/actions/workflows/test.yml/badge.svg)](https://github.com/Nov1ce/ned/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](pyproject.toml)
 
-<!-- Before publishing: replace REPLACE-WITH-GITHUB-OWNER and REPLACE-WITH-CONTACT-EMAIL.
-     Every occurrence is listed in RELEASE_CHECKLIST.md. -->
+<!-- Publication identity and conduct contact are recorded in RELEASE_CHECKLIST.md. -->
 
 ---
 
@@ -83,15 +82,14 @@ discarded.
 
 | View | Image | Status |
 | --- | --- | --- |
-| Web UI — analysis | [`docs/screenshots/analysis.png`](docs/screenshots/analysis.png) | not captured yet |
-| Web UI — asymmetry detector | [`docs/screenshots/asymmetry.png`](docs/screenshots/asymmetry.png) | not captured yet |
-| Web UI — FNBP lab | [`docs/screenshots/fnpb-lab.png`](docs/screenshots/fnpb-lab.png) | not captured yet |
-| CLI — extreme mode | [`docs/screenshots/cli-extreme.png`](docs/screenshots/cli-extreme.png) | not captured yet |
+| Web UI — analysis | [`docs/screenshots/analysis.png`](docs/screenshots/analysis.png) | captured from the v0.1.0 UI |
+| Web UI — asymmetry detector | [`docs/screenshots/asymmetry.png`](docs/screenshots/asymmetry.png) | captured from the v0.1.0 UI |
+| Web UI — FNBP lab | [`docs/screenshots/fnbp-lab.png`](docs/screenshots/fnbp-lab.png) | captured from the v0.1.0 UI |
+| CLI — extreme mode | [`docs/screenshots/cli-extreme.png`](docs/screenshots/cli-extreme.png) | captured from the v0.1.0 CLI |
 
-All four views exist and are exercised by the test suite (`tests/test_api.py`,
-`tests/test_cli.py`); the PNGs are intentionally not committed yet, because a
-screenshot has to be taken on a machine that can run a browser. To capture them on
-your machine:
+All four views are exercised by the test suite (`tests/test_api.py`,
+`tests/test_cli.py`) and captured here from the real local UI/CLI. Re-capture them
+after any UI change with:
 
 ```bash
 ned serve --port 8742                          # terminal 1
@@ -140,7 +138,7 @@ from calm cyan to "Industrial-grade denial" magenta.
 Requires **Python 3.12+**. No API keys, no services, no accounts.
 
 ```bash
-git clone https://github.com/REPLACE-WITH-GITHUB-OWNER/ned.git
+git clone https://github.com/Nov1ce/ned.git
 cd ned
 
 python -m venv .venv

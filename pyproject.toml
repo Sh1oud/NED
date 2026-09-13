@@ -12,7 +12,7 @@ license = { text = "MIT" }
 authors = [{ name = "NED Contributors" }]
 keywords = ["satire", "evidence", "cognitive-bias", "fastapi", "cli", "offline"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Framework :: FastAPI",
     "Intended Audience :: End Users/Desktop",
@@ -43,10 +43,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/REPLACE-WITH-GITHUB-OWNER/ned"
-Repository = "https://github.com/REPLACE-WITH-GITHUB-OWNER/ned"
-Issues = "https://github.com/REPLACE-WITH-GITHUB-OWNER/ned/issues"
-Changelog = "https://github.com/REPLACE-WITH-GITHUB-OWNER/ned/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/Nov1ce/ned"
+Repository = "https://github.com/Nov1ce/ned"
+Issues = "https://github.com/Nov1ce/ned/issues"
+Changelog = "https://github.com/Nov1ce/ned/blob/main/CHANGELOG.md"
 
 [project.scripts]
 ned = "ned.app.cli:main"

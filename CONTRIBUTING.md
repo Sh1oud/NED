@@ -22,7 +22,7 @@ If a change is technically clever but fails these, it will be declined. That is 
 NED targets **Python 3.12+** (it is developed on 3.13). Plain `pip` inside a virtual environment is all you need — no Poetry, no uv.
 
 ```bash
-git clone https://github.com/REPLACE-WITH-GITHUB-OWNER/ned.git
+git clone https://github.com/Nov1ce/ned.git
 cd ned
 python -m venv .venv
 # Windows: .venv\Scripts\Activate.ps1   |   macOS/Linux: source .venv/bin/activate
@@ -57,8 +57,7 @@ Rule packs live in `ned/app/rules/`:
 | File | Holds |
 | --- | --- |
 | `signals.json` | Positive-affection signal patterns (PED input) and negative signals (NEA input) |
-| `theories.json` | Alternative-explanation ladders (the "maybe they're just 人好" branches) |
-| `escaping.json` | Semantic escape routes and escalation tiers |
+| `escaping.json` | Alternative-explanation ladders and semantic escape routes (the "maybe they're just 人好" branches) |
 | `verdicts.json` | Verdict templates and severity bands |
 | `easter_eggs.json` | Easter eggs, including FNBP |
 | `asymmetry.json` | Weights and bands for the 0–100 evidence asymmetry score |

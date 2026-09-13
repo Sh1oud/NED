@@ -14,9 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 #: Placeholder families that were removed for the release candidate. Reintroducing
 #: one of these means the replacement pass was not finished.
 STALE_MARKERS = ("your-org", "your-fork-url", "@example.com", "TODO", "FIXME")
-
-#: The blessed release tokens, documented in RELEASE_CHECKLIST.md.
-RELEASE_TOKENS = ("REPLACE-WITH-GITHUB-OWNER", "REPLACE-WITH-CONTACT-EMAIL")
+UNRESOLVED_PUBLICATION_PREFIX = "REPLACE" + "-WITH-"
 
 #: Directories that are never part of the shipped repository.
 SKIP_DIRS = {
@@ -37,7 +35,7 @@ SKIP_DIRS = {
 TEXT_SUFFIXES = {".md", ".py", ".toml", ".json", ".yml", ".yaml", ".txt", ".js", ".css", ".html"}
 
 #: Screenshots every document must agree on.
-SCREENSHOTS = ("analysis.png", "asymmetry.png", "fnpb-lab.png", "cli-extreme.png")
+SCREENSHOTS = ("analysis.png", "asymmetry.png", "fnbp-lab.png", "cli-extreme.png")
 
 
 def text_files() -> list[Path]:
@@ -63,31 +61,25 @@ def test_no_stale_placeholders_anywhere() -> None:
         for marker in STALE_MARKERS:
             if marker in text:
                 offenders.append(f"{path.relative_to(ROOT)}: {marker}")
+        if UNRESOLVED_PUBLICATION_PREFIX in text:
+            offenders.append(f"{path.relative_to(ROOT)}: unresolved publication token")
     assert not offenders, "stale release placeholders found:\n  " + "\n  ".join(offenders)
 
 
-def test_release_tokens_are_documented() -> None:
-    """Every file carrying a REPLACE-WITH token must be listed in the checklist.
+def test_publication_identity_is_complete() -> None:
+    """Release-facing metadata must not retain an unresolved identity token."""
 
-    The checklist and this test are the documentation *of* the tokens, so they are
-    excluded from the check.
-    """
-
-    meta = {"RELEASE_CHECKLIST.md", "test_release_hygiene.py"}
-    checklist = (ROOT / "RELEASE_CHECKLIST.md").read_text(encoding="utf-8")
-    consumers = 0
-    for path in text_files():
-        if path.name in meta:
-            continue
-        text = path.read_text(encoding="utf-8", errors="replace")
-        if not any(token in text for token in RELEASE_TOKENS):
-            continue
-        consumers += 1
-        relative = path.relative_to(ROOT).as_posix()
-        assert path.name in checklist or relative in checklist, (
-            f"{relative} carries a release token but is not named in RELEASE_CHECKLIST.md"
-        )
-    assert consumers >= 5, f"expected several files to carry release tokens, found {consumers}"
+    release_files = (
+        "README.md",
+        "pyproject.toml",
+        "CHANGELOG.md",
+        "CONTRIBUTING.md",
+        "CODE_OF_CONDUCT.md",
+        "ned/app/main.py",
+    )
+    for relative in release_files:
+        text = (ROOT / relative).read_text(encoding="utf-8", errors="replace")
+        assert UNRESOLVED_PUBLICATION_PREFIX not in text, relative
 
 
 def test_checklist_and_screenshot_docs_exist() -> None:

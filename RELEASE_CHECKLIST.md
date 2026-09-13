@@ -5,50 +5,36 @@ GitHub. Nothing here is code; it is the paperwork a first release needs.
 
 ---
 
-## 1. Replace the release tokens
+## 1. Publication identity
 
-Two tokens are used everywhere the real values are not known yet. They are
-deliberately ugly so they cannot survive a release by accident.
+| Field | Published value |
+| --- | --- |
+| GitHub owner | [`Nov1ce`](https://github.com/Nov1ce) |
+| Repository | [`Nov1ce/ned`](https://github.com/Nov1ce/ned) |
+| Conduct / enforcement contact | `zhaoyizhuoying@icloud.com` |
 
-| Token | Meaning | Files |
-| --- | --- | --- |
-| `REPLACE-WITH-GITHUB-OWNER` | GitHub user or organisation that owns the repo | `README.md`, `pyproject.toml`, `CHANGELOG.md`, `CONTRIBUTING.md`, `ned/app/main.py` |
-| `REPLACE-WITH-CONTACT-EMAIL` | Conduct/enforcement contact address | `CODE_OF_CONDUCT.md` |
+The release-hygiene test fails if an unresolved publication token appears in any
+project file.
 
-Find every occurrence before you start:
-
-```bash
-grep -rn "REPLACE-WITH-" --include="*.md" --include="*.toml" --include="*.py" .
-git grep -n "REPLACE-WITH-"
-```
-
-Replace both tokens in one pass, then confirm the tree is clean:
-
-```bash
-git grep -n "REPLACE-WITH-"     # expected: no output
-pytest -q                       # tests/test_release_hygiene.py guards this too
-```
-
-- [ ] `REPLACE-WITH-GITHUB-OWNER` replaced everywhere (badge URLs, project URLs, clone URL, FastAPI contact, changelog compare links)
-- [ ] `REPLACE-WITH-CONTACT-EMAIL` replaced in `CODE_OF_CONDUCT.md`
-- [ ] `grep` returns nothing
+- [x] Repository URLs, badge, clone instructions and FastAPI contact use `Nov1ce/ned`
+- [x] Conduct contact is configured in `CODE_OF_CONDUCT.md`
+- [x] No unresolved publication token remains
 
 ## 2. Screenshots
 
-Four images are referenced by the README. They are not committed yet: a
-screenshot has to be taken on a machine that can run a browser.
+Four images are referenced by the README and captured from the real v0.1.0 UI/CLI.
 
 ```bash
 ned serve --port 8742                       # terminal 1
 python scripts/capture_screenshots.py       # terminal 2
 ```
 
-- [ ] `docs/screenshots/analysis.png` — Analyze tab, extreme mode, populated report
-- [ ] `docs/screenshots/asymmetry.png` — Asymmetry Detector, the canonical pair
-- [ ] `docs/screenshots/fnpb-lab.png` — Lab tab, branch-predictor log
-- [ ] `docs/screenshots/cli-extreme.png` — real CLI output for `ned analyze "她说喜欢我" --mode extreme`
-- [ ] README "Status" column updated from *not captured yet* to the committed images
-- [ ] `docs/cli-extreme.txt` still matches the current CLI output (`ned analyze "她说喜欢我" --mode extreme`)
+- [x] `docs/screenshots/analysis.png` — Analyze tab, extreme mode, populated report
+- [x] `docs/screenshots/asymmetry.png` — Asymmetry Detector, the canonical pair
+- [x] `docs/screenshots/fnbp-lab.png` — Lab tab, branch-predictor log
+- [x] `docs/screenshots/cli-extreme.png` — real CLI output for `ned analyze "她说喜欢我" --mode extreme`
+- [x] README "Status" column names the captured images
+- [x] `docs/cli-extreme.txt` matches the current CLI output (`ned analyze "她说喜欢我" --mode extreme`)
 
 Never commit a mockup or a doctored image: the screenshots are evidence about the
 UI, and a reviewer will compare them against the running app.
@@ -62,10 +48,10 @@ ruff format --check .
 mypy ned
 ```
 
-- [ ] `pytest -q` — 224+ tests pass
-- [ ] `ruff check .` — clean
-- [ ] `ruff format --check .` — clean
-- [ ] `mypy ned` — clean
+- [x] `pytest -q` — 224 tests pass
+- [x] `ruff check .` — clean
+- [x] `ruff format --check .` — clean
+- [x] `mypy ned` — clean
 - [ ] CI (`.github/workflows/test.yml`) is green on both `test` (3.12/3.13) and `test-windows`
 
 ## 4. Verify the running product

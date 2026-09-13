@@ -41,10 +41,10 @@ emotional evidence de-weighting engine.
 - Typer CLI (`ned`): `analyze`, `asymmetry`, `fnbp`, `demo`, `examples`,
   `version`, `serve`.
 - Zero-dependency web UI (Jinja2 templates and static assets only).
-- `rules/*.json` configurable rule packs: `signals.json`, `theories.json`,
-  `escaping.json`, `verdicts.json`, `easter_eggs.json`, `asymmetry.json`.
-- pytest suite under `ned/tests/`, with example cases in
-  `ned/examples/cases.json`.
+- `rules/*.json` configurable rule packs: `signals.json`, `escaping.json`,
+  `verdicts.json`, `reality_checks.json`, `modes.json`, `easter_eggs.json`,
+  `asymmetry.json`.
+- pytest suite under `tests/`, with example cases in `ned/examples/cases.json`.
 - ruff and mypy configuration (ruff line length 100, `mypy ned` clean).
 - Dockerfile and docker-compose for running the API locally.
 - GitHub Actions CI (`.github/workflows/test.yml`) covering Linux on Python 3.12
@@ -66,7 +66,5 @@ emotional evidence de-weighting engine.
   no database, no accounts, no paid APIs. v0.1 never calls an external LLM; the
   `LLMProvider` interface exists as a stub for future work.
 
-[Unreleased]: https://github.com/REPLACE-WITH-GITHUB-OWNER/ned/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/REPLACE-WITH-GITHUB-OWNER/ned/releases/tag/v0.1.0
-
-<!-- Repository URLs use the REPLACE-WITH-GITHUB-OWNER token; see RELEASE_CHECKLIST.md. -->
+[Unreleased]: https://github.com/Nov1ce/ned/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Nov1ce/ned/releases/tag/v0.1.0

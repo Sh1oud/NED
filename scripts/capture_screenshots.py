@@ -260,7 +260,7 @@ async def capture(base_url: str, out_dir: Path, port: int, browser: str, cli_onl
                     " return r && !r.hidden && document.querySelectorAll("
                     "  '#fnbp-log tr, #fnbp-log li, #fnbp-log div').length > 0; })()"
                 )
-                await devtools.screenshot(out_dir / "fnpb-lab.png")
+                await devtools.screenshot(out_dir / "fnbp-lab.png")
 
             # 4. CLI capture, rendered from docs/cli-extreme.txt
             print("capturing CLI view...")
