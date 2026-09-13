@@ -22,7 +22,7 @@ If a change is technically clever but fails these, it will be declined. That is 
 NED targets **Python 3.12+** (it is developed on 3.13). Plain `pip` inside a virtual environment is all you need — no Poetry, no uv.
 
 ```bash
-git clone https://github.com/Nov1ce/ned.git
+git clone https://github.com/Sh1oud/NED.git
 cd ned
 python -m venv .venv
 # Windows: .venv\Scripts\Activate.ps1   |   macOS/Linux: source .venv/bin/activate

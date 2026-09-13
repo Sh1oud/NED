@@ -66,5 +66,5 @@ emotional evidence de-weighting engine.
   no database, no accounts, no paid APIs. v0.1 never calls an external LLM; the
   `LLMProvider` interface exists as a stub for future work.
 
-[Unreleased]: https://github.com/Nov1ce/ned/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/Nov1ce/ned/releases/tag/v0.1.0
+[Unreleased]: https://github.com/Sh1oud/NED/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Sh1oud/NED/releases/tag/v0.1.0

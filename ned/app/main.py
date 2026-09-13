@@ -56,7 +56,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
         contact={
             "name": "NED Contributors",
-            "url": "https://github.com/Nov1ce/ned",
+            "url": "https://github.com/Sh1oud/NED",
         },
         license_info={"name": "MIT"},
     )

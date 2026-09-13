@@ -10,13 +10,13 @@ GitHub. Nothing here is code; it is the paperwork a first release needs.
 | Field | Published value |
 | --- | --- |
 | GitHub owner | [`Nov1ce`](https://github.com/Nov1ce) |
-| Repository | [`Nov1ce/ned`](https://github.com/Nov1ce/ned) |
+| Repository | [`Sh1oud/NED`](https://github.com/Sh1oud/NED) |
 | Conduct / enforcement contact | `zhaoyizhuoying@icloud.com` |
 
 The release-hygiene test fails if an unresolved publication token appears in any
 project file.
 
-- [x] Repository URLs, badge, clone instructions and FastAPI contact use `Nov1ce/ned`
+- [x] Repository URLs, badge, clone instructions and FastAPI contact use `Sh1oud/NED`
 - [x] Conduct contact is configured in `CODE_OF_CONDUCT.md`
 - [x] No unresolved publication token remains
 

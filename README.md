@@ -7,7 +7,7 @@
 Everything may be affection.
 Everything may also be 人好. 👍
 
-[![tests](https://github.com/Nov1ce/ned/actions/workflows/test.yml/badge.svg)](https://github.com/Nov1ce/ned/actions/workflows/test.yml)
+[![tests](https://github.com/Sh1oud/NED/actions/workflows/test.yml/badge.svg)](https://github.com/Sh1oud/NED/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](pyproject.toml)
 
@@ -138,7 +138,7 @@ from calm cyan to "Industrial-grade denial" magenta.
 Requires **Python 3.12+**. No API keys, no services, no accounts.
 
 ```bash
-git clone https://github.com/Nov1ce/ned.git
+git clone https://github.com/Sh1oud/NED.git
 cd ned
 
 python -m venv .venv

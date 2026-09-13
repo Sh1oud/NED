@@ -43,10 +43,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Nov1ce/ned"
-Repository = "https://github.com/Nov1ce/ned"
-Issues = "https://github.com/Nov1ce/ned/issues"
-Changelog = "https://github.com/Nov1ce/ned/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/Sh1oud/NED"
+Repository = "https://github.com/Sh1oud/NED"
+Issues = "https://github.com/Sh1oud/NED/issues"
+Changelog = "https://github.com/Sh1oud/NED/blob/main/CHANGELOG.md"
 
 [project.scripts]
 ned = "ned.app.cli:main"
