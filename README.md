@@ -1,8 +1,13 @@
-# NED
-
-**Nov1ce Evidence Denier**
+# Nov1ce Evidence Denier (NED)
 
 > When reality becomes suspiciously positive, NED restores uncertainty.
+
+**“NED 不相信好得可疑的现实。”**\
+**“它的职责，是让世界重新变得不确定。”**
+
+---
+
+## Overview
 
 Everything may be affection.
 Everything may also be 人好. 👍
@@ -17,7 +22,7 @@ Everything may also be 人好. 👍
 
 ## Table of contents
 
-- [What NED is](#what-ned-is)
+- [Overview](#overview)
 - [Screenshots](#screenshots)
 - [Features](#features)
 - [Installation](#installation)
@@ -38,10 +43,6 @@ Everything may also be 人好. 👍
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [License](#license)
-
----
-
-## What NED is
 
 NED takes one message or one event description, finds the possible positive-affection
 signals in it, and then — with a rigour that is both real and ridiculous — generates
