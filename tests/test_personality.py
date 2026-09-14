@@ -7,12 +7,15 @@ participate in calculation or extend an API result.
 from __future__ import annotations
 
 import pytest
+from ned.app.core.analyzer import NedAnalyzer
 from ned.app.ui.personality import (
     FNBP_HIT_FEEDBACK,
     FNBP_MISS_FEEDBACK,
+    NEA_FRAMING,
     analysis_feedback,
     asymmetry_feedback,
     fnbp_feedback,
+    nea_framing,
     web_personality_catalog,
 )
 
@@ -84,3 +87,25 @@ def test_fnbp_reminder_is_display_only_and_not_in_the_api_payload() -> None:
     blob = str(payload)
     assert "预测不是事实" not in blob
     assert "一次预测成功" not in blob
+
+
+def test_nea_framing_is_bilingual_and_denies_being_a_conclusion() -> None:
+    """The NEA panel says what the amplified reading is, and what it is not."""
+
+    assert nea_framing("en") == (
+        "This is the exaggerated interpretation NED is checking — not its conclusion."
+    )
+    assert nea_framing("zh") == "这是 NED 正在检查的夸大解读，不是 NED 的结论。"
+    assert nea_framing("unknown") == NEA_FRAMING["zh"]
+    assert web_personality_catalog()["nea_framing"] == NEA_FRAMING
+
+
+def test_nea_framing_is_display_only_and_not_in_the_api_payload(analyzer: NedAnalyzer) -> None:
+    """The framing line is personality copy: it must never extend an analysis."""
+
+    result = analyzer.analyze_text("他让我滚出去别烦他了", mode="normal")
+    blob = str(result.model_dump(mode="json"))
+
+    assert "夸大解读" not in blob
+    assert "exaggerated interpretation" not in blob
+    assert "nea_framing" not in blob

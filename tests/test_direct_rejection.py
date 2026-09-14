@@ -309,3 +309,75 @@ def test_boundary_signal_type_is_exposed_to_the_api(client: TestClient) -> None:
     payload = client.get("/api/modes").json()
     assert payload, "the API must stay reachable with the new signal type in place"
     assert client.get("/api/health").json()["status"] == "ok"
+
+
+#: Wording that would present the amplified reading as NED's own finding.
+CERTAINTY_WORDS = ("说明", "证明", "已经确定", "可以断定")
+
+#: Wording that attributes the reading to the reader's own mind instead.
+SUBJECTIVE_MARKERS = ("我是不是开始觉得", "可能", "觉得", "让我觉得", "脑内放大后的版本")
+
+#: Extreme conclusions the reading may contain, but only as the content of that
+#: attribution, never as an assertion of its own.
+EXTREME_CLAIMS = ("已经没有任何余地", "已经结束", "彻底没有余地")
+
+
+@pytest.mark.parametrize("mode", ["normal", "scientific", "extreme"])
+def test_amplified_reading_is_framed_as_the_users_overreading(
+    analyzer: NedAnalyzer, mode: str
+) -> None:
+    """NEA displays the inflated interpretation under test, not a conclusion.
+
+    The reading may carry an extreme conclusion, but only inside a subjective
+    frame: as a bare assertion it would read as NED's own finding.
+    """
+
+    result = analyzer.analyze_text(REPORTED_REFUSAL, mode=mode)  # type: ignore[arg-type]
+    amplified = result.irrational_amplification
+    assert amplified.strip(), "the NEA panel needs a reading to frame"
+
+    for word in CERTAINTY_WORDS:
+        assert word not in amplified, f"{word!r} reads as NED's own conclusion: {amplified}"
+
+    marker_index = min(
+        (amplified.index(marker) for marker in SUBJECTIVE_MARKERS if marker in amplified),
+        default=None,
+    )
+    assert marker_index is not None, f"the reading is not attributed to the reader: {amplified}"
+    for claim in EXTREME_CLAIMS:
+        if claim in amplified:
+            assert amplified.index(claim) > marker_index, (
+                f"{claim!r} is asserted instead of attributed: {amplified}"
+            )
+
+    assert result.verdict.code == "ned.direct_rejection"
+
+
+def test_the_extreme_claim_stays_inside_the_subjective_frame(analyzer: NedAnalyzer) -> None:
+    """Pin the requested wording: the feeling is the frame, the claim is its content."""
+
+    result = analyzer.analyze_text(REPORTED_REFUSAL, mode="normal")
+    amplified = result.irrational_amplification
+    assert amplified == "我是不是开始觉得，这段关系已经彻底没有余地了？"
+    assert amplified.startswith("我是不是开始觉得")
+    assert result.verdict.code == "ned.direct_rejection"
+
+
+def test_english_amplified_reading_avoids_certainty_claims(analyzer: NedAnalyzer) -> None:
+    result = analyzer.analyze_text(ENGLISH_REJECTION, mode="normal")
+    amplified = result.irrational_amplification.lower()
+    for word in ("means", "proves", "definitely", "certainly", "it is over"):
+        assert word not in amplified, f"{word!r} in {amplified!r}"
+    assert "am i starting to feel" in amplified, f"the reading is not attributed: {amplified}"
+
+
+def test_reality_check_keeps_respecting_the_boundary(analyzer: NedAnalyzer) -> None:
+    """The boundary is respected, not de-weighted and not read as a verdict on you."""
+
+    result = analyzer.analyze_text(REPORTED_REFUSAL, mode="normal")
+    check = result.reality_check
+    assert "尊重" in check, "the reality check must say the boundary deserves respect"
+    assert "不对这条证据降权" in check
+    assert "不足以推断" in check
+    assert "不好" in check
+    assert result.verdict.code == "ned.direct_rejection"

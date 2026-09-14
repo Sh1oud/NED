@@ -27,6 +27,14 @@ from ned.app.core.scoring import discount as compute_discount
 #: good explanations are gone, the remaining ones have to be worse.
 CAPACITY_PLAUSIBILITY_PENALTY = 0.25
 
+#: Display copy used when a rule pack ships no amplified reading of its own. It
+#: keeps the subjective frame: NEA shows the reader's over-reading, never a
+#: finding of NED's.
+NEA_FALLBACK_READING = {
+    "zh": "我是不是开始觉得，对方不想理我了？",
+    "en": "Am I starting to feel that they do not want to talk to me?",
+}
+
 
 @dataclass(frozen=True)
 class AmplifiedReading:
@@ -98,10 +106,7 @@ class NegativeEvidenceAmplifier:
         if rule is not None:
             interpretation = rule.text_for(rule.amplified_interpretation, language)
         if not interpretation:
-            interpretation = {
-                "zh": "对方不想理我。",
-                "en": "They do not want to talk to me.",
-            }.get(language, "They do not want to talk to me.")
+            interpretation = NEA_FALLBACK_READING.get(language, NEA_FALLBACK_READING["en"])
 
         observed = describe_evidence(span, language)
         if span.signal_type == SignalType.DIRECT_REJECTION:
@@ -244,6 +249,7 @@ class SemanticEscapeModule:
 
 __all__ = [
     "CAPACITY_PLAUSIBILITY_PENALTY",
+    "NEA_FALLBACK_READING",
     "AmplifiedReading",
     "NegativeEvidenceAmplifier",
     "PositiveEvidenceDenier",

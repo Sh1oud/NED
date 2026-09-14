@@ -93,6 +93,20 @@ FNBP_MISS_FEEDBACK = {
 }
 
 
+#: One-line framing for the Negative Evidence Amplifier panel: the amplified
+#: reading is the interpretation under test, never NED's own conclusion.
+NEA_FRAMING = {
+    "en": "This is the exaggerated interpretation NED is checking — not its conclusion.",
+    "zh": "这是 NED 正在检查的夸大解读，不是 NED 的结论。",
+}
+
+
+def nea_framing(language: str) -> str:
+    """Framing line for the NEA panel, in the language of the analysis."""
+
+    return NEA_FRAMING["en"] if language == "en" else NEA_FRAMING["zh"]
+
+
 def _feedback_for(
     score: float, levels: tuple[PersonalityFeedback, ...]
 ) -> PersonalityFeedback | None:
@@ -126,6 +140,7 @@ def web_personality_catalog() -> dict[str, object]:
         "analysis": [asdict(feedback) for feedback in ANALYSIS_FEEDBACK],
         "asymmetry": [asdict(feedback) for feedback in ASYMMETRY_FEEDBACK],
         "fnbp": {"hit": FNBP_HIT_FEEDBACK, "miss": FNBP_MISS_FEEDBACK},
+        "nea_framing": NEA_FRAMING,
     }
 
 
@@ -134,9 +149,11 @@ __all__ = [
     "ASYMMETRY_FEEDBACK",
     "FNBP_HIT_FEEDBACK",
     "FNBP_MISS_FEEDBACK",
+    "NEA_FRAMING",
     "PersonalityFeedback",
     "analysis_feedback",
     "asymmetry_feedback",
     "fnbp_feedback",
+    "nea_framing",
     "web_personality_catalog",
 ]

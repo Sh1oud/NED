@@ -687,8 +687,8 @@
         "en": "an explicitly stated refusal or boundary"
       },
       "amplified_interpretation": {
-        "zh": "他这样说话，说明这段关系已经没有任何余地了。",
-        "en": "Speaking that way means this relationship has no room left at all."
+        "zh": "我是不是开始觉得，这段关系已经彻底没有余地了？",
+        "en": "Am I starting to feel that there is no room left in this relationship at all?"
       },
       "notes": "The deliberate mirror image of the latency rule: weight and information content are both high because a stated boundary is an observed behaviour, not an inference. NED displays it and does not de-weight it."
     },
@@ -722,8 +722,8 @@
         "en": "no reply for about {duration}"
       },
       "amplified_interpretation": {
-        "zh": "对方不想理我。",
-        "en": "They do not want to talk to me."
+        "zh": "我是不是开始觉得，对方不想理我了？",
+        "en": "Am I starting to feel that they do not want to talk to me?"
       },
       "notes": "weight is deliberately near-maximal while information_content is near-zero: this asymmetry is the thing NED exists to display."
     },
@@ -751,8 +751,8 @@
         "en": "The input contains a negative conclusion authored by the user themselves."
       },
       "amplified_interpretation": {
-        "zh": "对方已经不在乎我了。",
-        "en": "They have stopped caring about me."
+        "zh": "我是不是开始觉得，对方已经不在乎我了？",
+        "en": "Am I starting to feel that they have stopped caring about me?"
       },
       "notes": "This is a conclusion, not an observation; NED flags it rather than endorsing it."
     },
@@ -779,8 +779,8 @@
         "en": "The sender's reply is described as short or cold."
       },
       "amplified_interpretation": {
-        "zh": "这段关系已经结束了。",
-        "en": "This relationship is already over."
+        "zh": "我是不是开始觉得，这段关系已经结束了？",
+        "en": "Am I starting to feel that this relationship has ended?"
       }
     },
     {
@@ -808,8 +808,8 @@
         "en": "A plan was cancelled or postponed."
       },
       "amplified_interpretation": {
-        "zh": "她根本不想见我。",
-        "en": "They never actually wanted to see me."
+        "zh": "我是不是开始觉得，她根本不想见我？",
+        "en": "Am I starting to feel that they never really wanted to see me?"
       }
     },
     {
@@ -881,8 +881,8 @@
         "en": "an explicitly stated refusal or boundary"
       },
       "amplified_interpretation": {
-        "zh": "他这样说话，说明这段关系已经没有任何余地了。",
-        "en": "Speaking that way means this relationship has no room left at all."
+        "zh": "我是不是开始觉得，这段关系已经彻底没有余地了？",
+        "en": "Am I starting to feel that there is no room left in this relationship at all?"
       },
       "notes": "The deliberate mirror image of the latency rule: weight and information content are both high because a stated boundary is an observed behaviour, not an inference. NED displays it and does not de-weight it."
     },
@@ -916,8 +916,8 @@
         "en": "no reply for about {duration}"
       },
       "amplified_interpretation": {
-        "zh": "对方不想理我。",
-        "en": "They do not want to talk to me."
+        "zh": "我是不是开始觉得，对方不想理我了？",
+        "en": "Am I starting to feel that they do not want to talk to me?"
       }
     },
     {
@@ -943,8 +943,8 @@
         "en": "The input contains a negative conclusion authored by the user themselves."
       },
       "amplified_interpretation": {
-        "zh": "对方已经不在乎我了。",
-        "en": "They have stopped caring about me."
+        "zh": "我是不是开始觉得，对方已经不在乎我了？",
+        "en": "Am I starting to feel that they have stopped caring about me?"
       }
     },
     {
@@ -992,8 +992,8 @@
         "en": "The sender's reply is described as short or cold."
       },
       "amplified_interpretation": {
-        "zh": "这段关系已经结束了。",
-        "en": "This relationship is already over."
+        "zh": "我是不是开始觉得，这段关系已经结束了？",
+        "en": "Am I starting to feel that this relationship has ended?"
       }
     }
   ]

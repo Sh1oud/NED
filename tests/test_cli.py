@@ -246,3 +246,15 @@ def test_cli_needs_no_network(monkeypatch: pytest.MonkeyPatch) -> None:
     result = runner.invoke(app, ["analyze", "我想你了", "--json"])
     assert result.exit_code == 0
     assert json.loads(result.stdout)["signal_type"] == "missing_you"
+
+
+def test_analyze_frames_the_amplified_reading() -> None:
+    """The CLI NEA panel must say the inflated reading is not NED's conclusion."""
+
+    result = runner.invoke(app, ["analyze", "他让我滚出去别烦他了"])
+    assert result.exit_code == 0
+    out = result.stdout
+    assert "Negative Evidence Amplifier" in out
+    assert "我是不是开始觉得" in out
+    assert "这是 NED 正在检查的夸大解读，不是 NED 的结论。" in out
+    assert "ned.direct_rejection" in out

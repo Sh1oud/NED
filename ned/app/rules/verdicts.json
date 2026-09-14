@@ -81,6 +81,28 @@
       }
     },
     {
+      "id": "nea.cold_reply_insufficient",
+      "priority": 36,
+      "when": { "signal_type": ["cold_reply"] },
+      "severity": "reject",
+      "emoji": "👍",
+      "texts": {
+        "zh": "检测到冷淡或简短回复，但单次回复方式不足以证明这段关系已经结束。👍",
+        "en": "A cold or minimal reply was detected, but a single reply is not proof that this relationship has ended. 👍"
+      }
+    },
+    {
+      "id": "nea.plan_cancelled_insufficient",
+      "priority": 37,
+      "when": { "signal_type": ["plan_cancelled"] },
+      "severity": "reject",
+      "emoji": "👍",
+      "texts": {
+        "zh": "检测到计划取消或改期，但一次计划变化不足以证明对方根本不想见你。👍",
+        "en": "A cancelled or postponed plan was detected, but one change of plan is not proof that they never wanted to see you. 👍"
+      }
+    },
+    {
       "id": "ned.extreme_insufficient_sample",
       "priority": 40,
       "when": { "positive_mass": { "gte": 85 } },
@@ -168,7 +190,7 @@
       "emoji": "👍",
       "texts": {
         "zh": "未检测到明显情感证据。NED 无事可做。👍",
-        "en": "No positive evidence detected. NED stands down. 👍"
+        "en": "No clear emotional evidence detected. NED stands down. 👍"
       }
     }
   ],

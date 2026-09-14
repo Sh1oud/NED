@@ -356,3 +356,40 @@ def test_web_ui_ships_both_fnbp_reminder_messages(client: TestClient) -> None:
     app_js = client.get("/static/app.js").text
     assert "renderFnbpPersonality(d.prediction_misses)" in app_js
     assert "fnbp-personality-zh" in app_js
+
+
+def test_web_ui_frames_the_amplified_reading(client: TestClient) -> None:
+    """The inflated reading must be framed as the interpretation under test."""
+
+    body = client.get("/").text
+    section = body.split('id="nea-block"', 1)[1].split("</section>", 1)[0]
+
+    assert 'id="nea-amplified"' in section, "the amplified reading must stay in the NEA card"
+    assert 'id="nea-framing"' in section, "the framing line must live in the NEA card"
+    assert section.index('id="nea-amplified"') < section.index('id="nea-framing"'), (
+        "the framing line must come after the amplified reading"
+    )
+    assert "measure it" not in section, (
+        "the framing line replaces the older, redundant note sentence"
+    )
+
+
+def test_web_ui_ships_the_amplified_reading_framing(client: TestClient) -> None:
+    """Both framing languages must reach the page."""
+
+    match = re.search(
+        r'<script id="personality-catalog"[^>]*>(.*?)</script>', client.get("/").text, re.DOTALL
+    )
+    assert match, "the personality catalog script tag is missing"
+    framing = json.loads(match.group(1))["nea_framing"]
+
+    assert framing["en"] == (
+        "This is the exaggerated interpretation NED is checking — not its conclusion."
+    )
+    assert framing["zh"] == "这是 NED 正在检查的夸大解读，不是 NED 的结论。"
+
+
+def test_the_web_script_writes_the_framing_line(client: TestClient) -> None:
+    script = client.get("/static/app.js").text
+    assert "nea-framing" in script
+    assert "nea_framing" in script

@@ -364,6 +364,9 @@
       ["nea-observed", observed],
       ["nea-amplified", amplified === "" ? DASH : amplified]
     ]);
+    // The inflated reading is the interpretation under test, not a finding.
+    var framing = obj(PERSONALITY_CATALOG.nea_framing);
+    setText("nea-framing", txt(d.language) === "en" ? framing.en : framing.zh);
   }
 
   function renderNotes(notes, eggs) {

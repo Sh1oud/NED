@@ -126,3 +126,43 @@ def test_rules_dir_env_override(monkeypatch: pytest.MonkeyPatch) -> None:
     assert rules_dir() == custom
     monkeypatch.delenv(RULES_DIR_ENV)
     assert rules_dir().name == "rules"
+
+
+def test_every_negative_signal_type_has_its_own_verdict(book: RuleBook) -> None:
+    """A detected negative signal must be able to produce a verdict of its own.
+
+    Documented exception: ``direct_rejection`` is matched by the
+    ``direct_rejection`` flag rather than by ``signal_type``, so that the
+    boundary verdict still fires when positive evidence takes the primary slot.
+    There is no other exception.
+    """
+
+    negative_types = {
+        rule.signal_type.value for rule in book.signals if rule.polarity == "negative"
+    }
+    covered: set[str] = set()
+    for rule in book.verdicts:
+        keyed = rule.when.get("signal_type")
+        if isinstance(keyed, list):
+            covered.update(str(item) for item in keyed)
+        if rule.when.get("direct_rejection") is True:
+            covered.add("direct_rejection")
+
+    missing = sorted(negative_types - covered)
+    assert not missing, f"no verdict can answer these signals: {missing}"
+
+
+def test_no_signal_copy_states_the_absence_of_any_evidence(book: RuleBook) -> None:
+    """The catch-all is reached only when nothing at all was detected.
+
+    Its English twin used to say "no positive evidence", which is narrower than
+    the Chinese and narrower than what the rule now guarantees.
+    """
+
+    rule = next(item for item in book.verdicts if item.id == "ned.no_signal")
+    assert rule.when == {}, "the catch-all must stay unconditional"
+    assert rule.texts["zh"] == "未检测到明显情感证据。NED 无事可做。👍"
+    assert rule.texts["en"] == "No clear emotional evidence detected. NED stands down. 👍"
+    assert "positive" not in rule.texts["en"].lower(), (
+        "the English text must not narrow the claim to positive evidence"
+    )

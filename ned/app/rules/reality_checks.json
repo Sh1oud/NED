@@ -9,8 +9,8 @@
     },
     {
       "id": "direct_rejection",
-      "zh": "输入包含明确表达的拒绝或边界。NED 不对这条证据降权：说出口的边界是一个行为，不是推断。它记录了一次明确的边界表达；这既不说明你不好，也不足以推断任何人的全部内心状态。",
-      "en": "The input contains an explicitly stated refusal or boundary. NED does not de-weight this evidence: a stated boundary is a behaviour, not an inference. It records an explicit boundary, which neither says anything about your worth nor licenses reading anyone's entire inner state."
+      "zh": "输入包含明确表达的拒绝或边界，而明确的边界应当被尊重。NED 不对这条证据降权：说出口的边界是一个行为，不是推断。它记录了一次明确的边界表达；这既不说明你不好，也不足以推断任何人的全部内心状态。",
+      "en": "The input contains an explicitly stated refusal or boundary, and an explicit boundary deserves to be respected. NED does not de-weight this evidence: a stated boundary is a behaviour, not an inference. It records an explicit boundary, which neither says anything about your worth nor licenses reading anyone's entire inner state."
     },
     {
       "id": "negative_only",

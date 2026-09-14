@@ -278,3 +278,103 @@ def test_all_modes_produce_complete_reports(analyzer: NedAnalyzer, mode: str) ->
     assert 0 <= result.ned_reaching_level <= 100
     assert result.mode_notes
     assert result.engine.offline
+
+
+#: Inputs that must never reach the catch-all verdict: one per signal family and
+#: polarity, including the self-discount path.
+DETECTED_SIGNAL_INPUTS = (
+    "我想你了",
+    "我喜欢你",
+    "她主动找我聊了两个小时",
+    "消息发出去五分钟没回复",
+    "她不喜欢我，根本不在乎我",
+    "她就回了一个嗯",
+    "她临时说有事，改天吧",
+    "他让我滚出去别烦他了",
+    "可能只是人好",
+)
+
+
+def test_cold_reply_is_acknowledged_and_rejected(analyzer: NedAnalyzer) -> None:
+    """A cold reply is evidence of something, so the verdict may not deny it."""
+
+    result = analyzer.analyze_text("她就回了一个嗯", mode="normal")
+    assert result.signal_type == SignalType.COLD_REPLY
+    assert result.signal_strength == 45.0
+    assert result.verdict.code == "nea.cold_reply_insufficient"
+    assert result.verdict.severity == "reject"
+    assert result.verdict.code != "ned.no_signal"
+    assert "不足以证明" in result.verdict.text
+    assert "这段关系已经结束" in result.verdict.text
+
+
+def test_cancelled_plan_is_acknowledged_and_rejected(analyzer: NedAnalyzer) -> None:
+    result = analyzer.analyze_text("她临时说有事，改天吧", mode="normal")
+    assert result.signal_type == SignalType.PLAN_CANCELLED
+    assert result.signal_strength == 42.0
+    assert result.verdict.code == "nea.plan_cancelled_insufficient"
+    assert result.verdict.severity == "reject"
+    assert result.verdict.code != "ned.no_signal"
+    assert "不足以证明" in result.verdict.text
+    assert "根本不想见你" in result.verdict.text
+
+
+def test_the_new_verdicts_ship_english_copy(analyzer: NedAnalyzer) -> None:
+    result = analyzer.analyze_text("She replied with just one word", mode="normal")
+    assert result.language == "en"
+    assert result.verdict.code == "nea.cold_reply_insufficient"
+    assert result.verdict.text.startswith("A cold or minimal reply was detected")
+
+
+def test_a_detected_signal_never_gets_the_no_signal_verdict(analyzer: NedAnalyzer) -> None:
+    """ned.no_signal is reserved for inputs where nothing was detected.
+
+    No exception: every negative signal family owns a verdict of its own now
+    (response_latency, cold_reply, plan_cancelled, self_negative_belief,
+    direct_rejection), the self-discount path has ned.self_discount_noted, and
+    every positive signal reaches the ped.* rules.
+    """
+
+    for text in DETECTED_SIGNAL_INPUTS:
+        result = analyzer.analyze_text(text, mode="normal")
+        assert result.evidence, f"{text!r} produced no evidence"
+        assert result.signal_type != SignalType.NONE, text
+        assert result.verdict.code != "ned.no_signal", (
+            f"{text!r} detected {result.signal_type.value} but got ned.no_signal"
+        )
+
+
+@pytest.mark.parametrize("mode", ["normal", "scientific", "extreme"])
+def test_the_invariant_holds_for_every_shipped_example(analyzer: NedAnalyzer, mode: str) -> None:
+    for case in analyzer.examples():
+        result = analyzer.analyze_text(case.text, mode=mode)  # type: ignore[arg-type]
+        if result.signal_type == SignalType.NONE:
+            assert not result.evidence, case.id
+            continue
+        assert result.verdict.code != "ned.no_signal", (case.id, mode)
+
+
+def test_no_signal_is_still_used_when_nothing_is_detected(analyzer: NedAnalyzer) -> None:
+    """The catch-all must stay reachable, or the invariant would be vacuous."""
+
+    result = analyzer.analyze_text("今天开会开了三个小时，回来路上买了瓶水", mode="normal")
+    assert result.signal_type == SignalType.NONE
+    assert result.evidence == []
+    assert result.verdict.code == "ned.no_signal"
+
+
+def test_no_signal_ships_bilingual_copy(analyzer: NedAnalyzer) -> None:
+    """A truly empty input still reaches the catch-all, in both languages."""
+
+    chinese = analyzer.analyze_text("今天开会开了三个小时，回来路上买了瓶水", mode="normal")
+    english = analyzer.analyze_text("I bought a bottle of water on the way home", mode="normal")
+
+    assert chinese.language == "zh"
+    assert english.language == "en"
+    for result in (chinese, english):
+        assert result.signal_type == SignalType.NONE
+        assert result.evidence == []
+        assert result.verdict.code == "ned.no_signal"
+
+    assert chinese.verdict.text == "未检测到明显情感证据。NED 无事可做。👍"
+    assert english.verdict.text == "No clear emotional evidence detected. NED stands down. 👍"

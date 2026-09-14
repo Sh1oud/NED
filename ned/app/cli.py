@@ -33,6 +33,7 @@ from ned.app.ui.personality import (
     analysis_feedback,
     asymmetry_feedback,
     fnbp_feedback,
+    nea_framing,
 )
 from ned.app.version import FULL_NAME, MOTTO, NAME, SUBTITLE, TAGLINE, __version__
 
@@ -213,7 +214,10 @@ def render_analysis(result: AnalysisResult, out: Console) -> None:
         nea.add_row("Reality check", Text(result.reality_check, style="green"))
         out.print(
             Panel(
-                nea,
+                Group(
+                    nea,
+                    Text(nea_framing(result.language), style="dim italic"),
+                ),
                 title="Negative Evidence Amplifier",
                 border_style="red",
             )
