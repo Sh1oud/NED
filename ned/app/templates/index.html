@@ -261,21 +261,16 @@
             </section>
 
             <section class="card card-wide" id="analyze-asymmetry" hidden>
-              <div class="label">Attached Asymmetry Reading</div>
+              <div class="label">Attached Evidence Comparison</div>
               <div class="kv">
-                <div class="kv-row"><span class="kv-k">Asymmetry score</span><span class="kv-v mono" id="analyze-asym-score">—</span></div>
-                <div class="kv-row"><span class="kv-k">Label</span><span class="kv-v mono" id="analyze-asym-label">—</span></div>
+                <div class="kv-row"><span class="kv-k">Evidence comparable</span><span class="kv-v mono" id="analyze-asym-comparable">—</span></div>
+                <div class="kv-row"><span class="kv-k">NED treatment gap</span><span class="kv-v mono" id="analyze-asym-score">—</span></div>
+                <div class="kv-row"><span class="kv-k">Your reading</span><span class="kv-v mono" id="analyze-asym-label">—</span></div>
               </div>
-              <div class="bar" role="progressbar" aria-label="Asymmetry score" aria-valuemin="0" aria-valuemax="100">
+              <div class="bar" role="progressbar" aria-label="NED treatment gap" aria-valuemin="0" aria-valuemax="100">
                 <span class="bar-fill sev-chaos" id="analyze-asym-bar"></span>
               </div>
               <p class="note" id="analyze-asym-reality">—</p>
-              <div class="personality-feedback" id="analyze-asym-personality" hidden aria-live="polite">
-                <div class="label">NED Message</div>
-                <p id="analyze-asym-personality-technical">—</p>
-                <p id="analyze-asym-personality-zh">—</p>
-                <p class="personality-en" id="analyze-asym-personality-en">—</p>
-              </div>
             </section>
 
             <section class="card card-wide" id="engine-notes-block" hidden>
@@ -339,8 +334,8 @@
       <section class="panel" id="panel-asymmetry" role="tabpanel" aria-labelledby="tab-asymmetry" tabindex="0" hidden>
         <div class="card">
           <div class="card-head">
-            <h2 class="label">Evidence Standard Comparison</h2>
-            <p class="hint">Feed NED one piece of good news and one piece of bad news. It will compare the standards applied to each. Both fields are optional, but at least one is required.</p>
+            <h2 class="label">Evidence Comparison</h2>
+            <p class="hint">Feed NED one piece of good news and one piece of bad news. NED reports the evidence profile, what its own mode does to each side, and — only when your text states a reading of its own — whether your standard looks uneven. Both fields are optional, but at least one is required.</p>
           </div>
 
           <div class="grid">
@@ -363,66 +358,58 @@
         <section class="report" id="asym-results" data-severity="info" hidden aria-live="polite">
           <div class="report-head">
             <div>
-              <div class="label">Evidence Asymmetry Detector</div>
+              <div class="label">Evidence Comparison</div>
               <p class="satire-line">This output is satire. It does not measure anyone's feelings.</p>
             </div>
           </div>
 
           <div class="grid">
-            <section class="card card-wide">
-              <div class="label">Applied Weights</div>
-              <div id="asym-weights" class="stack">
-                <div class="stack">
-                  <div class="bar-meta">
-                    <span class="bar-label">Positive weight</span>
-                    <span class="bar-value mono" id="asym-pos-weight-value">—</span>
-                  </div>
-                  <div class="bar" role="progressbar" aria-label="Positive weight" aria-valuemin="0" aria-valuemax="100">
-                    <span class="bar-fill sev-info" id="asym-pos-weight-bar"></span>
-                  </div>
+            <section class="card card-wide" id="asym-profile">
+              <div class="label">Evidence Profile</div>
+              <div class="stack">
+                <div class="kv">
+                  <div class="kv-row"><span class="kv-k">Comparable</span><span class="kv-v mono" id="asym-profile-comparable">—</span></div>
+                  <div class="kv-row"><span class="kv-k">Reason</span><span class="kv-v mono" id="asym-profile-reason">—</span></div>
                 </div>
-                <div class="stack">
-                  <div class="bar-meta">
-                    <span class="bar-label">Negative weight</span>
-                    <span class="bar-value mono" id="asym-neg-weight-value">—</span>
-                  </div>
-                  <div class="bar" role="progressbar" aria-label="Negative weight" aria-valuemin="0" aria-valuemax="100">
-                    <span class="bar-fill sev-reject" id="asym-neg-weight-bar"></span>
-                  </div>
+                <div class="table-wrap">
+                  <table class="table" id="asym-profile-table">
+                    <thead>
+                      <tr><th>Side</th><th>Class</th><th>Raw strength</th><th>Information</th></tr>
+                    </thead>
+                    <tbody id="asym-profile-rows"></tbody>
+                  </table>
                 </div>
+                <div class="kv">
+                  <div class="kv-row"><span class="kv-k">Raw strength gap</span><span class="kv-v mono" id="asym-profile-raw-gap">—</span></div>
+                  <div class="kv-row"><span class="kv-k">Information gap</span><span class="kv-v mono" id="asym-profile-information-gap">—</span></div>
+                </div>
+                <p class="note">The clues themselves: raw strength, information content and evidence class. NED's own policy and your own wording are not part of this block.</p>
               </div>
             </section>
 
-            <section class="card">
-              <div class="label">Admission Thresholds</div>
-              <div id="asym-thresholds" class="stack">
-                <div class="threshold-row">
-                  <span class="threshold-k">Positive evidence</span>
-                  <span class="threshold-chip mono" id="asym-pos-threshold">—</span>
+            <section class="card" id="asym-treatment">
+              <div class="label">NED Treatment</div>
+              <div class="stack">
+                <div class="kv">
+                  <div class="kv-row"><span class="kv-k">Mode</span><span class="kv-v mono" id="asym-treatment-mode">—</span></div>
+                  <div class="kv-row"><span class="kv-k">Positive discount</span><span class="kv-v mono" id="asym-treatment-discount">—</span></div>
+                  <div class="kv-row"><span class="kv-k">Priors</span><span class="kv-v mono" id="asym-treatment-priors">—</span></div>
+                  <div class="kv-row"><span class="kv-k">Treated positive weight</span><span class="kv-v mono" id="asym-treatment-positive">—</span></div>
+                  <div class="kv-row"><span class="kv-k">Treated negative weight</span><span class="kv-v mono" id="asym-treatment-negative">—</span></div>
+                  <div class="kv-row"><span class="kv-k">Negative amplification</span><span class="kv-v mono" id="asym-treatment-amplification">—</span></div>
+                  <div class="kv-row"><span class="kv-k">Treatment gap</span><span class="kv-v mono" id="asym-treatment-gap">—</span></div>
                 </div>
-                <div class="threshold-row">
-                  <span class="threshold-k">Negative evidence</span>
-                  <span class="threshold-chip mono" id="asym-neg-threshold">—</span>
-                </div>
+                <p class="note">What the current NED mode does to evidence it has already read. This block describes NED, never you.</p>
               </div>
             </section>
 
-            <section class="card">
-              <div class="label">Asymmetry Score</div>
-              <div id="asym-score" class="stack">
-                <div class="readout readout-lg">
-                  <span class="readout-value mono" id="asym-score-value">—</span>
-                  <span class="readout-label mono" id="asym-score-label">—</span>
-                </div>
-                <div class="bar bar-lg" id="asym-score-track" data-state="contained" role="progressbar" aria-label="Asymmetry score" aria-valuemin="0" aria-valuemax="100">
-                  <span class="bar-fill sev-chaos" id="asym-score-bar"></span>
-                </div>
-                <div class="personality-feedback" id="asym-personality" hidden aria-live="polite">
-                  <div class="label">NED Message</div>
-                  <p id="asym-personality-technical">—</p>
-                  <p id="asym-personality-zh">—</p>
-                  <p class="personality-en" id="asym-personality-en">—</p>
-                </div>
+            <section class="card" id="asym-reading">
+              <div class="label">Your Reading</div>
+              <div class="stack">
+                <p class="prose" id="asym-reading-status">—</p>
+                <div class="chip-row" id="asym-reading-basis"></div>
+                <p class="note" id="asym-reading-detail">—</p>
+                <p class="note">This block is the only place NED speaks about your evidential standard, and it only speaks when your own wording is in the input.</p>
               </div>
             </section>
 
@@ -430,16 +417,6 @@
               <div class="label">Reality Check</div>
               <div id="asym-reality" class="stack">
                 <p class="prose" id="asym-reality-text">—</p>
-              </div>
-            </section>
-
-            <section class="card card-wide">
-              <div class="label">Internal Sub-scores (non-authoritative)</div>
-              <div class="kv" id="asym-subscores">
-                <div class="kv-row"><span class="kv-k">Weight gap</span><span class="kv-v mono" id="asym-sub-weight-gap">—</span></div>
-                <div class="kv-row"><span class="kv-k">Information gap</span><span class="kv-v mono" id="asym-sub-information-gap">—</span></div>
-                <div class="kv-row"><span class="kv-k">Categorical</span><span class="kv-v mono" id="asym-sub-categorical">—</span></div>
-                <p class="note">NED's own arbitrary numbers, printed for auditability. They are not measurements of anyone.</p>
               </div>
             </section>
 
@@ -457,22 +434,6 @@
             </section>
 
           </div>
-
-          <details class="disclosure" open>
-            <summary>Side-by-side comparison</summary>
-            <div class="disclosure-body">
-              <div class="table-wrap">
-                <table class="table" id="asym-table">
-                  <thead>
-                    <tr><th>Metric</th><th>Positive</th><th>Negative</th></tr>
-                  </thead>
-                  <tbody id="asym-rows">
-                    <tr><td class="muted">—</td><td class="mono">—</td><td class="mono">—</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </details>
 
           <footer class="report-foot">
             <p class="disclaimer" id="asym-disclaimer">—</p>

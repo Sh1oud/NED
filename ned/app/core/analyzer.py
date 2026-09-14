@@ -338,7 +338,13 @@ class NedAnalyzer:
             "reaching": reaching,
             "escape_capacity": capacity,
             "escape_capacity_exhausted": exhausted,
-            "asymmetry_score": asymmetry.asymmetry_score if asymmetry else 0.0,
+            "asymmetry_score": (asymmetry.asymmetry_score or 0.0) if asymmetry else 0.0,
+            "user_double_standard": (
+                asymmetry.user_interpretation.double_standard if asymmetry else False
+            ),
+            "user_reading_present": (
+                asymmetry.user_interpretation.reading_present if asymmetry else False
+            ),
             "has_positive": pos_mass > 0,
             "has_negative": neg_mass > 0,
             "direct_rejection": direct_rejection,

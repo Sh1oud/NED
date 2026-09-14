@@ -21,64 +21,76 @@ class PersonalityFeedback:
     en: str
 
 
-TECHNICAL_OVERREACH = "NED has detected evidence overreach."
+TECHNICAL_REACHING = "NED's own explanations are getting strained."
 
+#: Reaching is about NED's own behaviour: how hard it is working to keep
+#: uncertainty alive about evidence it has already read. No second person here —
+#: anything about the reader's standard belongs to the user-interpretation layer.
 ANALYSIS_FEEDBACK = (
     PersonalityFeedback(
         3,
         100.0,
-        TECHNICAL_OVERREACH,
-        "NED 认为，当前推理正在尝试逃离证据约束。请重新提交现实。👍",
-        (
-            "NED believes the current reasoning is attempting to escape evidence constraints. "
-            "Please resubmit reality."
-        ),
+        TECHNICAL_REACHING,
+        "NED 已经没有更好的解释，只能重复自己。👍",
+        "NED has run out of better explanations and is repeating itself.",
     ),
     PersonalityFeedback(
         2,
         80.0,
-        TECHNICAL_OVERREACH,
-        "警告：你的结论已经超过证据许可范围。🤠",
-        "Warning: Your conclusion has exceeded the allowed evidence range.",
+        TECHNICAL_REACHING,
+        "NED 正在为了维持不确定性而越来越用力。🤠",
+        "NED is leaning harder and harder to keep uncertainty alive. 🤠",
     ),
     PersonalityFeedback(
         1,
         60.0,
-        TECHNICAL_OVERREACH,
-        "NED 已经开始怀疑你的怀疑。🤠",
-        "NED has started questioning your questioning.",
+        TECHNICAL_REACHING,
+        "NED 的替代解释正在开始变得牵强。🤠",
+        "NED's alternative explanations are starting to get strained. 🤠",
     ),
 )
 
-# An 81.8 asymmetry score is intentionally still Level 1: the detector has
-# exposed a double standard, but NED reserves theatrical warnings for the
-# near-total (90+) and total (100) states.
-ASYMMETRY_FEEDBACK = (
-    PersonalityFeedback(
-        3,
-        100.0,
-        TECHNICAL_OVERREACH,
-        "NED 认为，当前推理正在尝试逃离证据约束。请重新提交现实。👍",
-        (
-            "NED believes the current reasoning is attempting to escape evidence constraints. "
-            "Please resubmit reality."
+
+#: Display-only sentences for the user-interpretation layer. They are the only
+#: copy allowed to speak about the reader's standard, and the last one is only
+#: used when the layer detected a basis on both sides.
+READING_STATUS_MESSAGES = {
+    "not_present": {
+        "zh": "输入中没有你的判断语言，NED 不评估你的证据标准。",
+        "en": (
+            "There is no interpretation language in the input, so NED does not assess "
+            "your evidential standard."
         ),
-    ),
-    PersonalityFeedback(
-        2,
-        90.0,
-        TECHNICAL_OVERREACH,
-        "警告：你的结论已经超过证据许可范围。🤠",
-        "Warning: Your conclusion has exceeded the allowed evidence range.",
-    ),
-    PersonalityFeedback(
-        1,
-        60.0,
-        TECHNICAL_OVERREACH,
-        "NED 已经开始怀疑你的怀疑。🤠",
-        "NED has started questioning your questioning.",
-    ),
-)
+    },
+    "partial_basis": {
+        "zh": "输入里的判断语言只出现在一侧；NED 不据此判断你的证据标准是否不对称。",
+        "en": (
+            "The input contains interpretation language on one side only, so NED does not judge "
+            "your standard from it."
+        ),
+    },
+    "asymmetric_standard_detected": {
+        "zh": "检测到你的证据标准不对称：你对正向证据做了降权，又对负向证据下了结论。",
+        "en": (
+            "Your evidential standard looks uneven: you discounted the good news and drew a "
+            "conclusion from the bad news."
+        ),
+    },
+    "not_comparable": {
+        "zh": "这对证据不可比，NED 不评估你的证据标准。",
+        "en": (
+            "These two clues are not comparable, so NED does not assess your evidential standard."
+        ),
+    },
+}
+
+
+def reading_message(status: str, language: str) -> str:
+    """Display copy for one user-reading status."""
+
+    messages = READING_STATUS_MESSAGES.get(status) or READING_STATUS_MESSAGES["not_present"]
+    return messages["en"] if language == "en" else messages["zh"]
+
 
 FNBP_HIT_FEEDBACK = {
     "title": "🎯 命中了。",
@@ -108,10 +120,16 @@ def nea_framing(language: str) -> str:
 
 
 def _feedback_for(
-    score: float, levels: tuple[PersonalityFeedback, ...]
+    score: float | None, levels: tuple[PersonalityFeedback, ...]
 ) -> PersonalityFeedback | None:
-    """Return display copy for an already-calculated score."""
+    """Return display copy for an already-calculated score.
 
+    ``None`` means no comparable score was produced, so there is nothing to
+    comment on and no copy is shown.
+    """
+
+    if score is None:
+        return None
     return next((feedback for feedback in levels if score >= feedback.minimum), None)
 
 
@@ -119,12 +137,6 @@ def analysis_feedback(reaching_level: float) -> PersonalityFeedback | None:
     """Personality copy for an Analyze Evidence reaching level."""
 
     return _feedback_for(reaching_level, ANALYSIS_FEEDBACK)
-
-
-def asymmetry_feedback(asymmetry_score: float) -> PersonalityFeedback | None:
-    """Personality copy for an Asymmetry Detector score."""
-
-    return _feedback_for(asymmetry_score, ASYMMETRY_FEEDBACK)
 
 
 def fnbp_feedback(prediction_misses: int) -> dict[str, str]:
@@ -138,22 +150,23 @@ def web_personality_catalog() -> dict[str, object]:
 
     return {
         "analysis": [asdict(feedback) for feedback in ANALYSIS_FEEDBACK],
-        "asymmetry": [asdict(feedback) for feedback in ASYMMETRY_FEEDBACK],
         "fnbp": {"hit": FNBP_HIT_FEEDBACK, "miss": FNBP_MISS_FEEDBACK},
         "nea_framing": NEA_FRAMING,
+        "user_reading": READING_STATUS_MESSAGES,
     }
 
 
 __all__ = [
     "ANALYSIS_FEEDBACK",
-    "ASYMMETRY_FEEDBACK",
     "FNBP_HIT_FEEDBACK",
     "FNBP_MISS_FEEDBACK",
     "NEA_FRAMING",
+    "READING_STATUS_MESSAGES",
+    "TECHNICAL_REACHING",
     "PersonalityFeedback",
     "analysis_feedback",
-    "asymmetry_feedback",
     "fnbp_feedback",
     "nea_framing",
+    "reading_message",
     "web_personality_catalog",
 ]

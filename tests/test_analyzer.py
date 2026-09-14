@@ -171,17 +171,23 @@ def test_mixed_input_builds_an_asymmetry_report(analyzer: NedAnalyzer) -> None:
         "她主动找我聊了两个小时，但消息发出去五分钟没回复，我觉得她不想理我", mode="normal"
     )
     assert result.asymmetry is not None
-    assert result.asymmetry.asymmetry_score >= 60
-    assert result.verdict.code == "asymmetry.detected"
+    reading = result.asymmetry.user_interpretation
+    assert reading.status == "partial_basis"  # a conclusion on one side only
+    assert reading.negative_self_conclusion_present is True
+    assert reading.double_standard is False
     assert result.asymmetry_reality_check.strip()
-    assert result.breakdown.asymmetry_score is not None
+    assert result.asymmetry.evidence_profile.comparable is True
 
 
-def test_self_discount_plus_positive_evidence_is_an_asymmetry(analyzer: NedAnalyzer) -> None:
+def test_self_discount_plus_positive_evidence_is_user_language(analyzer: NedAnalyzer) -> None:
+    """A self-discount is the reader's wording: it never becomes negative evidence."""
+
     result = analyzer.analyze_text("她主动找我聊了两个小时，但可能只是人好", mode="normal")
-    assert result.asymmetry is not None
-    assert result.asymmetry.negative is not None
-    assert result.asymmetry.positive is not None
+    # there is no negative side at all, so there is no comparison to attach
+    assert result.asymmetry is None
+    discounts = [span for span in result.evidence if span.polarity == "self_discount"]
+    assert discounts, "the discount is still reported as the reader's own language"
+    assert discounts[0].signal_type.value == "self_discount"
 
 
 def test_alternatives_are_labelled_as_hypotheses(analyzer: NedAnalyzer) -> None:

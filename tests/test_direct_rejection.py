@@ -190,11 +190,19 @@ def test_positive_evidence_does_not_buy_the_boundary_an_escape(
 
 
 def test_a_boundary_outranks_the_asymmetry_headline(analyzer: NedAnalyzer) -> None:
-    """A stated refusal is not weak negative evidence being amplified."""
+    """A stated refusal is not weak negative evidence being amplified.
+
+    Since the comparability gate landed, such a pair does not even reach a
+    severity band: an explicit boundary is a different evidence class, so NED
+    declines the comparison instead of scoring the boundary as overreach.
+    """
 
     result = analyzer.analyze_text(MIXED, mode="extreme")
-    assert result.breakdown.asymmetry_score is not None
-    assert result.breakdown.asymmetry_score >= 60
+    assert result.breakdown.asymmetry_score is None
+    assert result.asymmetry is not None
+    assert result.asymmetry.comparison_applicable is False
+    assert result.asymmetry.comparison_reason == "explicit_boundary_not_comparable"
+    assert result.asymmetry.asymmetry_label == "NOT DIRECTLY COMPARABLE"
     assert result.verdict.code == "ned.direct_rejection"
     assert "weak negative evidence" not in result.verdict.text
 

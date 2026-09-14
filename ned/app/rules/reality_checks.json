@@ -48,6 +48,16 @@
       "en": "No classifiable emotional evidence was detected, so there is nothing to de-weight. That is not bad news; it is simply no news."
     },
     {
+      "id": "comparison_not_applicable",
+      "zh": "这两条证据不适合用同一套对称标准直接比较。持续互动记录的是此前的互动投入，明确拒绝或边界表达描述的是互动现在的位置。两者可以同时成立，而且明确边界应当被尊重。因此 NED 不把这种权重差异本身视为证据标准上的双重标准。",
+      "en": "These two pieces of evidence are not suitable for a direct, symmetric comparison. A sustained interaction records earlier investment in the exchange, while an explicit refusal or boundary describes where the interaction now stands. Both can be true at once, and an explicit boundary deserves to be respected. NED therefore does not treat this difference in weight as a double standard in how evidence is judged."
+    },
+    {
+      "id": "comparison_temporal_not_applicable",
+      "zh": "这两条证据来自关系状态的不同时间点：它们描述的是变化，而不是对同一命题的两次判断。较早的那条成立，并不否定较晚的那条；较晚的那条出现，也不抵消较早的那条。因此 NED 不把它们放在同一把尺子上测量证据标准。",
+      "en": "These two clues come from different points in the relationship: they describe a change of state rather than two judgements about one proposition. The earlier one being true does not cancel the later one, and the later one does not erase the earlier. NED therefore does not measure evidential standards across them."
+    },
+    {
       "id": "asymmetry_insufficient",
       "zh": "比较需要两份证据，但你只给了一份。NED 无法在单个样本上测量双重标准——这大概也是它最诚实的一句话。",
       "en": "A comparison needs two pieces of evidence and only one was supplied. NED cannot measure a double standard from a single sample, which is probably the most honest sentence here."

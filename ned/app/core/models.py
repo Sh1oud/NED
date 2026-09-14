@@ -149,9 +149,78 @@ class AsymmetrySide(BaseModel):
     weight: float = Field(ge=0, le=100)
     information_content: float = Field(ge=0, le=100)
     description: str = ""
+    #: Evidence class of the strongest signal, e.g. interaction or boundary.
+    evidence_class: str = ""
     discount_applied: float = Field(default=0.0, ge=0, le=100)
     amplification_applied: float = Field(default=0.0, ge=0, le=100)
     interpretation: str = ""
+
+
+class EvidenceProfile(BaseModel):
+    """What the two clues are, with no policy and no reader involved."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    #: Whether a symmetric comparison was appropriate for these two clues.
+    comparable: bool = False
+    comparison_reason: str = ""
+    positive_class: str = ""
+    negative_class: str = ""
+    positive_raw_strength: float | None = None
+    negative_raw_strength: float | None = None
+    positive_information: float | None = None
+    negative_information: float | None = None
+    #: Pairwise readings. Both stay ``None`` whenever the pair is not comparable,
+    #: so a declined comparison cannot be read as a size difference.
+    raw_strength_gap: float | None = None
+    information_gap: float | None = None
+
+
+class NedTreatment(BaseModel):
+    """What the current NED mode does to evidence it has already read.
+
+    Everything here describes NED, never the reader: the mode's own discount, its
+    configured priors and the weights it derives from them.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    mode: str
+    positive_discount: float = Field(ge=0, le=100)
+    prior_positive: float = Field(ge=0, le=1)
+    prior_negative: float = Field(ge=0, le=3)
+    positive_treated_weight: float | None = None
+    negative_treated_weight: float | None = None
+    negative_amplification: float | None = None
+    #: ``None`` whenever the pair is not comparable.
+    treatment_gap: float | None = None
+
+
+UserReadingStatus = Literal[
+    "not_present", "partial_basis", "asymmetric_standard_detected", "not_comparable"
+]
+
+
+class UserInterpretation(BaseModel):
+    """What the reader's own words say, and nothing else.
+
+    This is the only layer allowed to carry copy about the reader's standard.
+    ``interpretive_score`` is reserved for a future graded model: the evidence
+    available today is discrete (a reading is present or it is not), so the field
+    stays ``None`` rather than inventing a number. ``unknown`` is not zero.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: UserReadingStatus = "not_present"
+    reading_present: bool = False
+    positive_self_discount_present: bool = False
+    negative_self_conclusion_present: bool = False
+    basis: list[str] = Field(default_factory=list)
+    positive_reading: str | None = None
+    negative_reading: str | None = None
+    double_standard: bool = False
+    interpretive_score: float | None = None
 
 
 class AsymmetryResult(BaseModel):
@@ -164,8 +233,25 @@ class AsymmetryResult(BaseModel):
     negative: AsymmetrySide | None = None
     positive_threshold: str
     negative_threshold: str
-    asymmetry_score: float = Field(ge=0, le=100)
+    #: ``None`` when no comparison happened: either the input only told one side
+    #: of the story, or the two sides are not comparable at all. Zero keeps its
+    #: original meaning, namely "compared, and the standards are symmetric".
+    asymmetry_score: float | None = Field(default=None, ge=0, le=100)
     asymmetry_label: str
+    #: Whether a symmetric comparison was appropriate for these two clues.
+    comparison_applicable: bool = True
+    #: Machine-readable reason when it was not: ``insufficient_input``,
+    #: ``missing_external_evidence``, ``explicit_boundary_not_comparable`` or
+    #: ``temporal_state_change_not_comparable``.
+    comparison_reason: str = ""
+    #: The three layers of the contract, each with its own subject.
+    evidence_profile: EvidenceProfile = Field(default_factory=EvidenceProfile)
+    ned_treatment: NedTreatment | None = None
+    user_interpretation: UserInterpretation = Field(default_factory=UserInterpretation)
+    #: The top-level ``asymmetry_score`` and ``sub_scores`` are the legacy
+    #: composite: they mix evidence properties with NED policy and are kept only
+    #: so historical clients keep working. Read the three layers instead.
+    asymmetry_score_is_legacy: bool = True
     reality_check: str
     sub_scores: dict[str, float] = Field(default_factory=dict)
     verdict: Verdict
@@ -401,6 +487,7 @@ __all__ = [
     "Duration",
     "EasterEggHit",
     "EngineInfo",
+    "EvidenceProfile",
     "EvidenceSpan",
     "ExampleCase",
     "FnbpNotification",
@@ -410,10 +497,13 @@ __all__ = [
     "Language",
     "Mode",
     "ModeDescription",
+    "NedTreatment",
     "Polarity",
     "ScoringBreakdown",
     "Severity",
     "SignalType",
+    "UserInterpretation",
+    "UserReadingStatus",
     "Verdict",
     "VersionResponse",
     "utcnow",

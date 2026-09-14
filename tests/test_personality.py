@@ -12,10 +12,11 @@ from ned.app.ui.personality import (
     FNBP_HIT_FEEDBACK,
     FNBP_MISS_FEEDBACK,
     NEA_FRAMING,
+    READING_STATUS_MESSAGES,
     analysis_feedback,
-    asymmetry_feedback,
     fnbp_feedback,
     nea_framing,
+    reading_message,
     web_personality_catalog,
 )
 
@@ -29,19 +30,46 @@ def test_analysis_feedback_levels(score: float, level: int | None) -> None:
     assert (feedback.level if feedback else None) == level
 
 
-@pytest.mark.parametrize(
-    ("score", "level"),
-    [(59.9, None), (81.8, 1), (90.0, 2), (100.0, 3)],
-)
-def test_asymmetry_feedback_levels(score: float, level: int | None) -> None:
-    feedback = asymmetry_feedback(score)
-    assert (feedback.level if feedback else None) == level
+def test_reaching_copy_belongs_to_ned() -> None:
+    """Second-person attribution is not allowed on the reaching path."""
+
+    for feedback in (analysis_feedback(100.0), analysis_feedback(80.0), analysis_feedback(60.0)):
+        assert feedback is not None
+        for text in (feedback.zh, feedback.en, feedback.technical):
+            lowered = text.lower()
+            assert "你的" not in text
+            assert "your " not in lowered
+            assert "you " not in lowered
+    assert analysis_feedback(59.9) is None
+
+
+def test_reading_copy_is_gated_by_the_user_layer() -> None:
+    """Only a detected double standard yields copy about the reader."""
+
+    assert reading_message("not_present", "zh") == (
+        "输入中没有你的判断语言，NED 不评估你的证据标准。"
+    )
+    assert reading_message("not_present", "en").startswith("There is no interpretation language")
+    assert "你的证据标准是否不对称" in reading_message("partial_basis", "zh")
+    assert "你的证据标准不对称" in reading_message("asymmetric_standard_detected", "zh")
+    assert "不可比" in reading_message("not_comparable", "zh")
+    assert web_personality_catalog()["user_reading"] == READING_STATUS_MESSAGES
+
+
+def test_no_second_person_copy_reaches_the_page_catalog() -> None:
+    """The embedded catalog must not carry reader-directed copy by default."""
+
+    catalog = web_personality_catalog()
+    analysis = " ".join(item["zh"] + item["en"] + item["technical"] for item in catalog["analysis"])
+    assert "你的结论" not in analysis
+    assert "your questioning" not in analysis.lower()
 
 
 def test_personality_catalog_is_display_only_bilingual_copy() -> None:
     catalog = web_personality_catalog()
     assert catalog["analysis"]
-    assert catalog["asymmetry"]
+    assert catalog["user_reading"]
+    assert "asymmetry" not in catalog, "the score-driven asymmetry copy is gone"
     assert catalog["fnbp"] == {"hit": FNBP_HIT_FEEDBACK, "miss": FNBP_MISS_FEEDBACK}
 
 

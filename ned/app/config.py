@@ -54,6 +54,33 @@ class RealityCheckTemplate(BaseModel):
     en: str
 
 
+class ComparabilityConfig(BaseModel):
+    """When two clues may not be compared as symmetric samples of one question.
+
+    The detector measures an *interpretive* asymmetry: the same standard applied
+    unevenly. That reading is only available when both sides are candidate
+    answers to a similar question. An explicit boundary answers a different
+    question (where the interaction now stands) and settles it by itself, and
+    clues that sit in different states of the relationship are two observations
+    rather than two standards, so in both cases NED declines the comparison
+    instead of printing a severity band.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    enabled: bool = True
+    #: Evidence classes that declare a rule about the interaction itself.
+    boundary_classes: list[str] = Field(default_factory=lambda: ["boundary"])
+    #: ``signal_type`` -> evidence class. Anything absent is "unclassified".
+    evidence_classes: dict[str, str] = Field(default_factory=dict)
+    #: Language-keyed markers that situate a clue in a later state.
+    later_state_markers: dict[str, list[str]] = Field(default_factory=dict)
+    #: Reported instead of a severity band when the comparison is declined.
+    not_applicable_label: str = "NOT DIRECTLY COMPARABLE"
+    #: Reported for both admission thresholds in that case.
+    threshold_label: str = "NOT_COMPARABLE"
+
+
 class AsymmetryConfig(BaseModel):
     """Weights and priors of the Evidence Asymmetry Detector.
 
@@ -75,6 +102,8 @@ class AsymmetryConfig(BaseModel):
     categorical_positive_threshold: float = Field(default=25.0, ge=0, le=100)
     high_positive_threshold: float = Field(default=25.0, ge=0, le=100)
     low_negative_threshold: float = Field(default=75.0, ge=0, le=100)
+    #: Whether the two sides of a comparison are comparable at all.
+    comparability: ComparabilityConfig = Field(default_factory=ComparabilityConfig)
     bands: list[tuple[float, float, str]] = Field(
         default_factory=lambda: [
             (0.0, 19.999, "NEGLIGIBLE"),
@@ -137,6 +166,7 @@ __all__ = [
     "MAX_INPUT_CHARS",
     "RULES_DIR_ENV",
     "AsymmetryConfig",
+    "ComparabilityConfig",
     "ModeProfile",
     "ReachingBand",
     "RealityCheckTemplate",

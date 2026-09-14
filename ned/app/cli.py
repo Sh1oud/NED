@@ -31,9 +31,9 @@ from ned.app.core.models import (
 from ned.app.ui.personality import (
     PersonalityFeedback,
     analysis_feedback,
-    asymmetry_feedback,
     fnbp_feedback,
     nea_framing,
+    reading_message,
 )
 from ned.app.version import FULL_NAME, MOTTO, NAME, SUBTITLE, TAGLINE, __version__
 
@@ -78,8 +78,18 @@ def get_analyzer() -> NedAnalyzer:
     return _analyzer
 
 
-def bar(value: float, width: int = BAR_WIDTH, style: str = "") -> Text:
-    """A block-character progress bar (no dependencies, no Unicode maths)."""
+def bar(value: float | None, width: int = BAR_WIDTH, style: str = "") -> Text:
+    """A block-character progress bar (no dependencies, no Unicode maths).
+
+    ``None`` means no comparable number was produced, so the bar stays empty and
+    the value reads as a dash instead of a misleading zero.
+    """
+
+    if value is None:
+        text = Text()
+        text.append("░" * width, style="dim")
+        text.append("      —")
+        return text
 
     filled = round(max(0.0, min(100.0, value)) / 100.0 * width)
     text = Text()
@@ -269,48 +279,119 @@ def render_analysis(result: AnalysisResult, out: Console) -> None:
 
 
 def render_asymmetry_panel(result: AsymmetryResult) -> Panel:
-    """Render an asymmetry report."""
+    """Render the three layers of an evidence comparison.
 
-    table = Table(box=None, show_header=True, header_style="bold", padding=(0, 1))
-    table.add_column("Side")
-    table.add_column("Evidence", overflow="fold")
-    table.add_column("Raw", justify="right")
-    table.add_column("Weight", justify="right")
-    table.add_column("Information", justify="right")
+    Evidence Profile describes the clues, NED Treatment describes what the
+    current mode does to them, and Your Reading is the only section allowed to
+    say anything about the reader. The legacy composite is not printed.
+    """
 
+    profile = result.evidence_profile
+    treatment = result.ned_treatment
+    reading = result.user_interpretation
+
+    def show(value: float | None, digits: int = 3) -> str:
+        return "—" if value is None else f"{value:.{digits}f}"
+
+    def _pct(value: float | None) -> str:
+        return "—" if value is None else f"{value:.0f}%"
+
+    profile_table = Table(box=None, show_header=True, header_style="bold", padding=(0, 2))
+    profile_table.add_column("Side")
+    profile_table.add_column("Evidence", overflow="fold")
+    profile_table.add_column("Class")
+    profile_table.add_column("Raw", justify="right")
+    profile_table.add_column("Information", justify="right")
     for label, side in (("positive", result.positive), ("negative", result.negative)):
         if side is None:
-            table.add_row(label, "—", "—", "—", "—")
+            profile_table.add_row(label, "—", "—", "—", "—")
             continue
-        table.add_row(
+        profile_table.add_row(
             label,
             side.description or side.text,
+            side.evidence_class or "—",
             f"{side.raw_strength:.0f}",
-            f"{side.weight:.0f}%",
             f"{side.information_content:.0f}",
         )
 
-    scores = Table(show_header=False, box=None, padding=(0, 2))
-    scores.add_row("Positive threshold", Text(result.positive_threshold, style="bold yellow"))
-    scores.add_row("Negative threshold", Text(result.negative_threshold, style="bold red"))
-    scores.add_row("Asymmetry score", bar(result.asymmetry_score, style="magenta"))
-    scores.add_row("", Text(result.asymmetry_label, style="bold magenta"))
-    feedback = asymmetry_feedback(result.asymmetry_score)
+    treatment_table = Table(show_header=False, box=None, padding=(0, 2))
+    treatment_table.add_row("mode", Text(treatment.mode if treatment else "—"))
+    treatment_table.add_row(
+        "positive discount",
+        Text(f"{treatment.positive_discount:.0f}%" if treatment else "—", style="bold yellow"),
+    )
+    treatment_table.add_row(
+        "priors",
+        Text(
+            f"positive ×{treatment.prior_positive:g}  negative ×{treatment.prior_negative:g}"
+            if treatment
+            else "—"
+        ),
+    )
+    treatment_table.add_row(
+        "treated weights",
+        Text(
+            "positive "
+            + _pct(treatment.positive_treated_weight if treatment else None)
+            + "  negative "
+            + _pct(treatment.negative_treated_weight if treatment else None),
+        ),
+    )
+    treatment_table.add_row(
+        "negative amplification",
+        Text(
+            _pct(treatment.negative_amplification if treatment else None),
+            style="bold red",
+        ),
+    )
+    treatment_table.add_row(
+        "treatment gap",
+        Text(
+            show(treatment.treatment_gap) if treatment else "—",
+            style="bold magenta",
+        ),
+    )
+
+    reading_lines: list[Text] = [
+        Text(f"status: {reading.status}", style="bold"),
+    ]
+    if reading.basis:
+        reading_lines.append(Text(f"basis: {', '.join(reading.basis)}", style="dim"))
+    if reading.positive_reading:
+        reading_lines.append(Text(f"positive reading: {reading.positive_reading}", style="dim"))
+    if reading.negative_reading:
+        reading_lines.append(Text(f"negative reading: {reading.negative_reading}", style="dim"))
+    reading_lines.append(
+        Text(reading_message(reading.status, (result.mode and "zh") or "zh"), style="bold yellow")
+    )
 
     return Panel(
         Group(
-            table,
+            Text("Evidence Profile", style="bold"),
+            Text(
+                f"comparable: {'yes' if profile.comparable else 'NO'}"
+                f"   reason: {profile.comparison_reason or '—'}"
+            ),
+            profile_table,
+            Text(
+                f"raw strength gap: {show(profile.raw_strength_gap)}"
+                f"   information gap: {show(profile.information_gap)}",
+                style="dim",
+            ),
             Text(""),
-            scores,
+            Text("NED Treatment", style="bold"),
+            treatment_table,
+            Text(""),
+            Text("Your Reading", style="bold"),
+            *reading_lines,
             Text(""),
             Text(f"Reality check: {result.reality_check}", style="green"),
-            *personality_lines(feedback),
             Text(
                 f"Verdict: {verdict_text(result.verdict.emoji, result.verdict.text)}",
                 style="bold magenta",
             ),
         ),
-        title="Evidence Asymmetry Detector",
+        title="Evidence Comparison",
         border_style="magenta",
     )
 

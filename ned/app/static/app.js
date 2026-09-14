@@ -37,7 +37,13 @@
     });
   }
   function txt(v) { return v === null || v === undefined || v === "" || typeof v === "object" ? DASH : String(v); }
-  function num(v, digits) { var n = Number(v); return isFinite(n) ? n.toFixed(digits === undefined ? 1 : digits) : DASH; }
+  // null, undefined and "" mean "no number at all", which is not the same as 0:
+  // Number(null) is 0, and a declined comparison must not read as a perfect score.
+  function num(v, digits) {
+    if (v === null || v === undefined || v === "") { return DASH; }
+    var n = Number(v);
+    return isFinite(n) ? n.toFixed(digits === undefined ? 1 : digits) : DASH;
+  }
   function int(v) { var n = Number(v); return isFinite(n) ? String(Math.round(n)) : DASH; }
   function clampPct(v) { var n = Number(v); return isFinite(n) ? Math.max(0, Math.min(100, n)) : 0; }
   function isNum(v) { return v !== null && v !== "" && isFinite(Number(v)); }
@@ -438,13 +444,25 @@
 
     setHidden("analyze-asymmetry", !asym);
     if (asym) {
-      setNum("analyze-asym-score", asym.asymmetry_score, 1, "%");
-      setText("analyze-asym-label", asym.asymmetry_label);
-      setBar("analyze-asym-bar", asym.asymmetry_score);
+      var treatment = obj(asym.ned_treatment);
+      var profile = obj(asym.evidence_profile);
+      var reading = obj(asym.user_interpretation);
+      var messages = obj(PERSONALITY_CATALOG.user_reading);
+      var message = obj(messages[reading.status]);
+      setText("analyze-asym-comparable", profile.comparable ? "yes" : "NO");
+      setNum(
+        "analyze-asym-score",
+        treatment.treatment_gap === null || treatment.treatment_gap === undefined
+          ? null
+          : treatment.treatment_gap * 100,
+        1,
+        "%"
+      );
+      setText("analyze-asym-label", txt(d.language) === "en" ? message.en : message.zh);
+      setBar("analyze-asym-bar", treatment.treatment_gap === null || treatment.treatment_gap === undefined
+        ? null
+        : treatment.treatment_gap * 100);
       setText("analyze-asym-reality", txt(asym.reality_check || d.asymmetry_reality_check));
-      renderPersonality("analyze-asym-personality", "asymmetry", asym.asymmetry_score);
-    } else {
-      setHidden("analyze-asym-personality", true);
     }
     return report;
   }
@@ -526,73 +544,83 @@
 
   /* ------------------------------------------------------ asymmetry render */
 
-  function renderAsymRows(d, pos, neg) {
-    var body = $("asym-rows");
-    if (!body) { return; }
-    clear(body);
-    [
-      ["Signal", pos.signal_type, neg.signal_type],
-      ["Description", pos.description, neg.description],
-      ["Raw strength", num(pos.raw_strength), num(neg.raw_strength)],
-      ["Information content", num(pos.information_content), num(neg.information_content)],
-      ["Weight", num(pos.weight), num(neg.weight)],
-      ["Admission threshold", d.positive_threshold, d.negative_threshold]
-    ].forEach(function (row) {
-      var tr = el("tr");
-      tr.appendChild(el("th", "mono", row[0]));
-      tr.appendChild(el("td", "wrap", txt(row[1])));
-      tr.appendChild(el("td", "wrap", txt(row[2])));
-      body.appendChild(tr);
-    });
-  }
+  /* the legacy score, label and sub-score readouts are no longer rendered */
 
   function renderAsymmetry(data) {
     var report = $("asym-results");
     if (!report) { return; }
     var d = obj(data);
     var v = obj(d.verdict);
-    var pos = obj(d.positive);
-    var neg = obj(d.negative);
+    var profile = obj(d.evidence_profile);
+    var treatment = obj(d.ned_treatment);
+    var reading = obj(d.user_interpretation);
     report.hidden = false;
     report.classList.remove("is-loading");
     report.setAttribute("data-severity", severityOf(v.severity));
 
-    nums([
-      ["asym-pos-weight-value", pos.weight, 1, "%"],
-      ["asym-neg-weight-value", neg.weight, 1, "%"],
-      ["asym-score-value", d.asymmetry_score, 1, ""]
-    ]);
-    bars([
-      ["asym-pos-weight-bar", pos.weight],
-      ["asym-neg-weight-bar", neg.weight],
-      ["asym-score-bar", d.asymmetry_score]
-    ]);
-    setState("asym-score-track", bandFor(clampPct(d.asymmetry_score)));
-    renderPersonality("asym-personality", "asymmetry", d.asymmetry_score);
+    // 1. Evidence Profile: the clues, and the two pairwise readings.
+    var gap = function (value) { return value === null || value === undefined ? DASH : num(value, 3); };
     texts([
-      ["asym-pos-threshold", d.positive_threshold], ["asym-neg-threshold", d.negative_threshold],
-      ["asym-score-label", d.asymmetry_label], ["asym-reality-text", d.reality_check],
+      ["asym-profile-comparable", profile.comparable ? "yes" : "NO"],
+      ["asym-profile-reason", profile.comparison_reason === "" ? DASH : profile.comparison_reason],
+      ["asym-profile-raw-gap", gap(profile.raw_strength_gap)],
+      ["asym-profile-information-gap", gap(profile.information_gap)]
+    ]);
+    renderProfileRows(d, profile);
+
+    // 2. NED Treatment: policy only.
+    var pct = function (value) { return value === null || value === undefined ? DASH : num(value, 1) + "%"; };
+    texts([
+      ["asym-treatment-mode", treatment.mode],
+      ["asym-treatment-discount", pct(treatment.positive_discount)],
+      ["asym-treatment-priors", "positive x" + num(treatment.prior_positive, 2) + "  negative x" + num(treatment.prior_negative, 2)],
+      ["asym-treatment-positive", pct(treatment.positive_treated_weight)],
+      ["asym-treatment-negative", pct(treatment.negative_treated_weight)],
+      ["asym-treatment-amplification", pct(treatment.negative_amplification)],
+      ["asym-treatment-gap", gap(treatment.treatment_gap)]
+    ]);
+
+    // 3. Your Reading: the only second-person layer.
+    var messages = obj(PERSONALITY_CATALOG.user_reading);
+    var message = obj(messages[reading.status]);
+    setText("asym-reading-status", txt(d.language) === "en" ? message.en : message.zh);
+    var basisHost = $("asym-reading-basis");
+    if (basisHost) {
+      clear(basisHost);
+      list(reading.basis).forEach(function (code) {
+        basisHost.appendChild(el("span", "chip mono", txt(code)));
+      });
+    }
+    var detail = [];
+    if (reading.positive_reading) { detail.push("positive: " + reading.positive_reading); }
+    if (reading.negative_reading) { detail.push("negative: " + reading.negative_reading); }
+    setText("asym-reading-detail", detail.length ? detail.join("  ·  ") : DASH);
+
+    texts([
+      ["asym-reality-text", d.reality_check],
       ["asym-verdict-text", v.text], ["asym-verdict-severity", v.severity], ["asym-disclaimer", d.disclaimer]
     ]);
     setRaw("asym-verdict-emoji", typeof v.emoji === "string" ? v.emoji : "");
-    renderAsymRows(d, pos, neg);
-    renderSubScores(d.sub_scores);
     return report;
   }
 
-  function renderSubScores(raw) {
-    var scores = obj(raw);
-    var keys = ["weight_gap", "information_gap", "categorical"];
-    var host = $("asym-subscores");
-    var any = false;
-    keys.forEach(function (key) {
-      var value = scores[key];
-      var present = typeof value === "number" && isFinite(value);
-      if (present) { any = true; }
-      setNum("asym-sub-" + key.replace(/_/g, "-"), present ? value : null, 3, "");
+  function renderProfileRows(d, profile) {
+    var host = $("asym-profile-rows");
+    if (!host) { return; }
+    clear(host);
+    [["positive", obj(d.positive), profile.positive_class, profile.positive_raw_strength, profile.positive_information],
+     ["negative", obj(d.negative), profile.negative_class, profile.negative_raw_strength, profile.negative_information]
+    ].forEach(function (row) {
+      var tr = el("tr");
+      tr.appendChild(el("td", "", row[0]));
+      tr.appendChild(el("td", "mono", txt(row[2] || DASH)));
+      tr.appendChild(el("td", "num", row[3] === null || row[3] === undefined ? DASH : num(row[3], 0)));
+      tr.appendChild(el("td", "num", row[4] === null || row[4] === undefined ? DASH : num(row[4], 0)));
+      host.appendChild(tr);
     });
-    if (host) { host.hidden = !any; }
   }
+
+  /* the legacy sub-score readout is no longer rendered */
 
   function runAsymmetry() {
     var button = $("asym-submit");

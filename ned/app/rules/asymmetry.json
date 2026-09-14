@@ -12,6 +12,61 @@
     "categorical_positive_threshold": 25,
     "high_positive_threshold": 25,
     "low_negative_threshold": 75,
+    "comparability": {
+      "enabled": true,
+      "boundary_classes": [
+        "boundary"
+      ],
+      "not_applicable_label": "NOT DIRECTLY COMPARABLE",
+      "threshold_label": "NOT_COMPARABLE",
+      "evidence_classes": {
+        "none": "none",
+        "initiation": "interaction",
+        "sustained_interaction": "interaction",
+        "meetup_invitation": "interaction",
+        "responsiveness": "interaction",
+        "care": "interaction",
+        "compliment": "affect",
+        "affection_emoji": "affect",
+        "missing_you": "affect",
+        "explicit_affection": "declaration",
+        "expressed_love": "declaration",
+        "commitment_offer": "declaration",
+        "marriage": "declaration",
+        "response_latency": "behaviour",
+        "cold_reply": "behaviour",
+        "plan_cancelled": "behaviour",
+        "hostile_expression": "behaviour",
+        "direct_rejection": "boundary",
+        "self_negative_belief": "self_framing",
+        "self_discount": "self_framing"
+      },
+      "later_state_markers": {
+        "zh": [
+          "最后",
+          "后来",
+          "之后",
+          "此后",
+          "再后来",
+          "自此",
+          "结果",
+          "然后",
+          "接着",
+          "到最后",
+          "到后来"
+        ],
+        "en": [
+          "in the end",
+          "eventually",
+          "after that",
+          "afterwards",
+          "later on",
+          "since then",
+          "at the end",
+          "turned out"
+        ]
+      }
+    },
     "bands": [
       [0, 19.999, "NEGLIGIBLE"],
       [20, 39.999, "MILD"],

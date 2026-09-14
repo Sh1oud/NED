@@ -1,6 +1,6 @@
 {
   "version": "0.1.0",
-  "comment": "Verdict rules. The first matching rule wins, ordered by priority (ascending). Conditions are evaluated against a flat context of computed metrics. 'modes' restricts a rule to specific analysis modes. Even the table of verdicts refuses to conclude anything about a real person.",
+  "comment": "Verdict rules. The first matching rule wins, ordered by priority (ascending). Conditions are evaluated against a flat context of computed metrics. 'modes' restricts a rule to specific analysis modes. Even the table of verdicts refuses to conclude anything about a real person. LEGACY: 'asymmetry.detected' now waits on 'legacy_asymmetry_score', a key the engine no longer supplies, because the composite it described mixed evidence properties with NED policy and was attributed to the reader. The layer verdicts below replaced it.",
   "disclaimer": "NED cannot determine whether someone likes you. Humans are not APIs. No amount of text analysis can replace direct communication and context. Every alternative explanation here is generated satire, not a psychological finding.",
   "rules": [
     {
@@ -37,14 +37,67 @@
       }
     },
     {
+      "id": "ned.comparison_not_applicable",
+      "priority": 19,
+      "when": { "comparison_applicable": false },
+      "severity": "info",
+      "emoji": "🤠",
+      "texts": {
+        "zh": "NED 拒绝本次对称比较：这不是同等级证据。🤠",
+        "en": "NED declines the comparison: these are not equivalent evidence classes. 🤠"
+      }
+    },
+    {
       "id": "asymmetry.detected",
       "priority": 20,
-      "when": { "asymmetry_score": { "gte": 60 } },
+      "when": { "legacy_asymmetry_score": { "gte": 60 } },
       "severity": "chaos",
       "emoji": "🤠",
       "texts": {
         "zh": "检测到证据标准不对称。",
         "en": "Observed decision thresholds appear asymmetric: positive evidence is being heavily discounted while weak negative evidence is being amplified."
+      }
+    },
+    {
+      "id": "interpretation.double_standard_detected",
+      "priority": 21,
+      "when": { "user_double_standard": true },
+      "severity": "warning",
+      "emoji": "🤠",
+      "texts": {
+        "zh": "检测到你的证据标准不对称：同一份输入里，你对正向证据做了降权，又对负向证据下了结论。🤠",
+        "en": "Your evidential standard looks uneven: in the same input you discounted the good news and drew a conclusion from the bad news. 🤠"
+      }
+    },
+    {
+      "id": "evidence.reading_not_present",
+      "priority": 22,
+      "when": {
+        "comparison_context": true,
+        "comparison_applicable": true,
+        "user_reading_present": false
+      },
+      "severity": "info",
+      "emoji": "❔",
+      "texts": {
+        "zh": "输入中没有你的判断语言，NED 不评估你的证据标准。",
+        "en": "There is no interpretation language in the input, so NED does not assess your evidential standard."
+      }
+    },
+    {
+      "id": "evidence.reading_partial",
+      "priority": 23,
+      "when": {
+        "comparison_context": true,
+        "comparison_applicable": true,
+        "user_reading_present": true,
+        "user_double_standard": false
+      },
+      "severity": "info",
+      "emoji": "❔",
+      "texts": {
+        "zh": "输入里有你的判断语言，但它只出现在一侧；NED 不据此判断你的证据标准是否不对称。",
+        "en": "The input contains interpretation language on one side only, so NED does not judge your standard from it."
       }
     },
     {

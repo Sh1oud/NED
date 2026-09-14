@@ -150,12 +150,15 @@ def test_asymmetry_endpoint(client: TestClient) -> None:
     )
     assert response.status_code == 200
     payload = response.json()
-    assert payload["positive_threshold"] == "EXTREMELY HIGH"
-    assert payload["negative_threshold"] == "EXTREMELY LOW"
-    assert payload["asymmetry_score"] >= 75
-    assert payload["asymmetry_label"] == "EXTREME"
-    assert payload["sub_scores"]
-    assert payload["verdict"]["code"] == "asymmetry.detected"
+    assert payload["evidence_profile"]["comparable"] is True
+    assert payload["evidence_profile"]["information_gap"] > 0.8
+    assert payload["ned_treatment"]["positive_discount"] == 35.0
+    assert payload["ned_treatment"]["treatment_gap"] > 0.6
+    assert payload["user_interpretation"]["status"] == "not_present"
+    assert payload["user_interpretation"]["interpretive_score"] is None
+    assert payload["asymmetry_score_is_legacy"] is True
+    assert payload["asymmetry_score"] >= 75  # legacy composite, kept for compatibility
+    assert payload["verdict"]["code"] == "evidence.reading_not_present"
     assert payload["reality_check"]
 
 
@@ -235,7 +238,6 @@ def test_web_ui_renders(client: TestClient) -> None:
     assert "NED Reaching Level" in body
     assert 'id="personality-catalog"' in body
     assert 'id="reaching-personality"' in body
-    assert 'id="asym-personality"' in body
     assert 'id="fnbp-personality"' in body
     assert "Reality Check" in body
     assert "Final Verdict" in body
@@ -258,7 +260,9 @@ def test_web_ui_has_the_blocks_the_script_writes_into(client: TestClient) -> Non
         "reaching-bar",
         "reaching-value",
         "reaching-personality",
-        "asym-personality",
+        "asym-profile-comparable",
+        "asym-treatment-gap",
+        "asym-reading-status",
         "fnbp-personality",
         "hypotheses-list",
         "evidence-rows",
