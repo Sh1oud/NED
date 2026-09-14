@@ -551,6 +551,24 @@
     if (block) { block.hidden = rows.length === 0 && eggRows.length === 0; }
   }
 
+  // The reader has supplied their own discount of real positive evidence: NED
+  // should answer that instead of running a generic good-news joke.
+  function displaySituation(baseSituation, evidence) {
+    var allowed = catalogueList("self_discount_signal_types");
+    var discount = false;
+    var positive = false;
+    list(evidence).forEach(function (rawRow) {
+      var row = obj(rawRow);
+      if (allowed.indexOf(String(row.signal_type || "")) !== -1) { discount = true; }
+      if (String(row.polarity || "") === "positive") { positive = true; }
+    });
+    var promotes = catalogueList("self_discount_promotes");
+    if (discount && positive && promotes.indexOf(baseSituation) !== -1) {
+      return "self_discount_positive";
+    }
+    return baseSituation;
+  }
+
   function renderAnalyzeScreen(d, situation, basis) {
     var language = languageOf(d);
     var copy = firstScreenCopy(situation, String(d.mode || "normal"), language);
@@ -577,9 +595,10 @@
     var asym = d.asymmetry && typeof d.asymmetry === "object" ? d.asymmetry : null;
     var language = languageOf(d);
     var reason = asym ? obj(obj(asym).evidence_profile).comparison_reason : "";
-    var situation = situationFor(v.code, reason);
-    var basis = basisFromSignals(d.evidence)
-      || Boolean(asym && obj(obj(asym).user_interpretation).reading_present);
+    var baseSituation = situationFor(v.code, reason);
+    var attached = asym ? obj(obj(asym).user_interpretation) : null;
+    var situation = displaySituation(baseSituation, d.evidence);
+    var basis = basisFromSignals(d.evidence) || Boolean(attached && attached.reading_present);
 
     report.hidden = false;
     report.classList.remove("is-loading");
@@ -1025,6 +1044,7 @@
       catalog: CATALOG,
       escapeHtml: escapeHtml,
       situationFor: situationFor,
+      displaySituation: displaySituation,
       firstScreenCopy: firstScreenCopy,
       qualityFromValue: qualityFromValue,
       displayVerdictText: displayVerdictText,

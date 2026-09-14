@@ -222,6 +222,7 @@ SITUATION_LATENCY = "latency"
 SITUATION_COLD_REPLY = "cold_reply"
 SITUATION_PLAN_CANCELLED = "plan_cancelled"
 SITUATION_SELF_CONCLUSION = "self_conclusion"
+SITUATION_SELF_DISCOUNT_POSITIVE = "self_discount_positive"
 SITUATION_STARTED_AGAIN = "started_again"
 SITUATION_POSITIVE = "positive"
 SITUATION_NO_SIGNAL = "no_signal"
@@ -276,6 +277,30 @@ def resolve_situation(verdict_code: str, comparison_reason: str = "") -> str:
     if verdict_code == "ned.comparison_not_applicable" and comparison_reason:
         return SITUATION_BY_COMPARISON_REASON.get(comparison_reason, SITUATION_NEUTRAL)
     return SITUATION_BY_VERDICT.get(verdict_code, SITUATION_NEUTRAL)
+
+
+#: The reader's own discount, as the engine already reports it.
+SELF_DISCOUNT_SIGNAL_TYPES: tuple[str, ...] = ("self_discount",)
+
+#: Only these screens may be promoted to ``self_discount_positive``. A boundary,
+#: a hostile expression, a real double standard or any negative verdict is never
+#: promoted: the reader's discount does not outrank reality.
+SELF_DISCOUNT_PROMOTES: tuple[str, ...] = (SITUATION_POSITIVE,)
+
+
+def screen_situation(
+    base_situation: str, *, self_discount: bool = False, positive_evidence: bool = False
+) -> str:
+    """The screen to show, given what the engine already found.
+
+    When the reader has supplied their own discount of real positive evidence,
+    NED should answer that discount instead of running a generic good-news joke.
+    Everything else is untouched, and nothing here can change a verdict.
+    """
+
+    if self_discount and positive_evidence and base_situation in SELF_DISCOUNT_PROMOTES:
+        return SITUATION_SELF_DISCOUNT_POSITIVE
+    return base_situation
 
 
 def is_boundary_situation(situation: str) -> bool:
@@ -677,6 +702,53 @@ FIRST_SCREEN: dict[str, dict[str, dict[str, FirstScreen]]] = {
             ),
         ),
     },
+    SITUATION_SELF_DISCOUNT_POSITIVE: {
+        "normal": _bi(
+            _screen(
+                "SELF-DISCOUNT RECEIVED",
+                ("材料已收悉。", "驳回理由已由申请人自行填写。👍"),
+                "输入里既有较强的正向证据，也有你自己给出的降权解释。NED 可以记录这种解释，"
+                "但不能把它当作事实本身。",
+            ),
+            _screen(
+                "SELF-DISCOUNT RECEIVED",
+                ("Materials received.", "Rejection rationale supplied by the applicant. 👍"),
+                "The input holds both reasonably strong positive evidence and a discount you "
+                "wrote yourself. NED records the explanation; it does not treat it as a fact.",
+            ),
+        ),
+        "scientific": _bi(
+            _screen(
+                "REVIEWER COMMENT RECEIVED",
+                ("正向证据已送审。", "审稿意见：可能只是人好。"),
+                "这份降权说明是一个解释，不是一条新的证据。",
+            ),
+            _screen(
+                "REVIEWER COMMENT RECEIVED",
+                (
+                    "Positive evidence submitted for review.",
+                    "Reviewer #1: probably just being nice.",
+                ),
+                "That discount is an explanation, not additional evidence.",
+            ),
+        ),
+        "extreme": _bi(
+            _screen(
+                "SELF-SERVICE DENIAL",
+                ("证据是真的。", "你：可能只是人好。", "NED：很好，你已经会用了。👍"),
+                "驳回流程由申请人自行完成，NED 只负责盖章。",
+            ),
+            _screen(
+                "SELF-SERVICE DENIAL",
+                (
+                    "The evidence is real.",
+                    "You: probably just being nice.",
+                    "NED: excellent, you already know how to use this. 👍",
+                ),
+                "The rejection was completed by the applicant. NED only stamps it.",
+            ),
+        ),
+    },
     SITUATION_SELF_CONCLUSION: {
         "normal": _bi(
             _screen(
@@ -857,6 +929,7 @@ QUALITY_SOURCE: dict[str, str] = {
     SITUATION_SELF_CONCLUSION: "negative_information",
     SITUATION_STARTED_AGAIN: "negative_information",
     SITUATION_POSITIVE: "strength",
+    SITUATION_SELF_DISCOUNT_POSITIVE: "strength",
     SITUATION_MISMATCH: "none",
     SITUATION_TIMELINE_BOUNDARY: "none",
     SITUATION_TIMELINE: "none",
@@ -973,6 +1046,8 @@ def web_personality_catalog() -> dict[str, object]:
         "comparison_reason_verdicts": list(COMPARISON_REASON_VERDICTS),
         "boundary_situations": list(BOUNDARY_SITUATIONS),
         "reading_signal_types": list(READING_SIGNAL_TYPES),
+        "self_discount_signal_types": list(SELF_DISCOUNT_SIGNAL_TYPES),
+        "self_discount_promotes": list(SELF_DISCOUNT_PROMOTES),
         "quality_source": QUALITY_SOURCE,
         "quality_bands": [[maximum, zh, en] for maximum, zh, en in QUALITY_BANDS],
         "quality_top": {"zh": QUALITY_TOP[0], "en": QUALITY_TOP[1]},
@@ -1000,6 +1075,8 @@ __all__ = [
     "QUALITY_TOP",
     "READING_SIGNAL_TYPES",
     "READING_STATUS_MESSAGES",
+    "SELF_DISCOUNT_PROMOTES",
+    "SELF_DISCOUNT_SIGNAL_TYPES",
     "SITUATION_BY_COMPARISON_REASON",
     "SITUATION_BY_VERDICT",
     "TECHNICAL_REACHING",
@@ -1018,6 +1095,7 @@ __all__ = [
     "reading_basis_present",
     "reading_message",
     "resolve_situation",
+    "screen_situation",
     "verdict_display",
     "web_personality_catalog",
 ]

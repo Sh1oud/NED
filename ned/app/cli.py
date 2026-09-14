@@ -33,6 +33,7 @@ from ned.app.core.models import (
 from ned.app.ui.personality import (
     FORBIDDEN_EMOJI,
     QUALITY_SOURCE,
+    SELF_DISCOUNT_SIGNAL_TYPES,
     PersonalityFeedback,
     analysis_feedback,
     emoji_discipline,
@@ -44,6 +45,7 @@ from ned.app.ui.personality import (
     reading_basis_present,
     reading_message,
     resolve_situation,
+    screen_situation,
     verdict_display,
 )
 from ned.app.version import FULL_NAME, MOTTO, NAME, SUBTITLE, TAGLINE, __version__
@@ -133,11 +135,17 @@ def personality_lines(feedback: PersonalityFeedback | None) -> tuple[Text, ...]:
 
 
 def screen_context(result: AnalysisResult) -> tuple[str, bool, str]:
-    """Which screen this verdict belongs to, whether the reader spoke, and the language."""
+    """Which screen this result belongs to, whether the reader spoke, and the language."""
 
-    situation = resolve_situation(result.verdict.code)
+    base = resolve_situation(result.verdict.code)
     language = "en" if result.language == "en" else "zh"
-    basis = reading_basis_present(signal_types=[span.signal_type.value for span in result.evidence])
+    signal_types = [span.signal_type.value for span in result.evidence]
+    basis = reading_basis_present(signal_types=signal_types)
+    self_discount = any(item in SELF_DISCOUNT_SIGNAL_TYPES for item in signal_types)
+    positive_evidence = any(span.polarity == "positive" for span in result.evidence)
+    situation = screen_situation(
+        base, self_discount=self_discount, positive_evidence=positive_evidence
+    )
     return situation, basis, language
 
 

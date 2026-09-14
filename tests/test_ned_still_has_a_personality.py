@@ -85,9 +85,19 @@ INTERNAL_IDS = (
 
 
 def situation_of(result: Any) -> str:
-    """The screen a result belongs to."""
+    """The screen a result gets, promotion included.
 
-    return p.resolve_situation(result.verdict.code)
+    This mirrors the shared contract in ``personality.screen_situation``: the
+    verdict names the base screen, and the reader's own discount of real positive
+    evidence promotes the generic positive screen to its own.
+    """
+
+    signal_types = [span.signal_type.value for span in result.evidence]
+    return p.screen_situation(
+        p.resolve_situation(result.verdict.code),
+        self_discount=any(item in p.SELF_DISCOUNT_SIGNAL_TYPES for item in signal_types),
+        positive_evidence=any(span.polarity == "positive" for span in result.evidence),
+    )
 
 
 def basis_of(result: Any) -> bool:
@@ -699,6 +709,279 @@ def test_the_boundary_screen_still_has_no_joke_emoji(structure: _Structure) -> N
     blob = " ".join([screen.title, *screen.lines, screen.reality])
     assert "🤠" not in blob
     assert structure.by_id["asym-technical-details"]["open"] is False
+
+
+# --------------------------------------------------------------------------- #
+# self_discount_positive: the reader has already done NED's job
+# --------------------------------------------------------------------------- #
+
+GENERIC_POSITIVE = "她说喜欢我"
+SELF_DISCOUNT_POSITIVE = "她说喜欢我，她可能只是人好"
+SELF_DISCOUNT_LONG = "她说爱我爱得死去活来，她可能只是人好"
+SELF_DISCOUNT_BOUNDARY = "她说喜欢我，但后来让我别再联系她，可能只是人好"
+SELF_DISCOUNT_HOSTILE = "她怒骂我，但我想也许只是人好"
+SELF_DISCOUNT_ONLY = "可能只是人好"
+
+SIGNED_OFF = "你已经会用了"
+
+
+def screen_for(result: Any, *, basis: bool | None = None) -> Any:
+    """The first screen a result actually gets, promotion included."""
+
+    resolved = basis_of(result) if basis is None else basis
+    return p.first_screen(situation_of(result), result.mode, "zh", basis=resolved)
+
+
+def test_a_plain_affection_stays_a_generic_positive(analyzer: NedAnalyzer) -> None:
+    """A. no self-discount, no promotion."""
+
+    result = analyzer.analyze_text(GENERIC_POSITIVE, mode="normal")
+    assert situation_of(result) == p.SITUATION_POSITIVE
+    blob = screen_for(result)
+    text = " ".join([blob.title, *blob.lines, blob.reality])
+    assert SIGNED_OFF not in text
+    assert "申请人" not in text
+
+
+def test_a_no_discount_is_reported_honestly(analyzer: NedAnalyzer) -> None:
+    result = analyzer.analyze_text(GENERIC_POSITIVE, mode="normal")
+    assert not any(span.signal_type.value == "self_discount" for span in result.evidence)
+    for mode in p.MODES:
+        promoted = analyzer.analyze_text(GENERIC_POSITIVE, mode=mode)  # type: ignore[arg-type]
+        assert situation_of(promoted) == p.SITUATION_POSITIVE, mode
+
+
+@pytest.mark.parametrize("mode", p.MODES)
+def test_b_a_self_discount_is_answered_as_such(analyzer: NedAnalyzer, mode: str) -> None:
+    """B. the discount the reader wrote is the joke NED answers."""
+
+    result = analyzer.analyze_text(SELF_DISCOUNT_POSITIVE, mode=mode)  # type: ignore[arg-type]
+    assert basis_of(result) is True
+    assert situation_of(result) == p.SITUATION_SELF_DISCOUNT_POSITIVE
+    screen = screen_for(result)
+    assert screen.title != p.first_screen(p.SITUATION_POSITIVE, mode, "zh").title
+
+
+def test_b_extreme_signs_the_application_off(analyzer: NedAnalyzer) -> None:
+    result = analyzer.analyze_text(SELF_DISCOUNT_POSITIVE, mode="extreme")
+    blob = screen_for(result)
+    text = " ".join([blob.title, *blob.lines, blob.reality])
+    assert SIGNED_OFF in text
+    assert "👍" in text
+    assert "你：可能只是人好。" in text
+
+
+def test_c_the_evidence_reading_does_not_move(analyzer: NedAnalyzer) -> None:
+    """C + D. the reader's discount is not evidence and changes no number."""
+
+    plain = analyzer.analyze_text(GENERIC_POSITIVE, mode="normal")
+    discounted = analyzer.analyze_text(SELF_DISCOUNT_POSITIVE, mode="normal")
+    assert discounted.signal_strength == plain.signal_strength
+    assert discounted.verdict.code == plain.verdict.code
+    assert discounted.positive_evidence_discount == plain.positive_evidence_discount
+    assert discounted.ned_reaching_level == plain.ned_reaching_level
+
+    def scoring(evidence: Any) -> list[tuple[str, str, str, float, float]]:
+        return [
+            (
+                span.rule_id,
+                span.signal_type.value,
+                span.polarity,
+                span.base_strength,
+                span.information_content,
+            )
+            for span in evidence
+            if span.polarity == "positive"
+        ]
+
+    assert scoring(discounted.evidence) == scoring(plain.evidence)
+    discount_span = next(span for span in discounted.evidence if span.polarity == "self_discount")
+    assert discount_span.signal_type.value == "self_discount"
+    assert discount_span.rule_id == "zh.self_discount"
+
+
+def test_c_the_evidence_and_the_interpretation_stay_separate(analyzer: NedAnalyzer) -> None:
+    result = analyzer.analyze_text(SELF_DISCOUNT_POSITIVE, mode="normal")
+    polarities = {span.polarity for span in result.evidence}
+    assert polarities == {"positive", "self_discount"}
+    assert result.signal_type.value == "explicit_affection", "the primary signal is the evidence"
+    weight = next(span for span in result.evidence if span.polarity == "positive").base_strength
+    assert result.signal_strength == weight, "the discount moved the headline number"
+
+    # the pair layer reports the same reading when a pair exists, and it is the
+    # reader's layer that carries it, never the evidence layer
+    paired = analyzer.analyze_text(SELF_DISCOUNT_BOUNDARY, mode="normal")
+    assert paired.asymmetry is not None
+    reading = paired.asymmetry.user_interpretation
+    assert reading.positive_self_discount_present is True
+    assert reading.positive_reading == "可能只是人好"
+
+
+def test_e_a_boundary_outranks_the_discount(analyzer: NedAnalyzer) -> None:
+    """E. the reader's joke never gets to swallow an explicit boundary."""
+
+    result = analyzer.analyze_text(SELF_DISCOUNT_BOUNDARY, mode="normal")
+    assert result.verdict.code == "ned.direct_rejection"
+    assert situation_of(result) == p.SITUATION_BOUNDARY
+    blob = screen_for(result)
+    text = " ".join([blob.title, *blob.lines, blob.reality])
+    assert SIGNED_OFF not in text
+    assert "👍" not in text and "🤠" not in text
+    assert "申请人" not in text
+    assert "NED 停止狡辩" in text
+    shown = p.emoji_discipline(situation_of(result), result.verdict.text)
+    assert "🤠" not in shown and "👍" not in shown
+
+
+def test_e_the_boundary_case_is_the_same_in_every_mode(analyzer: NedAnalyzer) -> None:
+    situations = {
+        mode: situation_of(analyzer.analyze_text(SELF_DISCOUNT_BOUNDARY, mode=mode))  # type: ignore[arg-type]
+        for mode in p.MODES
+    }
+    assert set(situations.values()) == {p.SITUATION_BOUNDARY}, situations
+
+
+def test_f_hostility_outranks_the_discount(analyzer: NedAnalyzer) -> None:
+    """F. a hostile expression is never answered with the self-service joke."""
+
+    result = analyzer.analyze_text(SELF_DISCOUNT_HOSTILE, mode="normal")
+    assert result.verdict.code == "nea.hostile_expression_insufficient"
+    assert situation_of(result) == p.SITUATION_HOSTILE
+    blob = screen_for(result)
+    text = " ".join([blob.title, *blob.lines, blob.reality])
+    assert SIGNED_OFF not in text
+    assert "申请人" not in text
+    assert "敌意" in text
+
+
+def test_f_hostility_keeps_its_own_screen_in_every_mode(analyzer: NedAnalyzer) -> None:
+    situations = {
+        mode: situation_of(analyzer.analyze_text(SELF_DISCOUNT_HOSTILE, mode=mode))  # type: ignore[arg-type]
+        for mode in p.MODES
+    }
+    assert set(situations.values()) == {p.SITUATION_HOSTILE}, situations
+
+
+def test_g_the_three_modes_say_different_things(analyzer: NedAnalyzer) -> None:
+    """G. the same discount, three registers."""
+
+    screens = {}
+    for mode in p.MODES:
+        result = analyzer.analyze_text(SELF_DISCOUNT_POSITIVE, mode=mode)  # type: ignore[arg-type]
+        screen = screen_for(result)
+        screens[mode] = (screen.title, *screen.lines)
+    assert len(set(screens.values())) == 3, screens
+    assert screens["normal"][0] == "SELF-DISCOUNT RECEIVED"
+    assert screens["scientific"][0] == "REVIEWER COMMENT RECEIVED"
+    assert screens["extreme"][0] == "SELF-SERVICE DENIAL"
+
+
+def test_g_the_long_input_gets_the_same_screen(analyzer: NedAnalyzer) -> None:
+    """The reported case: strong declaration plus the reader's own discount."""
+
+    result = analyzer.analyze_text(SELF_DISCOUNT_LONG, mode="extreme")
+    assert situation_of(result) == p.SITUATION_SELF_DISCOUNT_POSITIVE
+    screen = screen_for(result)
+    assert SIGNED_OFF in " ".join(screen.lines)
+    assert len(screen.lines) == 3
+
+
+def test_h_the_web_and_the_cli_read_one_source(client: TestClient) -> None:
+    """H. the same promotion rule ships to both surfaces."""
+
+    catalog = p.web_personality_catalog()
+    assert catalog["self_discount_signal_types"] == list(p.SELF_DISCOUNT_SIGNAL_TYPES)
+    assert catalog["self_discount_promotes"] == list(p.SELF_DISCOUNT_PROMOTES)
+    assert p.SITUATION_SELF_DISCOUNT_POSITIVE in catalog["first_screen"]
+    page = client.get("/").text
+    match = re.search(r'<script id="personality-catalog"[^>]*>(.*?)</script>', page, re.DOTALL)
+    assert match is not None
+    assert (
+        json.loads(match.group(1))["first_screen"][p.SITUATION_SELF_DISCOUNT_POSITIVE]
+        == (p.web_personality_catalog()["first_screen"][p.SITUATION_SELF_DISCOUNT_POSITIVE])
+    )
+    script = (ROOT / "ned" / "app" / "static" / "app.js").read_text(encoding="utf-8")
+    assert "self_discount_promotes" in script
+
+
+def test_h_the_cli_context_agrees_with_the_shared_rule(analyzer: NedAnalyzer) -> None:
+    """The CLI surface and the catalogue must promote exactly the same cases."""
+
+    from ned.app.cli import screen_context
+
+    for text, mode in (
+        (GENERIC_POSITIVE, "normal"),
+        (SELF_DISCOUNT_POSITIVE, "normal"),
+        (SELF_DISCOUNT_POSITIVE, "extreme"),
+        (SELF_DISCOUNT_BOUNDARY, "normal"),
+        (SELF_DISCOUNT_HOSTILE, "normal"),
+        (SELF_DISCOUNT_ONLY, "normal"),
+    ):
+        result = analyzer.analyze_text(text, mode=mode)  # type: ignore[arg-type]
+        assert screen_context(result)[0] == situation_of(result), (text, mode)
+
+
+def test_h_the_cli_prints_the_promoted_screen(analyzer: NedAnalyzer) -> None:
+    result = runner.invoke(cli_app, ["analyze", SELF_DISCOUNT_POSITIVE, "--mode", "extreme"])
+    assert result.exit_code == 0
+    assert "SELF-SERVICE DENIAL" in result.stdout
+    assert SIGNED_OFF in result.stdout
+
+
+def test_i_the_first_screen_never_shows_a_basis_field_name(analyzer: NedAnalyzer) -> None:
+    """I. the joke must not leak the machinery that produced it."""
+
+    for text in (SELF_DISCOUNT_POSITIVE, SELF_DISCOUNT_BOUNDARY, SELF_DISCOUNT_HOSTILE):
+        for mode in p.MODES:
+            result = analyzer.analyze_text(text, mode=mode)  # type: ignore[arg-type]
+            blob = screen_for(result)
+            shown = " ".join([blob.title, *blob.lines, blob.reality])
+            for field in (*INTERNAL_FIELDS, "self_discount", "interpretive_basis", "basis"):
+                assert field not in shown, (text, mode, field)
+
+
+def test_j_the_promotion_cannot_fire_without_the_basis(analyzer: NedAnalyzer) -> None:
+    """J. no discount in the text, no self-service screen."""
+
+    for text in (GENERIC_POSITIVE, SELF_DISCOUNT_ONLY, "她主动找我聊了两个小时"):
+        for mode in p.MODES:
+            result = analyzer.analyze_text(text, mode=mode)  # type: ignore[arg-type]
+            promoted = situation_of(result)
+            assert promoted != p.SITUATION_SELF_DISCOUNT_POSITIVE, (text, mode)
+            blob = screen_for(result)
+            shown = " ".join([blob.title, *blob.lines, blob.reality])
+            assert SIGNED_OFF not in shown, (text, mode)
+
+
+def test_j_the_rule_only_promotes_the_generic_positive_screen() -> None:
+    """The promotion is data, and it is allowed on exactly one screen."""
+
+    assert p.SELF_DISCOUNT_PROMOTES == (p.SITUATION_POSITIVE,)
+    for base in p.FIRST_SCREEN:
+        promoted = p.screen_situation(base, self_discount=True, positive_evidence=True)
+        expected = p.SITUATION_SELF_DISCOUNT_POSITIVE if base == p.SITUATION_POSITIVE else base
+        assert promoted == expected, base
+
+
+def test_j_the_rule_never_fires_without_both_conditions() -> None:
+    base = p.SITUATION_POSITIVE
+    assert p.screen_situation(base, self_discount=False, positive_evidence=True) == base
+    assert p.screen_situation(base, self_discount=True, positive_evidence=False) == base
+    assert (
+        p.screen_situation(base, self_discount=True, positive_evidence=True)
+        == p.SITUATION_SELF_DISCOUNT_POSITIVE
+    )
+
+
+def test_the_self_service_joke_attacks_the_discount_not_the_reader() -> None:
+    """The line may not claim she likes you, or that you are deluded."""
+
+    for language in ("zh", "en"):
+        for mode in p.MODES:
+            screen = p.first_screen(p.SITUATION_SELF_DISCOUNT_POSITIVE, mode, language)
+            shown = " ".join([screen.title, *screen.lines, screen.reality])
+            for banned in ("她一定", "她肯定", "她其实", "自欺", "骗自己", "已经确定", "结局"):
+                assert banned not in shown, (language, mode, banned)
 
 
 def test_the_shipped_rule_is_untouched_by_the_attribution_fix() -> None:
