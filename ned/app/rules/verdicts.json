@@ -26,6 +26,17 @@
       }
     },
     {
+      "id": "ned.direct_rejection",
+      "priority": 18,
+      "when": { "direct_rejection": true },
+      "severity": "warning",
+      "emoji": "🚧",
+      "texts": {
+        "zh": "明确表达的拒绝或边界。这不是模糊信号：不确定性不等于否认明确证据。🚧",
+        "en": "An explicitly stated refusal or boundary. This is not a fuzzy signal: uncertainty is not the same as denying clear evidence. 🚧"
+      }
+    },
+    {
       "id": "asymmetry.detected",
       "priority": 20,
       "when": { "asymmetry_score": { "gte": 60 } },

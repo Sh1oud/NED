@@ -104,9 +104,14 @@ class NegativeEvidenceAmplifier:
             }.get(language, "They do not want to talk to me.")
 
         observed = describe_evidence(span, language)
-        check_id = (
-            "latency_only" if span.signal_type == SignalType.RESPONSE_LATENCY else "negative_only"
-        )
+        if span.signal_type == SignalType.DIRECT_REJECTION:
+            # A stated boundary is not weak evidence, so it gets the boundary check
+            # rather than the generic "this proves nothing either" one.
+            check_id = "direct_rejection"
+        elif span.signal_type == SignalType.RESPONSE_LATENCY:
+            check_id = "latency_only"
+        else:
+            check_id = "negative_only"
         reality_check = self.book.reality_check(
             check_id,
             language,

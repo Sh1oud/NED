@@ -97,6 +97,11 @@ class NedAnalyzer:
         language = text_parser.detect_language(text)
         spans = text_parser.detect(text, book)
         primary = text_parser.primary_span(spans)
+        # An explicit refusal or boundary is an observation, not a fuzzy signal.
+        # It is tracked apart from ``primary`` because positive evidence keeps the
+        # primary slot (PED exists to de-weight it), while the verdict must never
+        # turn a stated boundary into an escape.
+        explicit_rejection = any(span.signal_type is SignalType.DIRECT_REJECTION for span in spans)
 
         pos_mass = positive_mass(spans)
         neg_mass = negative_mass(spans)
@@ -170,6 +175,7 @@ class NedAnalyzer:
                 exhausted=exhausted,
                 asymmetry=asymmetry,
                 duration=stronger_duration,
+                direct_rejection=explicit_rejection,
             )
         )
         eggs = book.egg_hits(text, mode, language, pos_mass)
@@ -200,6 +206,7 @@ class NedAnalyzer:
                 history=history,
                 history_mass=history_mass,
                 eggs=eggs,
+                direct_rejection=explicit_rejection,
             ),
             evidence=spans,
             observed_evidence=amplified.observed_evidence if amplified else "",
@@ -282,6 +289,10 @@ class NedAnalyzer:
         has_discount = any(span.polarity == "self_discount" for span in spans)
         primary = text_parser.primary_span(spans)
 
+        # An explicit boundary is the most informative thing in the input, so it
+        # chooses the reality check even when positive evidence is also present.
+        if any(span.signal_type is SignalType.DIRECT_REJECTION for span in spans):
+            return "direct_rejection"
         if has_positive and has_negative:
             return "asymmetry_pair"
         if has_negative:
@@ -309,6 +320,7 @@ class NedAnalyzer:
         exhausted: bool,
         asymmetry: AsymmetryResult | None,
         duration: str,
+        direct_rejection: bool,
     ) -> dict[str, Any]:
         return {
             "mode": mode,
@@ -327,6 +339,7 @@ class NedAnalyzer:
             "asymmetry_score": asymmetry.asymmetry_score if asymmetry else 0.0,
             "has_positive": pos_mass > 0,
             "has_negative": neg_mass > 0,
+            "direct_rejection": direct_rejection,
             "duration": duration,
         }
 
@@ -342,15 +355,22 @@ class NedAnalyzer:
         history: Sequence[str],
         history_mass: float,
         eggs: list[EasterEggHit],
+        direct_rejection: bool,
     ) -> list[str]:
         profile = self.book.mode(mode)
         notes = [f"mode: {profile.label} ({profile.id}) — {profile.blurb}"]
         if explanations == 0:
-            notes.append(
-                "no positive evidence: PED has nothing to de-weight, so no alternative "
-                "hypotheses were generated. NED notes that a negative reading is equally "
-                "not a measurement."
-            )
+            if direct_rejection:
+                notes.append(
+                    "explicit boundary: NED has nothing to de-weight here. The refusal is "
+                    "reported as stated and is given no semantic escape."
+                )
+            else:
+                notes.append(
+                    "no positive evidence: PED has nothing to de-weight, so no alternative "
+                    "hypotheses were generated. NED notes that a negative reading is equally "
+                    "not a measurement."
+                )
         if reaching >= REACHING_ALERT_LEVEL:
             notes.append(self.book.escape_messages.get("reaching", "NED is currently reaching."))
         if exhausted:

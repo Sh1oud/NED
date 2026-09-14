@@ -632,6 +632,67 @@
       }
     },
     {
+      "id": "zh.direct_rejection",
+      "signal_type": "direct_rejection",
+      "label": "Direct rejection or boundary (明确拒绝)",
+      "labels": {
+        "en": "Direct rejection or boundary (明确拒绝)",
+        "zh": "明确拒绝 / 边界表达"
+      },
+      "polarity": "negative",
+      "weight": 96,
+      "information_content": 90,
+      "salience": 1.35,
+      "patterns": [
+        "(别|不要|不用|不准|不许)(再)?(来)?(烦|打扰|骚扰|联系|找|理|管)我",
+        "(别|不要|不用)(再)?给(我)?(发|打)(消息|信息|电话|语音|微信)",
+        "(不|别)(想|要|愿)(再)?(和|跟|与)(我|你|您)(说话|聊天|联系|来往|有?任何?关系)",
+        "(请|麻烦)?(你)?(以后|从此|再也|永远)(不要|别|不准|不许)(再)?(联系|找|烦|打扰|理|出现)",
+        "(别|不要)(再)?(出现|来)在?我(面前|眼前)",
+        "离我(远点|远一点儿|远一点|远些)",
+        "不再(和|跟|与)(我|你|您)(说话|聊天|联系|来往)",
+        "(让|叫|要|命令|要求|逼)我(以后|从此|再也)?(不要|别|不准|不许)?(再)?(滚|走开|离开|别烦|烦|联系|找|打扰|理)",
+        "滚(出去|开|远点|远一点儿|远一点|蛋)?(吧|了|啊)?"
+      ],
+      "exclude": [
+        "滚烫",
+        "滚动",
+        "滚珠",
+        "滚落",
+        "翻滚",
+        "打滚",
+        "圆滚滚",
+        "滚轴",
+        "滚筒",
+        "滚存",
+        "滚雪球",
+        "滚边",
+        "滚去(睡|吃|喝|看|学|玩|写|读|洗|工作)",
+        "(老板|领导|上司|主管|人事|公司|客户)[^。！？!?]{0,10}滚",
+        "(?<!不是)(玩笑|开玩笑|调侃|哈哈|笑死|逗|梗|乐)[^。！？!?]{0,10}(滚|走开|一边去|离我|别|不要|不用|不想|以后|让)",
+        "(滚|走开|一边去|离我|别烦|别再|不要|不用)[^。！？!?]{0,10}(哈哈|玩笑|开玩笑|笑死|调侃|梗|逗)",
+        "(游戏|队友|开黑|排位|副本|局里|比赛|球场|打球|打牌|下棋|组队|团战)[^。！？!?]{0,12}(滚|走开|一边去|别|不要|不用|离我)",
+        "(讨论|聊到|引用|台词|歌词|例句|这句话|是什么意思|含义|语义)[^。！？!?]{0,12}(滚|走开|一边去|离我|别|不要|不用|不想)",
+        "(滚|走开|别烦|别再|不要联系|离我|别再)[^。！？!?]{0,12}(这句话|是什么意思|的意思|含义|台词|歌词|引用|例句)",
+        "(没有|没|从未|从来没|从没|不曾|根本没|并没|没人|没有人|谁也没)[^。！？!?，,;；\n]{0,4}(让我|叫我|要我|说过?|讲过?|提过?|发过?|写过?|想)[^。！？!?，,;；\n]{0,2}(滚|走开|一边去|离我|别|不要|不用|不想)",
+        "(是不是|是否|难道|会不会|算不算)[^。！？!?，,]{0,4}(想|要|会|打算)?[^。！？!?，,]{0,2}(让我|叫我|要我|滚|走开|离我|别|不要|不用|不想)",
+        "(让|叫|要)我[^。！？!?]{0,4}(滚|走开|一边去|离我)[^。！？!?]{0,3}(吗|嘛)[？?]"
+      ],
+      "interpretations": {
+        "zh": "对方直接、明确地表达了拒绝或边界。",
+        "en": "A refusal or boundary was stated directly and explicitly."
+      },
+      "description": {
+        "zh": "明确表达的拒绝或边界",
+        "en": "an explicitly stated refusal or boundary"
+      },
+      "amplified_interpretation": {
+        "zh": "他这样说话，说明这段关系已经没有任何余地了。",
+        "en": "Speaking that way means this relationship has no room left at all."
+      },
+      "notes": "The deliberate mirror image of the latency rule: weight and information content are both high because a stated boundary is an observed behaviour, not an inference. NED displays it and does not de-weight it."
+    },
+    {
       "id": "zh.response_latency",
       "signal_type": "response_latency",
       "label": "Reply latency (没回复)",
@@ -779,6 +840,51 @@
         "en": "The input contains the user's own discounting of positive evidence."
       },
       "notes": "Detected so the Asymmetry Detector can compare your discount against your amplification."
+    },
+    {
+      "id": "en.direct_rejection",
+      "signal_type": "direct_rejection",
+      "label": "Direct rejection or boundary (leave me alone)",
+      "labels": {
+        "en": "Direct rejection or boundary (leave me alone)",
+        "zh": "明确拒绝 / 边界表达"
+      },
+      "polarity": "negative",
+      "weight": 96,
+      "information_content": 90,
+      "salience": 1.35,
+      "patterns": [
+        "\\bleave me (alone|be|in peace)\\b",
+        "\\bstop (texting|messaging|calling|contacting|bothering|following|harrassing) me\\b",
+        "\\bdon'?t (ever )?(text|message|call|contact|talk to|speak to|bother|follow) me\\b",
+        "\\bnever (text|message|call|contact|talk to|speak to) me( again)?\\b",
+        "\\b(get|stay|keep) away from me\\b",
+        "\\bget (out|lost|the hell out)( of (my life|my face|here))?\\b",
+        "\\b(leave|get out of) my (life|face)\\b",
+        "\\b(she|he|they|i) (do(es)?n'?t|didn'?t) want to (talk|speak) to me( anymore)?\\b",
+        "\\b(told|asked|wants?|wanted) me (to )?(never|not to|to stop|to leave|to go away|to get out)\\b",
+        "\\bwe should stop (talking|seeing each other|contacting each other)\\b"
+      ],
+      "exclude": [
+        "\\b(jok(e|ing)|kidding|jk|lol|haha|meme)\\b[^.!?]{0,25}\\b(leave me|stop|get out|get lost|go away|don'?t)\\b",
+        "\\b(leave me|stop|get out|get lost|go away|don'?t)\\b[^.!?]{0,25}\\b(jok(e|ing)|kidding|jk|lol|haha)\\b",
+        "\\b(game|gaming|match|raid|teammate|squad|lobby|chat|quote|quoting|joke)\\b[^.!?]{0,25}\\b(get out|get lost|leave me|go away|stop)\\b",
+        "\\b(never|didn'?t|did not|hasn'?t|hadn'?t|nobody|no one|no-one)\\b[^.!?]{0,25}\\b(told|asked|said|wants?|wanted|tell|ask)\\b",
+        "\\b(did|does|do|was|is|were|why|whether|if) (she|he|they|you)\\b[^.!?]{0,20}\\b(leave me|get out|get lost|go away|stop|refuse|reject)\\b"
+      ],
+      "interpretations": {
+        "zh": "对方直接、明确地表达了拒绝或边界。",
+        "en": "A refusal or boundary was stated directly and explicitly."
+      },
+      "description": {
+        "zh": "明确表达的拒绝或边界",
+        "en": "an explicitly stated refusal or boundary"
+      },
+      "amplified_interpretation": {
+        "zh": "他这样说话，说明这段关系已经没有任何余地了。",
+        "en": "Speaking that way means this relationship has no room left at all."
+      },
+      "notes": "The deliberate mirror image of the latency rule: weight and information content are both high because a stated boundary is an observed behaviour, not an inference. NED displays it and does not de-weight it."
     },
     {
       "id": "en.latency",

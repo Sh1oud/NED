@@ -41,6 +41,7 @@ class SignalType(StrEnum):
     CARE = "care"
     MEETUP_INVITATION = "meetup_invitation"
     RESPONSIVENESS = "responsiveness"
+    DIRECT_REJECTION = "direct_rejection"
     RESPONSE_LATENCY = "response_latency"
     COLD_REPLY = "cold_reply"
     PLAN_CANCELLED = "plan_cancelled"

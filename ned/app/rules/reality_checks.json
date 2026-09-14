@@ -8,6 +8,11 @@
       "en": "The only datum is {duration} without a reply. That interval carries almost no information: being busy, asleep, away from the phone, or in a meeting all explain it equally well. It cannot support any conclusion about the other person's attitude."
     },
     {
+      "id": "direct_rejection",
+      "zh": "输入包含明确表达的拒绝或边界。NED 不对这条证据降权：说出口的边界是一个行为，不是推断。它记录了一次明确的边界表达；这既不说明你不好，也不足以推断任何人的全部内心状态。",
+      "en": "The input contains an explicitly stated refusal or boundary. NED does not de-weight this evidence: a stated boundary is a behaviour, not an inference. It records an explicit boundary, which neither says anything about your worth nor licenses reading anyone's entire inner state."
+    },
+    {
       "id": "negative_only",
       "zh": "输入描述的是不利或中性事件（{negative_desc}）。NED 指出一个对称的事实：这类事件同样不构成关于态度的证据，把它当作结论只是在换一个方向重复同一个错误。",
       "en": "The input describes an unfavourable or neutral event ({negative_desc}). NED notes the symmetric fact: such an event is equally not evidence about anyone's attitude, and treating it as a conclusion simply repeats the same mistake in the other direction."
