@@ -607,6 +607,100 @@ def test_the_personality_layer_is_not_imported_by_the_engine() -> None:
     assert offenders == [], offenders
 
 
+# --------------------------------------------------------------------------- #
+# Presentation polish: the action and the pair reading name what they compare
+# --------------------------------------------------------------------------- #
+
+
+def test_the_compare_button_names_the_evidence_not_the_reader() -> None:
+    page = TEMPLATE.read_text(encoding="utf-8")
+    assert "Compare Evidence Standards" not in page
+    assert re.search(r'id="asym-submit"[^>]*>Compare Evidence<', page)
+
+
+def test_the_compare_hint_is_short_and_does_not_default_to_blaming_the_reader() -> None:
+    page = TEMPLATE.read_text(encoding="utf-8")
+    panel = page.split('id="panel-asymmetry"', 1)[1].split('id="panel-lab"', 1)[0]
+    match = re.search(r'<p class="hint">(.*?)</p>', panel, re.DOTALL)
+    assert match is not None
+    hint = match.group(1)
+    assert "the evidence first" in hint
+    assert "only judges your reasoning if you actually state it" in hint
+    for banned in ("asymmetric", "your standard looks uneven", "double standard"):
+        assert banned not in hint.lower(), banned
+
+
+def test_the_pair_quality_row_labels_both_sides_in_the_markup(structure: _Structure) -> None:
+    """Label and value must be siblings, or the reading is ambiguous on screen."""
+
+    for side, label_id, value_id in (
+        ("positive", "asym-quality-side-positive", "asym-screen-quality-positive"),
+        ("negative", "asym-quality-side-negative", "asym-screen-quality-negative"),
+    ):
+        wrapper = structure.by_id[f"asym-quality-pair-{side}"]
+        assert contains(wrapper, label_id), (side, label_id)
+        assert contains(wrapper, value_id), (side, value_id)
+
+    row = structure.by_id["asym-screen-quality-row"]
+    assert contains(row, "asym-quality-pair-positive")
+    assert contains(row, "asym-quality-pair-negative")
+    first = structure.by_id["asym-first-screen"]
+    assert contains(first, "asym-screen-quality-row")
+
+
+def test_the_pair_quality_labels_are_data_in_both_languages() -> None:
+    catalog = p.web_personality_catalog()
+    assert catalog["pair_quality_labels"] == p.PAIR_QUALITY_LABELS
+    assert p.pair_quality_label("zh", "positive") == "正向："
+    assert p.pair_quality_label("zh", "negative") == "负向："
+    assert p.pair_quality_label("en", "positive") == "POSITIVE "
+    assert p.pair_quality_label("en", "negative") == "NEGATIVE "
+
+
+def test_the_polish_did_not_move_any_reading(analyzer: NedAnalyzer) -> None:
+    """The side labels are display only: the quality mapping is untouched."""
+
+    result = analyzer.asymmetry.compare(
+        positive_text=TIMELINE_POSITIVE, negative_text=TIMELINE_NEGATIVE
+    )
+    profile = result.evidence_profile
+    assert p.quality_label(profile.positive_raw_strength) == "很强"
+    assert profile.negative_class == "boundary"
+    assert p.explicit_quality_label() == "明确"
+
+
+def test_the_timeline_boundary_copy_is_locked() -> None:
+    """This screen is canonical: the three lines and the title do not move."""
+
+    screen = p.first_screen(p.SITUATION_TIMELINE_BOUNDARY, "normal", "zh")
+    assert screen.title == "TWO FACTS, ONE TIMELINE"
+    assert screen.lines == (
+        "前面的两个小时没有被历史删除。",
+        "后面的边界也不是害羞。🚧",
+        "今天这题不允许拿计算器硬算。",
+    )
+    blob = " ".join([screen.title, *screen.lines, screen.reality])
+    assert "🤠" not in blob and "👍" not in blob
+
+
+def test_the_boundary_reality_check_already_respects_the_boundary(analyzer: NedAnalyzer) -> None:
+    """Checked, not rewritten: the engine text must already say the boundary counts."""
+
+    result = analyzer.asymmetry.compare(
+        positive_text=TIMELINE_POSITIVE, negative_text=TIMELINE_NEGATIVE
+    )
+    assert "明确边界应当被尊重" in result.reality_check
+    screen = p.first_screen(p.SITUATION_TIMELINE_BOUNDARY, "normal", "zh")
+    assert "时间点" in screen.reality
+
+
+def test_the_boundary_screen_still_has_no_joke_emoji(structure: _Structure) -> None:
+    screen = p.first_screen(p.SITUATION_TIMELINE_BOUNDARY, "normal", "zh")
+    blob = " ".join([screen.title, *screen.lines, screen.reality])
+    assert "🤠" not in blob
+    assert structure.by_id["asym-technical-details"]["open"] is False
+
+
 def test_the_shipped_rule_is_untouched_by_the_attribution_fix() -> None:
     """Only the displayed sentence changed: the rule, its trigger and its priority did not."""
 

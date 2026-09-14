@@ -186,6 +186,21 @@ def quality_label(value: float | None, language: str = "zh") -> str:
     return QUALITY_TOP[1] if language == "en" else QUALITY_TOP[0]
 
 
+#: Side labels for the pair screen's quality row. Without them the two readings
+#: sit next to each other and a reader cannot tell which side is which.
+PAIR_QUALITY_LABELS: dict[str, dict[str, str]] = {
+    "zh": {"positive": "正向：", "negative": "负向："},
+    "en": {"positive": "POSITIVE ", "negative": "NEGATIVE "},
+}
+
+
+def pair_quality_label(language: str, side: str) -> str:
+    """Side label for one half of a pair's evidence quality."""
+
+    labels = PAIR_QUALITY_LABELS.get(language) or PAIR_QUALITY_LABELS["zh"]
+    return labels.get(side, "")
+
+
 def explicit_quality_label(language: str = "zh") -> str:
     """Plain-language quality for evidence NED will not discount at all."""
 
@@ -962,6 +977,7 @@ def web_personality_catalog() -> dict[str, object]:
         "quality_bands": [[maximum, zh, en] for maximum, zh, en in QUALITY_BANDS],
         "quality_top": {"zh": QUALITY_TOP[0], "en": QUALITY_TOP[1]},
         "explicit_quality": {"zh": EXPLICIT_QUALITY[0], "en": EXPLICIT_QUALITY[1]},
+        "pair_quality_labels": PAIR_QUALITY_LABELS,
         "forbidden_emoji": {key: list(value) for key, value in FORBIDDEN_EMOJI.items()},
         "verdict_overrides": VERDICT_DISPLAY_OVERRIDES,
     }
@@ -978,6 +994,7 @@ __all__ = [
     "FORBIDDEN_EMOJI",
     "MODES",
     "NEA_FRAMING",
+    "PAIR_QUALITY_LABELS",
     "QUALITY_BANDS",
     "QUALITY_SOURCE",
     "QUALITY_TOP",
@@ -996,6 +1013,7 @@ __all__ = [
     "fnbp_feedback",
     "is_boundary_situation",
     "nea_framing",
+    "pair_quality_label",
     "quality_label",
     "reading_basis_present",
     "reading_message",

@@ -738,16 +738,29 @@ textarea.input { min-height: 84px; }
   color: var(--text-faint);
 }
 
-.screen-quality-row > .screen-quality {
+.screen-quality-row > .quality-side {
+  display: inline-flex;
+  align-items: baseline;
+  white-space: nowrap;
+}
+
+.screen-quality-row > .quality-side + .quality-side::before {
+  content: "\00b7";
+  margin: 0 8px;
+  color: var(--text-faint);
+}
+
+.quality-side-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.screen-quality-row .screen-quality {
   font-size: clamp(1rem, 3vw, 1.15rem);
   font-weight: 700;
   color: var(--sev);
-}
-
-.screen-quality-row > .screen-quality + .screen-quality::before {
-  content: "\00b7";
-  margin-right: 10px;
-  color: var(--text-faint);
 }
 
 .screen-quotes { display: flex; flex-direction: column; gap: 4px; }
@@ -830,6 +843,7 @@ textarea.input { min-height: 84px; }
   .screen-title { font-size: 1.15rem; }
   .screen-line { font-size: 1.08rem; padding-left: 10px; }
   .screen-quality-row { gap: 6px; }
+  .quality-side-label { font-size: 0.68rem; letter-spacing: 0.04em; }
 }
 
 /* ------------------------------------------------------------ disclosures */

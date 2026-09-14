@@ -750,6 +750,9 @@
 
     var positiveQuality = sideQuality(positive, profile.positive_class, "positive", language);
     var negativeQuality = sideQuality(negative, profile.negative_class, "negative", language);
+    var sideLabels = obj(catalogueObj("pair_quality_labels")[language]);
+    setText("asym-quality-side-positive", sideLabels.positive);
+    setText("asym-quality-side-negative", sideLabels.negative);
     setHidden("asym-screen-quality-row", !positiveQuality && !negativeQuality);
     setText("asym-screen-quality-positive", positiveQuality || DASH);
     setText("asym-screen-quality-negative", negativeQuality || DASH);
@@ -863,7 +866,7 @@
     if (negative) { body.negative_text = negative; }
 
     button.disabled = true;
-    setStatus("asym-status", "Comparing evidence standards...", "is-busy");
+    setStatus("asym-status", "Comparing evidence...", "is-busy");
     if (report) { report.hidden = false; report.classList.add("is-loading"); }
 
     postJson("/api/asymmetry", body)

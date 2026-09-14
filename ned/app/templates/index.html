@@ -355,7 +355,7 @@
         <div class="card">
           <div class="card-head">
             <h2 class="label">Evidence Comparison</h2>
-            <p class="hint">Feed NED one piece of good news and one piece of bad news. NED reports the evidence profile, what its own mode does to each side, and — only when your text states a reading of its own — whether your standard looks uneven. Both fields are optional, but at least one is required.</p>
+            <p class="hint">Give NED one piece of good news and one piece of bad news. NED compares the evidence first — and only judges your reasoning if you actually state it.</p>
           </div>
 
           <div class="grid">
@@ -370,7 +370,7 @@
           </div>
 
           <div class="field-actions">
-            <button type="button" class="btn btn-primary" id="asym-submit">Compare Evidence Standards</button>
+            <button type="button" class="btn btn-primary" id="asym-submit">Compare Evidence</button>
             <p class="status" id="asym-status" role="status" aria-live="polite"></p>
           </div>
         </div>
@@ -389,8 +389,14 @@
             <p class="screen-fact" id="asym-screen-fact">—</p>
             <p class="screen-quality-row" id="asym-screen-quality-row" hidden>
               <span class="screen-quality-label">Evidence quality</span>
-              <span class="screen-quality" id="asym-screen-quality-positive">—</span>
-              <span class="screen-quality" id="asym-screen-quality-negative">—</span>
+              <span class="quality-side" id="asym-quality-pair-positive">
+                <span class="quality-side-label" id="asym-quality-side-positive">正向：</span>
+                <span class="screen-quality" id="asym-screen-quality-positive">—</span>
+              </span>
+              <span class="quality-side" id="asym-quality-pair-negative">
+                <span class="quality-side-label" id="asym-quality-side-negative">负向：</span>
+                <span class="screen-quality" id="asym-screen-quality-negative">—</span>
+              </span>
             </p>
             <div class="screen-lines" id="asym-screen-lines"></div>
             <p class="screen-reality" id="asym-screen-reality">—</p>

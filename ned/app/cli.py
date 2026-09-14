@@ -609,7 +609,7 @@ def asymmetry(
     mode: Annotated[str, typer.Option("--mode", "-m")] = "normal",
     as_json: Annotated[bool, typer.Option("--json")] = False,
 ) -> None:
-    """Compare two evidence standards (the double standard detector)."""
+    """Compare two clues: the evidence first, your reasoning only if you stated it."""
 
     out = console()
     validated = _validate_mode(mode, out)
