@@ -419,11 +419,12 @@
 
   /* --------------------------------------------------------- analyze render */
 
-  function renderHypotheses(raw) {
+  function renderHypotheses(raw, payload) {
     var host = $("hypotheses-list");
     if (!host) { return; }
     clear(host);
-    var items = list(raw);
+    var pack = payload ? comedyPack(obj(payload)) : null;
+    var items = pack ? list(pack.hypotheses) : list(raw);
     if (items.length === 0) { host.appendChild(el("li", "hypo hypo-empty", NO_HYPOTHESES)); return; }
     items.forEach(function (rawItem) {
       var h = obj(rawItem);
@@ -608,7 +609,20 @@
       });
       if (found) { return first(found.label, found.text); }
     }
-    return first(d.raw_interpretation, d.observed_evidence, d.signal_label);
+    var shown = first(d.raw_interpretation, d.observed_evidence, d.signal_label);
+    // A single greeting is not a routine: display-only, input-driven.
+    if (String(shown).indexOf(String(CATALOG.routine_claim || "")) !== -1
+        && String(d.input || "") !== "") {
+      var markers = catalogueList("routine_markers");
+      var routine = markers.some(function (marker) {
+        return String(d.input).indexOf(String(marker)) !== -1;
+      });
+      if (!routine) {
+        var corrected = obj(catalogueObj("greeting_one_off_fact"))[languageOf(d)] || "";
+        if (corrected) { return String(corrected); }
+      }
+    }
+    return shown;
   }
 
   // The reader's own words, as the engine captured them: the discount span marks
@@ -652,10 +666,36 @@
     return rows.map(function (line) { return String(line).split(slot).join(reading); });
   }
 
+  // Family-aware comedy copy: same table the CLI reads, keyed by the rule the
+  // positive screen is about. Families without a pack keep the generic screen.
+  function primaryPositiveRule(d) {
+    var found = "";
+    list(obj(d).evidence).forEach(function (rawRow) {
+      if (found) { return; }
+      var row = obj(rawRow);
+      if (String(row.polarity || "") === "positive") { found = String(row.rule_id || ""); }
+    });
+    return found;
+  }
+
+  function comedyPack(d) {
+    var key = String(catalogueObj("comedy_by_rule")[primaryPositiveRule(d)] || "");
+    if (!key) { return null; }
+    var pack = obj(catalogueObj("comedy_packs")[key]);
+    return list(pack.lines).length > 0 ? pack : null;
+  }
+
   function renderAnalyzeScreen(d, situation, basis) {
     var language = languageOf(d);
     var copy = firstScreenCopy(situation, String(d.mode || "normal"), language);
     var lines = list(copy.lines);
+    var pack = situation === "positive" && String(d.mode || "normal") === "normal"
+      && language !== "en" ? comedyPack(d) : null;
+    if (pack) {
+      copy = { title: pack.title, lines: pack.lines, reality: copy.reality,
+        lines_with_basis: [] };
+      lines = list(pack.lines);
+    }
     if (basis && list(copy.lines_with_basis).length > 0) {
       var filled = fillReading(list(copy.lines_with_basis), capturedReading(d));
       lines = filled === null ? list(copy.lines) : filled;
@@ -719,7 +759,7 @@
       ["amplification-bar", d.negative_evidence_amplification]
     ]);
     setRaw("verdict-emoji", displayVerdictEmoji(v.emoji, situation, shownVerdict));
-    renderHypotheses(d.alternative_explanations);
+    renderHypotheses(d.alternative_explanations, d);
     renderReaching(d.ned_reaching_level, d.reaching_label);
     renderPersonality("reaching-personality", "analysis", d.ned_reaching_level);
     renderEvidence(d.evidence);

@@ -14,7 +14,7 @@ The governing document is ``docs/PERSONALITY_BIBLE.md``.
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import asdict, dataclass
 
 MODES: tuple[str, ...] = ("normal", "scientific", "extreme")
@@ -435,6 +435,178 @@ def fact_from_observed(situation: str) -> bool:
 
 
 #: The slot a screen uses where the reader's own words are quoted back.
+# --------------------------------------------------------------------------- #
+# Final Comedy Polish v1: family-aware copy for evidence NED already recognised
+# --------------------------------------------------------------------------- #
+
+#: The flavour count is deliberately small: six families, six packs. Families
+#: without a pack keep the generic positive screen, which is a good line and is
+#: not going anywhere.
+
+
+@dataclass(frozen=True)
+class ComedyPack:
+    """One small joke pack for one recognised family. Presentation only.
+
+    ``lines`` replaces the generic positive lines on the 30-second screen and
+    ``hypotheses`` replaces the generic alternative explanations. Nothing here
+    touches the engine, and nothing here may claim what the other person feels:
+    an alternative explanation is still an alternative explanation.
+    """
+
+    title: str
+    lines: tuple[str, ...]
+    hypotheses: tuple[tuple[str, str, float], ...]
+
+
+COMEDY_PACKS: dict[str, ComedyPack] = {
+    "meetup_invitation": ComedyPack(
+        title="OFFLINE INVITATION LOGGED",
+        lines=("线下邀约已确认。", "恋爱结论暂缓批准。👍"),
+        hypotheses=(
+            ("电影院属于公共场所。", "venue", 73.5),
+            ("两个人出现在同一场电影，尚不足以建立排他性因果关系。", "causality", 66.0),
+            ("建议扩大样本量至 IMAX。👍", "sampling", 94.5),
+        ),
+    ),
+    "initiation": ComedyPack(
+        title="INITIATIVE LOGGED",
+        lines=("一次主动，不能证明长期主动。", "建议持续观察至太阳熄灭。👍"),
+        hypotheses=(
+            ("可能只是正好有话说。", "motive", 61.5),
+            ("也可能只是刚好看到消息。", "timing", 58.0),
+            ("单次主动不构成模式。本机构见过很多一次性勇敢。", "longitudinal", 88.0),
+        ),
+    ),
+    "gift": ComedyPack(
+        title="MATERIAL TRANSFER LOGGED",
+        lines=("物资援助已确认。", "情感用途尚未报备。👍"),
+        hypotheses=(
+            ("可能只是担心你低血糖影响判断。", "metabolism", 62.5),
+            ("建议等待第二杯，以形成可重复实验。", "sampling", 90.5),
+            ("物资援助属实；情感用途仍在审批中。", "protocol", 84.0),
+        ),
+    ),
+    "care": ComedyPack(
+        title="MEMORY MODULE ONLINE",
+        lines=("记忆功能正常。", "尚不能证明感情模块同时在线。👍"),
+        hypotheses=(
+            ("记住你的口味属于信息保存，不是自动生成恋爱许可证。", "data", 86.5),
+            ("记忆力与感情可能运行在不同模块。", "architecture", 64.0),
+            ("本机构承认：记得住细节的人，通常不是完全不在乎。", "concession", 41.0),
+        ),
+    ),
+    "sustained_interaction": ComedyPack(
+        title="LONG SESSION LOGGED",
+        lines=("聊到凌晨只能证明：双方当时都没有睡。👍", "凌晨三点不是爱情单位。"),
+        hypotheses=(
+            ("聊到凌晨只证明双方当时都没睡。", "physiology", 79.5),
+            ("凌晨三点不是爱情单位。", "units", 71.0),
+            ("持续互动是材料；结论部分，本机构决定继续加班审查。", "protocol", 83.0),
+        ),
+    ),
+    "reported_affection": ComedyPack(
+        title="STATEMENT LOGGED",
+        lines=("正向陈述已登记。", "语言属于可再生资源，本机构要求更多硬证据。👍"),
+        hypotheses=(
+            ("语言属于可再生资源，本机构要求更多硬证据。", "linguistics", 77.0),
+            ("这句话确实被说过，这一点已确认；其余部分仍在审核。", "transmission", 81.5),
+            ("文本只能证明有人开口。开口之后的事，本机构概不负责。", "scope", 69.0),
+        ),
+    ),
+    "compliment": ComedyPack(
+        title="APPRAISAL LOGGED",
+        lines=("正面评价已登记。", "形容词不是结婚证。👍"),
+        hypotheses=(
+            ("形容词不是结婚证。👍", "linguistics", 92.0),
+            ("审美意见属于意见，暂不自动升级为关系状态。", "protocol", 74.0),
+            ("好看是真的；好看之后会发生什么，本机构无法预测。", "scope", 55.5),
+        ),
+    ),
+}
+
+#: rule id -> pack key. Rules that are not listed keep the generic screen.
+COMEDY_PACK_BY_RULE: dict[str, str] = {
+    "zh.meetup_invitation": "meetup_invitation",
+    "zh.initiation": "initiation",
+    "zh.gift": "gift",
+    "zh.care": "care",
+    "zh.sustained_interaction": "sustained_interaction",
+    "zh.reported_affection": "reported_affection",
+    "zh.miss_you": "reported_affection",
+    "zh.explicit_affection": "reported_affection",
+    "zh.explicit_love": "reported_affection",
+    "zh.compliment": "compliment",
+    "zh.affection_emoji": "compliment",
+}
+
+
+def comedy_pack_key(rule_id: str) -> str:
+    """The pack key for one rule id, or an empty string."""
+
+    return COMEDY_PACK_BY_RULE.get(rule_id, "")
+
+
+def comedy_pack(rule_id: str) -> ComedyPack | None:
+    """The pack for one rule id, if that family has one."""
+
+    key = comedy_pack_key(rule_id)
+    return COMEDY_PACKS.get(key) if key else None
+
+
+def comedy_hypotheses(rule_id: str) -> tuple[tuple[str, str, float], ...]:
+    """Family-aware hypotheses, or empty when the family has no pack."""
+
+    pack = comedy_pack(rule_id)
+    return pack.hypotheses if pack is not None else ()
+
+
+def primary_positive_rule(evidence: Iterable[object]) -> str:
+    """The rule whose observation the positive screen is actually about."""
+
+    for span in evidence:
+        if str(getattr(span, "polarity", "")) == "positive":
+            return str(getattr(span, "rule_id", ""))
+    return ""
+
+
+#: One greeting is not a routine. Display only: the family still fires, and the
+#: engine's own sentence is unchanged in the payload.
+ROUTINE_MARKERS: tuple[str, ...] = (
+    "每天",
+    "天天",
+    "每晚",
+    "每夜",
+    "都会",
+    "总是",
+    "老是",
+    "经常",
+    "常常",
+    "一直",
+    "时不时",
+)
+GREETING_RULE = "zh.daily_goodnight"
+ROUTINE_CLAIM = "规律性"
+ONE_OFF_GREETING_FACT: dict[str, str] = {
+    "zh": "对方进行了一次问候互动。",
+    "en": "The sender greeted you once.",
+}
+
+
+def greeting_is_one_off(text: str) -> bool:
+    """Whether the input states a greeting without stating a frequency."""
+
+    return not any(marker in text for marker in ROUTINE_MARKERS)
+
+
+def fact_override(rule_id: str, text: str, language: str = "zh") -> str:
+    """Display-only fact corrections that depend on the input, not the payload."""
+
+    if rule_id == GREETING_RULE and greeting_is_one_off(text):
+        return ONE_OFF_GREETING_FACT["en" if language == "en" else "zh"]
+    return ""
+
+
 READING_SLOT = "{reading}"
 
 #: Where a displayed quote stops. The quote is always a verbatim substring of the
@@ -1192,14 +1364,26 @@ def first_screen(
     *,
     basis: bool = False,
     reading: str = "",
+    rule: str = "",
 ) -> FirstScreen:
-    """The first screen for one situation, falling back instead of failing."""
+    """The first screen for one situation, falling back instead of failing.
+
+    ``rule`` is the rule the screen is about. When that family has a comedy
+    pack, its lines replace the generic positive ones — in the default mode and
+    in Chinese only, so the scientific and extreme modes keep their own jokes.
+    """
 
     by_mode = FIRST_SCREEN.get(situation) or FIRST_SCREEN[SITUATION_NEUTRAL]
     by_language = by_mode.get(mode) or by_mode.get("normal") or {}
     screen = by_language.get("en" if language == "en" else "zh")
     if screen is None:  # pragma: no cover - every situation ships both languages
         screen = by_language.get("zh") or FIRST_SCREEN[SITUATION_NEUTRAL]["normal"]["zh"]
+
+    if situation == SITUATION_POSITIVE and mode == "normal" and language != "en":
+        pack = comedy_pack(rule)
+        if pack is not None:
+            return FirstScreen(title=pack.title, lines=pack.lines, reality=screen.reality)
+
     if basis and screen.lines_with_basis:
         lines = fill_reading(screen.lines_with_basis, reading)
         if lines is None:
@@ -1312,6 +1496,22 @@ def web_personality_catalog() -> dict[str, object]:
         "pair_quality_labels": PAIR_QUALITY_LABELS,
         "forbidden_emoji": {key: list(value) for key, value in FORBIDDEN_EMOJI.items()},
         "verdict_overrides": VERDICT_DISPLAY_OVERRIDES,
+        "comedy_packs": {
+            key: {
+                "title": pack.title,
+                "lines": list(pack.lines),
+                "hypotheses": [
+                    {"hypothesis": text, "category": category, "plausibility": value}
+                    for text, category, value in pack.hypotheses
+                ],
+            }
+            for key, pack in COMEDY_PACKS.items()
+        },
+        "comedy_by_rule": COMEDY_PACK_BY_RULE,
+        "routine_markers": list(ROUTINE_MARKERS),
+        "greeting_rule": GREETING_RULE,
+        "routine_claim": ROUTINE_CLAIM,
+        "greeting_one_off_fact": ONE_OFF_GREETING_FACT,
     }
 
 
@@ -1319,6 +1519,8 @@ __all__ = [
     "ANALYSIS_FEEDBACK",
     "BOUNDARY_SITUATIONS",
     "CLAUSE_SEPARATORS",
+    "COMEDY_PACKS",
+    "COMEDY_PACK_BY_RULE",
     "COMPARISON_REASON_VERDICTS",
     "DISPLAY_REPAIRS",
     "DURATION_ARTIFACTS",
@@ -1329,8 +1531,10 @@ __all__ = [
     "FNBP_HIT_FEEDBACK",
     "FNBP_MISS_FEEDBACK",
     "FORBIDDEN_EMOJI",
+    "GREETING_RULE",
     "MODES",
     "NEA_FRAMING",
+    "ONE_OFF_GREETING_FACT",
     "PAIR_QUALITY_LABELS",
     "QUALITY_BANDS",
     "QUALITY_SOURCE",
@@ -1338,27 +1542,36 @@ __all__ = [
     "READING_SIGNAL_TYPES",
     "READING_SLOT",
     "READING_STATUS_MESSAGES",
+    "ROUTINE_CLAIM",
+    "ROUTINE_MARKERS",
     "SELF_DISCOUNT_PROMOTES",
     "SELF_DISCOUNT_SIGNAL_TYPES",
     "SITUATION_BY_COMPARISON_REASON",
     "SITUATION_BY_VERDICT",
     "TECHNICAL_REACHING",
     "VERDICT_DISPLAY_OVERRIDES",
+    "ComedyPack",
     "FirstScreen",
     "PersonalityFeedback",
     "analysis_feedback",
     "captured_reading",
+    "comedy_hypotheses",
+    "comedy_pack",
+    "comedy_pack_key",
     "emoji_discipline",
     "explicit_quality_label",
     "fact_from_observed",
+    "fact_override",
     "fact_signal_types",
     "fill_reading",
     "first_screen",
     "fnbp_feedback",
+    "greeting_is_one_off",
     "has_missing_duration",
     "is_boundary_situation",
     "nea_framing",
     "pair_quality_label",
+    "primary_positive_rule",
     "quality_label",
     "reading_basis_present",
     "reading_message",

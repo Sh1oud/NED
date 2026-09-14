@@ -32,18 +32,23 @@ from ned.app.core.models import (
 )
 from ned.app.ui.personality import (
     FORBIDDEN_EMOJI,
+    GREETING_RULE,
     QUALITY_SOURCE,
+    ROUTINE_CLAIM,
     SELF_DISCOUNT_SIGNAL_TYPES,
     PersonalityFeedback,
     analysis_feedback,
     captured_reading,
+    comedy_hypotheses,
     emoji_discipline,
     explicit_quality_label,
     fact_from_observed,
+    fact_override,
     fact_signal_types,
     first_screen,
     fnbp_feedback,
     nea_framing,
+    primary_positive_rule,
     quality_label,
     reading_basis_present,
     reading_message,
@@ -153,7 +158,7 @@ def screen_context(result: AnalysisResult) -> tuple[str, bool, str]:
     return situation, basis, language
 
 
-def screen_fact(result: AnalysisResult, situation: str) -> str:
+def screen_fact(result: AnalysisResult, situation: str, language: str = "zh") -> str:
     """The observed fact, aligned with the screen the verdict produced.
 
     When the primary signal is the evidence that decided the screen, the engine's
@@ -177,11 +182,17 @@ def screen_fact(result: AnalysisResult, situation: str) -> str:
         )
         if span is not None:
             return span.label or span.text
-    return (
+    shown = (
         repair_display_text(result.raw_interpretation)
         or result.observed_evidence
         or result.signal_label
     )
+    # A single greeting is not a routine: display-only correction, input-driven.
+    if ROUTINE_CLAIM in shown:
+        corrected = fact_override(GREETING_RULE, result.input, language)
+        if corrected:
+            return corrected
+    return shown
 
 
 def screen_quality(situation: str, result: AnalysisResult, language: str) -> str:
@@ -245,7 +256,12 @@ def render_first_screen(
     """NED's screen: title, observed fact, plain quality, one line, one reality check."""
 
     screen = first_screen(
-        situation, result.mode, language, basis=basis, reading=captured_reading_of(result)
+        situation,
+        result.mode,
+        language,
+        basis=basis,
+        reading=captured_reading_of(result),
+        rule=primary_positive_rule(result.evidence),
     )
     body = Table(show_header=False, box=None, padding=(0, 2))
     body.add_row("Observed evidence", Text(screen_fact(result, situation)))
@@ -352,13 +368,18 @@ def render_analysis(result: AnalysisResult, out: Console) -> None:
         hypotheses.add_column("Alternative hypothesis", overflow="fold")
         hypotheses.add_column("Category", style="dim")
         hypotheses.add_column("Plausibility", justify="right")
-        for index, explanation in enumerate(result.alternative_explanations, start=1):
-            hypotheses.add_row(
-                str(index),
-                explanation.hypothesis,
-                explanation.category,
-                f"{explanation.plausibility:.0f}%",
-            )
+        comedy = comedy_hypotheses(primary_positive_rule(result.evidence))
+        if comedy:
+            for index, (text, category, plausibility) in enumerate(comedy, start=1):
+                hypotheses.add_row(str(index), text, category, f"{plausibility:.0f}%")
+        else:
+            for index, explanation in enumerate(result.alternative_explanations, start=1):
+                hypotheses.add_row(
+                    str(index),
+                    explanation.hypothesis,
+                    explanation.category,
+                    f"{explanation.plausibility:.0f}%",
+                )
         out.print(
             Panel(
                 Group(
