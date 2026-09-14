@@ -15,6 +15,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Web UI i18n.
 - Saved report export.
 
+## [0.1.6] - 2026-09-14
+
+### Added
+
+- Rule packs: a `hostile_expression` signal family with Chinese and English rules
+  for explicit hostility and abuse — direct insults (`去你妈的`, `滚你妈的`,
+  `你有病吧`, `闭嘴`, `你算什么东西`) and reported hostile acts (`她怒骂我`,
+  `他辱骂我`, `她骂了我一顿`, `对方冲我破口大骂`, `她对我恶语相向`). Weight 92 and
+  information content 72: hostility is an observed act that NED does not
+  de-weight, while telling less about the relationship's trajectory than an
+  explicit boundary.
+- Verdicts: `nea.hostile_expression_insufficient` (priority 38) acknowledges the
+  reported expression and refuses the conclusions drawn from it.
+- Reality checks: a `hostile_expression` check, used by the NEA panel for this
+  family.
+
+### Fixed
+
+- Hostile input is no longer classified as `signal_type = none`: the pack had no
+  rule for hostility at all, so "她说去你妈的了" and "她怒骂我" reached the
+  catch-all verdict with an evidence strength of zero.
+
+### Changed
+
+- The raw reading, the reality check and the verdict of this family all state what
+  the input reports and what NED does with it ("输入报告了…", "NED 按输入所述保留这
+  条负向证据"), instead of asserting that the event happened.
+- `zh.direct_rejection` no longer claims the insult form `滚你妈的` as a boundary,
+  so the hostile family reports it instead.
+- Joking and banter, game trash talk, media quotes, articles about abuse,
+  meta-discussion of the wording, homographs, third parties and the reader's own
+  characterisation of someone else stay outside the family.
+
+### Unchanged
+
+- Detection patterns and weights of every existing family, the scoring model, the
+  amplification formula, the asymmetry detector, the `direct_rejection` rule and
+  its priority, every existing verdict priority and the REST schema. The new
+  verdict reuses the existing `Verdict` shape, so no API field was added.
+
 ## [0.1.5] - 2026-09-14
 
 ### Fixed
@@ -202,7 +242,8 @@ emotional evidence de-weighting engine.
   no database, no accounts, no paid APIs. v0.1 never calls an external LLM; the
   `LLMProvider` interface exists as a stub for future work.
 
-[Unreleased]: https://github.com/Sh1oud/NED/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/Sh1oud/NED/compare/v0.1.6...HEAD
+[0.1.6]: https://github.com/Sh1oud/NED/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/Sh1oud/NED/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/Sh1oud/NED/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/Sh1oud/NED/compare/v0.1.2...v0.1.3

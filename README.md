@@ -248,7 +248,7 @@ ned fnbp --expected Fuyuki --actual 张三 --actual 李四 --count 5
 
 ```bash
 curl -s http://127.0.0.1:8000/api/health
-# {"status":"ok","version":"0.1.5","uptime_seconds":12.3,"local_only":true,"engine":"ned-local-rules"}
+# {"status":"ok","version":"0.1.6","uptime_seconds":12.3,"local_only":true,"engine":"ned-local-rules"}
 ```
 
 ```bash
@@ -289,7 +289,7 @@ curl -s -X POST http://127.0.0.1:8000/api/analyze \
     "rule_id": "ped.friendly_unexcluded"
   },
   "breakdown": { "positive_mass": 55.0, "escape_pressure": 0.42, "escape_capacity": 0.33 },
-  "engine": { "name": "ned-local-rules", "version": "0.1.5", "provider": "local-rule", "offline": true },
+  "engine": { "name": "ned-local-rules", "version": "0.1.6", "provider": "local-rule", "offline": true },
   "disclaimer": "NED cannot determine whether someone likes you. Humans are not APIs. …"
 }
 ```
