@@ -102,7 +102,7 @@ def test_analyzer_reports_the_active_provider(book: RuleBook) -> None:
     from ned.app.core.analyzer import NedAnalyzer
 
     analyzer = NedAnalyzer(book=book, provider_name="local")
-    result = analyzer.analyze_text("我想你了", mode="normal")
+    result = analyzer.analyze_text("她对我说“我想你了”", mode="normal")
     assert result.engine.provider == "local-rule"
     assert result.engine.offline is True
     assert result.engine.escapes_used == len(result.alternative_explanations)
@@ -113,4 +113,4 @@ def test_analyzer_refuses_the_unimplemented_provider(book: RuleBook) -> None:
 
     analyzer = NedAnalyzer(book=book, provider_name="llm")
     with pytest.raises(ProviderUnavailableError):
-        analyzer.analyze_text("我想你了", mode="normal")
+        analyzer.analyze_text("她对我说“我想你了”", mode="normal")

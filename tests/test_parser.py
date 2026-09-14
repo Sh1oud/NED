@@ -15,7 +15,7 @@ def rules_of(book: RuleBook, text: str) -> set[str]:
 @pytest.mark.parametrize(
     ("text", "expected"),
     [
-        ("我想你了", "zh"),
+        ("她对我说“我想你了”", "zh"),
         ("I miss you", "en"),
         ("She texted me first 她说喜欢我", "zh"),
         ("", "unknown"),
@@ -63,7 +63,7 @@ def test_human_duration_localizes() -> None:
 
 
 def test_detect_finds_positive_signal(book: RuleBook) -> None:
-    spans = parser.detect("我想你了", book)
+    spans = parser.detect("她对我说“我想你了”", book)
     assert [span.rule_id for span in spans] == ["zh.miss_you"]
     assert spans[0].signal_type == SignalType.MISSING_YOU
     assert spans[0].polarity == "positive"
@@ -79,7 +79,7 @@ def test_detect_marks_negative_latency_with_duration(book: RuleBook) -> None:
 
 
 def test_detect_gives_localized_labels(book: RuleBook) -> None:
-    chinese = parser.detect("我想你了", book)[0]
+    chinese = parser.detect("她对我说“我想你了”", book)[0]
     english = parser.detect("I miss you", book)[0]
     assert "想念" in chinese.label
     assert "miss" in english.label.lower()
@@ -95,7 +95,7 @@ def test_overlapping_patterns_are_not_counted_as_repetition(book: RuleBook) -> N
 
 
 def test_genuine_repetition_increases_weight(book: RuleBook) -> None:
-    spans = parser.detect("我想你了我又想你了", book)
+    spans = parser.detect("她对我说“我想你了”，他又说“我想你”", book)
     miss = next(span for span in spans if span.rule_id == "zh.miss_you")
     assert miss.occurrences == 2
     assert miss.weight > miss.base_strength

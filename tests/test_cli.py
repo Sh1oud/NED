@@ -27,10 +27,10 @@ def test_help_lists_the_documented_commands() -> None:
 
 
 def test_analyze_json_output_is_the_api_contract() -> None:
-    result = runner.invoke(app, ["analyze", "我想你了", "--json"])
+    result = runner.invoke(app, ["analyze", "她对我说“我想你了”", "--json"])
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
-    assert payload["input"] == "我想你了"
+    assert payload["input"] == "她对我说“我想你了”"
     assert payload["mode"] == "normal"
     assert payload["signal_type"] == "missing_you"
     assert payload["verdict"]["text"]
@@ -38,7 +38,7 @@ def test_analyze_json_output_is_the_api_contract() -> None:
 
 
 def test_analyze_renders_a_report_by_default() -> None:
-    result = runner.invoke(app, ["analyze", "我想你了"])
+    result = runner.invoke(app, ["analyze", "她对我说“我想你了”"])
     assert result.exit_code == 0
     assert "Final Verdict" in result.stdout
     assert "Alternative Hypotheses" in result.stdout
@@ -47,7 +47,7 @@ def test_analyze_renders_a_report_by_default() -> None:
 
 @pytest.mark.parametrize("mode", ["normal", "scientific", "extreme"])
 def test_analyze_modes(mode: str) -> None:
-    result = runner.invoke(app, ["analyze", "我想你了", "--mode", mode, "--json"])
+    result = runner.invoke(app, ["analyze", "她对我说“我想你了”", "--mode", mode, "--json"])
     assert result.exit_code == 0
     assert json.loads(result.stdout)["mode"] == mode
 
@@ -61,7 +61,7 @@ def test_analyze_extreme_marriage() -> None:
 
 
 def test_analyze_rejects_an_unknown_mode() -> None:
-    result = runner.invoke(app, ["analyze", "我想你了", "--mode", "chaos"])
+    result = runner.invoke(app, ["analyze", "她对我说“我想你了”", "--mode", "chaos"])
     assert result.exit_code == 2
     assert "Unknown mode" in result.stdout
 
@@ -219,7 +219,7 @@ def test_json_output_is_really_json() -> None:
     """Every --json command must be machine-parseable, with no banner text."""
 
     for args in (
-        ["analyze", "我想你了", "--json"],
+        ["analyze", "她对我说“我想你了”", "--json"],
         [
             "asymmetry",
             "--positive",
@@ -246,7 +246,7 @@ def test_cli_needs_no_network(monkeypatch: pytest.MonkeyPatch) -> None:
         raise AssertionError("the CLI must never open a socket")
 
     monkeypatch.setattr(socket, "socket", _no_socket)
-    result = runner.invoke(app, ["analyze", "我想你了", "--json"])
+    result = runner.invoke(app, ["analyze", "她对我说“我想你了”", "--json"])
     assert result.exit_code == 0
     assert json.loads(result.stdout)["signal_type"] == "missing_you"
 

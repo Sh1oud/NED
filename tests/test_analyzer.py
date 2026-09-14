@@ -13,7 +13,7 @@ from ned.app.core.models import AnalyzeRequest, SignalType
 
 
 def test_ordinary_positive_text(analyzer: NedAnalyzer) -> None:
-    result = analyzer.analyze_text("我想你了", mode="normal")
+    result = analyzer.analyze_text("她对我说“我想你了”", mode="normal")
     assert result.signal_type == SignalType.MISSING_YOU
     assert 40 <= result.signal_strength <= 70
     assert result.alternative_explanations, "PED must offer alternatives"
@@ -80,15 +80,15 @@ def test_self_discount_alone_is_recognised(analyzer: NedAnalyzer) -> None:
 
 
 def test_extreme_mode_is_more_skeptical_than_normal(analyzer: NedAnalyzer) -> None:
-    normal = analyzer.analyze_text("我想你了", mode="normal")
-    extreme = analyzer.analyze_text("我想你了", mode="extreme")
+    normal = analyzer.analyze_text("她对我说“我想你了”", mode="normal")
+    extreme = analyzer.analyze_text("她对我说“我想你了”", mode="extreme")
     assert extreme.positive_evidence_discount > normal.positive_evidence_discount
     assert len(extreme.alternative_explanations) >= len(normal.alternative_explanations)
     assert extreme.mode == "extreme"
 
 
 def test_scientific_mode_uses_formal_verdict(analyzer: NedAnalyzer) -> None:
-    result = analyzer.analyze_text("我想你了", mode="scientific")
+    result = analyzer.analyze_text("她对我说“我想你了”", mode="scientific")
     assert result.verdict.code == "ned.scientific_insufficient_sample"
     assert "样本量" in result.verdict.text
     assert any("peer review" in note for note in result.mode_notes)
@@ -96,7 +96,7 @@ def test_scientific_mode_uses_formal_verdict(analyzer: NedAnalyzer) -> None:
 
 def test_evidence_strength_is_monotonic_in_the_wording(analyzer: NedAnalyzer) -> None:
     weak = analyzer.analyze_text("她夸我好看", mode="normal")
-    medium = analyzer.analyze_text("我想你了", mode="normal")
+    medium = analyzer.analyze_text("她对我说“我想你了”", mode="normal")
     strong = analyzer.analyze_text("我喜欢你", mode="normal")
     strongest = analyzer.analyze_text("我们结婚吧", mode="normal")
     assert (
@@ -217,8 +217,8 @@ def test_top_k_limits_the_hypotheses(analyzer: NedAnalyzer) -> None:
 
 
 def test_analysis_is_deterministic(analyzer: NedAnalyzer) -> None:
-    first = analyzer.analyze_text("我想你了", mode="extreme", history=["我喜欢你"])
-    second = analyzer.analyze_text("我想你了", mode="extreme", history=["我喜欢你"])
+    first = analyzer.analyze_text("她对我说“我想你了”", mode="extreme", history=["我喜欢你"])
+    second = analyzer.analyze_text("她对我说“我想你了”", mode="extreme", history=["我喜欢你"])
     assert first.model_dump(exclude={"generated_at"}) == second.model_dump(exclude={"generated_at"})
 
 
@@ -230,9 +230,11 @@ def test_every_report_carries_the_disclaimer(analyzer: NedAnalyzer) -> None:
 
 
 def test_analyze_request_model_round_trips(analyzer: NedAnalyzer) -> None:
-    request = AnalyzeRequest(text="我想你了", mode="extreme", history=["我也想你"])
+    request = AnalyzeRequest(
+        text="她对我说“我想你了”", mode="extreme", history=["她对我说“我想你”"]
+    )
     result = analyzer.analyze(request)
-    assert result.input == "我想你了"
+    assert result.input == "她对我说“我想你了”"
     assert result.mode == "extreme"
     assert result.breakdown.history_mass > 0
 
@@ -289,7 +291,7 @@ def test_all_modes_produce_complete_reports(analyzer: NedAnalyzer, mode: str) ->
 #: Inputs that must never reach the catch-all verdict: one per signal family and
 #: polarity, including the self-discount path.
 DETECTED_SIGNAL_INPUTS = (
-    "我想你了",
+    "她对我说“我想你了”",
     "我喜欢你",
     "她主动找我聊了两个小时",
     "消息发出去五分钟没回复",

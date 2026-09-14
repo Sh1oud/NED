@@ -23,11 +23,12 @@ from ned.app.core.analyzer import NedAnalyzer
 
 RULES = Path(__file__).resolve().parent.parent / "ned" / "app" / "rules" / "signals.json"
 
-#: The families this firewall defends, and the patterns they shipped with. These
-#: lists are pinned on purpose: a precision round may add guards, never coverage.
+#: The families this firewall defends, and the patterns they carry. These lists are
+#: pinned on purpose, so any coverage change is a deliberate, reviewable edit: a
+#: precision round may add guards, and a later coverage round must update the pin.
 FROZEN_PATTERNS: dict[str, list[str]] = {
     "zh.initiation": [
-        "(她|他|对方)?主动(找我|联系我|发消息|约我|来)",
+        "(她|他|对方)?主动[^。！？!?，,]{0,3}(找我|联系我|发消息|约我|来|加我)",
         "主动找我",
         "先找我",
         "主动约我",
@@ -44,6 +45,7 @@ FROZEN_PATTERNS: dict[str, list[str]] = {
         "你愿意(和我在一?起|做我)",
     ],
     "zh.care": [
+        "记得我(爱|喜欢|不吃|不能吃|胃|过敏|怕|讨厌)",
         "关心我",
         "让我(早点睡|多穿|注意身体|别熬夜)",
         "多喝热水",
@@ -51,7 +53,15 @@ FROZEN_PATTERNS: dict[str, list[str]] = {
         "问我(吃没|冷不冷|累不累|怎么样)",
         "注意安全",
     ],
-    "zh.gift": ["送我(礼物|东西|花)", "给我带(了)?", "给我买", "请我吃饭", "帮我"],
+    "zh.gift": [
+        "给我(点|订|叫)(了)?[^。！？!?，,]{0,4}"
+        "(外卖|奶茶|咖啡|饭|吃的|宵夜|水果|花|蛋糕|东西|零食)",
+        "送我(礼物|东西|花)",
+        "给我带(了)?",
+        "给我买",
+        "请我吃饭",
+        "帮我",
+    ],
     "zh.daily_goodnight": ["每天(都)?(说)?晚安", "每天都聊", "晚安", "早安"],
 }
 
