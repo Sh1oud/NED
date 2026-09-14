@@ -83,7 +83,25 @@ COMEDY_INPUTS: tuple[tuple[str, str], ...] = (
 NO_PACK_INPUTS = ("她每天跟我说晚安", "他每天都聊")
 
 #: Copy that would certify reality or invent a quote. Never allowed.
-FORBIDDEN_COPY = ("证据是真的", "The evidence is real", "她真的爱你", "事实就是", "他其实喜欢你")
+#: The second group is the Copy Safety list: NED reads a report, it cannot
+#: confirm the reported event happened.
+FORBIDDEN_COPY = (
+    "证据是真的",
+    "The evidence is real",
+    "她真的爱你",
+    "事实就是",
+    "他其实喜欢你",
+    "已确认",
+    "属实",
+    "真的",
+    "事实证明",
+    "确实发生",
+    "现实证明",
+    "她真的",
+    "他真的",
+    "确实被说过",
+    "认证",
+)
 
 
 @pytest.fixture(scope="module")
@@ -200,7 +218,7 @@ def test_every_pack_is_small_and_deterministic() -> None:
     assert len(p.COMEDY_PACKS) == 7
     for key, pack in p.COMEDY_PACKS.items():
         assert 1 <= len(pack.lines) <= 2, key
-        assert 2 <= len(pack.hypotheses) <= 3, key
+        assert 3 <= len(pack.hypotheses) <= 5, key
         for text, category, plausibility in pack.hypotheses:
             assert text and category, key
             assert 0 < plausibility <= 100, (key, text)
