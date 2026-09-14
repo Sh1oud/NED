@@ -9,8 +9,10 @@
 
 ## Overview
 
-Everything may be affection.
+Everything may be affection.\
 Everything may also be 人好. 👍
+
+("人好" means "just a kind person" — NED's classic alternative explanation.)
 
 [![tests](https://github.com/Sh1oud/NED/actions/workflows/test.yml/badge.svg)](https://github.com/Sh1oud/NED/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
