@@ -38,6 +38,7 @@ from ned.app.ui.personality import (
     analysis_feedback,
     emoji_discipline,
     explicit_quality_label,
+    fact_from_observed,
     fact_signal_types,
     first_screen,
     fnbp_feedback,
@@ -45,6 +46,7 @@ from ned.app.ui.personality import (
     quality_label,
     reading_basis_present,
     reading_message,
+    repair_display_text,
     resolve_situation,
     screen_situation,
     verdict_display,
@@ -160,6 +162,12 @@ def screen_fact(result: AnalysisResult, situation: str) -> str:
     Details still lists every span.
     """
 
+    if fact_from_observed(situation):
+        return (
+            repair_display_text(result.observed_evidence)
+            or result.signal_label
+            or repair_display_text(result.raw_interpretation)
+        )
     wanted = fact_signal_types(situation)
     if wanted and result.signal_type.value not in wanted:
         span = next(
@@ -168,7 +176,11 @@ def screen_fact(result: AnalysisResult, situation: str) -> str:
         )
         if span is not None:
             return span.label or span.text
-    return result.raw_interpretation or result.observed_evidence or result.signal_label
+    return (
+        repair_display_text(result.raw_interpretation)
+        or result.observed_evidence
+        or result.signal_label
+    )
 
 
 def screen_quality(situation: str, result: AnalysisResult, language: str) -> str:
@@ -195,7 +207,10 @@ def panel_verdict(verdict: Verdict, situation: str, basis: bool, language: str) 
     """
 
     shown = emoji_discipline(
-        situation, verdict_display(verdict.code, verdict.text, basis=basis, language=language)
+        situation,
+        repair_display_text(
+            verdict_display(verdict.code, verdict.text, basis=basis, language=language)
+        ),
     )
     forbidden = FORBIDDEN_EMOJI.get(situation, ())
     if verdict.emoji and verdict.emoji in forbidden:
@@ -342,7 +357,7 @@ def render_analysis(result: AnalysisResult, out: Console) -> None:
             "Amplified reading",
             Text(result.irrational_amplification, style="red"),
         )
-        nea.add_row("Reality check", Text(result.reality_check, style="green"))
+        nea.add_row("Reality check", Text(repair_display_text(result.reality_check), style="green"))
         out.print(
             Panel(
                 Group(
@@ -356,7 +371,7 @@ def render_analysis(result: AnalysisResult, out: Console) -> None:
     else:
         out.print(
             Panel(
-                result.reality_check,
+                repair_display_text(result.reality_check),
                 title="Reality Check",
                 border_style="green",
             )
@@ -536,7 +551,7 @@ def render_asymmetry_panel(result: AsymmetryResult) -> Panel:
             Text("Your Reading", style="bold"),
             *reading_lines,
             Text(""),
-            Text(f"Reality check: {result.reality_check}", style="green"),
+            Text(f"Reality check: {repair_display_text(result.reality_check)}", style="green"),
             Text(
                 f"Verdict: {panel_verdict(result.verdict, situation, basis, 'zh')}",
                 style="bold magenta",

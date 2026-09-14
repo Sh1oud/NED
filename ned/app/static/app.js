@@ -575,7 +575,30 @@
   // The observed fact must describe the evidence that decided this screen. The
   // named types are data; when the primary signal is not one of them, the screen
   // shows the engine's own label for the evidence that actually decided it.
+  // Repairs shipped engine copy on the way out: an unfilled duration slot, or a
+  // sentence that claims more than the engine knows. Data lives in the catalogue.
+  function escapeRegExp(value) {
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  function repairDisplayText(text) {
+    var repaired = String(text === null || text === undefined ? "" : text);
+    catalogueList("display_repairs").forEach(function (pair) {
+      var parts = list(pair);
+      if (parts.length !== 2 || !parts[0]) { return; }
+      // case-insensitive: shipped sentences start with a capital
+      repaired = repaired.replace(
+        new RegExp(escapeRegExp(parts[0]), "gi"),
+        function () { return String(parts[1]); }
+      );
+    });
+    return repaired;
+  }
+
   function screenFact(d, situation) {
+    if (catalogueList("fact_from_observed").indexOf(situation) !== -1) {
+      return first(d.observed_evidence, d.signal_label, d.raw_interpretation);
+    }
     var wanted = list(catalogueObj("fact_signal_types")[situation]);
     if (wanted.length > 0 && wanted.indexOf(String(d.signal_type || "")) === -1) {
       var found = null;
@@ -629,14 +652,17 @@
     texts([
       ["result-mode", d.mode], ["result-language", d.language], ["result-signal-type", d.signal_type],
       ["sc-signal-type", d.signal_type], ["sc-signal-label", d.signal_label], ["sc-language", d.language],
-      ["reality-check-text", d.reality_check], ["raw-interpretation", d.raw_interpretation],
+      ["reality-check-text", repairDisplayText(d.reality_check)],
+      ["raw-interpretation", repairDisplayText(d.raw_interpretation)],
       ["verdict-code", v.code], ["verdict-severity", v.severity],
       ["engine-name", engine.name], ["engine-provider", engine.provider],
       ["engine-escapes", engine.escapes_used === undefined ? DASH : int(engine.escapes_used)],
       ["result-disclaimer", d.disclaimer],
       ["result-generated-at", d.generated_at ? "generated_at " + txt(d.generated_at) : DASH]
     ]);
-    var shownVerdict = displayVerdictText(v.code, v.text, situation, basis, language);
+    var shownVerdict = repairDisplayText(
+      displayVerdictText(v.code, v.text, situation, basis, language)
+    );
     setText("verdict-text", shownVerdict);
     nums([
       ["evidence-strength-value", d.signal_strength, 1, " / 100"],
@@ -1066,6 +1092,7 @@
       displaySituation: displaySituation,
       firstScreenCopy: firstScreenCopy,
       screenFact: screenFact,
+      repairDisplayText: repairDisplayText,
       qualityFromValue: qualityFromValue,
       displayVerdictText: displayVerdictText,
       displayVerdictEmoji: displayVerdictEmoji,

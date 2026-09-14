@@ -13,6 +13,8 @@ The governing document is ``docs/PERSONALITY_BIBLE.md``.
 
 from __future__ import annotations
 
+import re
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 
 MODES: tuple[str, ...] = ("normal", "scientific", "extreme")
@@ -330,6 +332,108 @@ def fact_signal_types(situation: str) -> tuple[str, ...]:
     return FACT_SIGNAL_TYPES.get(situation, ())
 
 
+#: What the engine renders when it fills a ``{duration}`` slot and cannot read
+#: one. A dash there is an unfilled placeholder, not a fact: the display must never
+#: show "—未回复", in either language.
+DURATION_ARTIFACTS: tuple[str, ...] = (
+    "—未回复",
+    "— 未回复",
+    "—未有回复",
+    "— 未有回复",
+    "— without a reply",
+    "is — without",
+)
+
+#: Display-only repairs for engine sentences that break or overclaim on the way
+#: to the screen. Keyed on the exact shipped strings, so nothing else is touched.
+#: These are not detection, not parsing and not scoring: they change characters on
+#: the way out, and the API payload keeps whatever the engine produced.
+DISPLAY_REPAIRS: tuple[tuple[str, str], ...] = (
+    # latency: an unfilled {duration} slot
+    ("只有 —未有回复", "只有一次未回复"),
+    ("The only datum is — without a reply", "The only datum is one unanswered message"),
+    ("Reject. — without a reply", "Reject. one unanswered message"),
+    ("只有 — 未有回复", "只有一次未回复"),
+    ("the only datum is — without a reply", "the only datum is one unanswered message"),
+    ("只有 —未回复", "只有一次未回复"),
+    ("—未回复", "未回复"),
+    ("— 未回复", "未回复"),
+    ("—未有回复", "未有回复"),
+    ("— 未有回复", "未有回复"),
+    ("reject. — without a reply", "reject. one unanswered message"),
+    ("— without a reply", "without a reply"),
+    # latency: the engine reads any interval as "short", which it cannot know
+    ("对方在短时间内没有回复。", "对方的回复延迟已被记录。"),
+    (
+        "The sender has not replied within a short interval.",
+        "A reply delay has been recorded.",
+    ),
+    # no_signal: the engine claims the input has no meaning; NED only knows that it
+    # did not recognise it
+    ("这不是坏消息，只是没有消息。", "这不是坏消息，只是 NED 当前没有可解释的分类。"),
+    (
+        "That is not bad news; it is simply no news.",
+        "That is not bad news; NED simply had no classification for it.",
+    ),
+)
+
+#: Situations whose observed fact must come from the neutral evidence reading
+#: rather than the engine's narrative sentence, which may claim more than the
+#: engine knows (the latency reading always says "a short interval").
+FACT_FROM_OBSERVED: tuple[str, ...] = (SITUATION_LATENCY,)
+
+LATENCY_REALITY_ZH = (
+    "未回复或回复延迟本身是一条观察；仅凭这一事件不足以推出关系层面的结论。"
+    "时长与上下文会影响这条观察怎么读。"
+)
+LATENCY_REALITY_EN = (
+    "A missing reply is one observation. On its own it cannot support a conclusion about the "
+    "relationship; how it reads depends on the interval and the context."
+)
+
+
+def has_missing_duration(*texts: str) -> bool:
+    """Whether the engine left a duration slot empty in any of these strings."""
+
+    return any(artifact in text for artifact in DURATION_ARTIFACTS for text in texts)
+
+
+def _literal(value: str) -> Callable[[re.Match[str]], str]:
+    """A re.sub replacement that inserts ``value`` verbatim (no escapes)."""
+
+    def _replace(_match: re.Match[str]) -> str:
+        return value
+
+    return _replace
+
+
+def repair_display_text(text: str) -> str:
+    """Repair shipped engine copy on the way to the screen, and nothing else.
+
+    Matching is case-insensitive because shipped sentences start with a capital.
+    Only engine strings pass through here: user input is never rewritten.
+    """
+
+    repaired = text
+    for broken, fixed in DISPLAY_REPAIRS:
+        if not broken:
+            continue
+        replacement: str = fixed
+        repaired = re.sub(
+            re.escape(broken),
+            _literal(replacement),
+            repaired,
+            flags=re.IGNORECASE,
+        )
+    return repaired
+
+
+def fact_from_observed(situation: str) -> bool:
+    """Whether this screen must use the neutral evidence reading as its fact."""
+
+    return situation in FACT_FROM_OBSERVED
+
+
 def is_boundary_situation(situation: str) -> bool:
     """Whether this screen must stay serious in every mode."""
 
@@ -590,8 +694,8 @@ FIRST_SCREEN: dict[str, dict[str, dict[str, FirstScreen]]] = {
             _screen(
                 "ADVERSE PRELIMINARY RULING",
                 ("坏消息信息量：有限。", "关系终审庭已经擅自开庭。👍"),
-                "五分钟的未回复本身信息量很低，不足以支持关系层面的结论。",
-                with_basis=("五分钟。", "你的大脑已经开庭了。🤠"),
+                LATENCY_REALITY_ZH,
+                with_basis=("一次未回复。", "你的大脑已经开庭了。🤠"),
             ),
             _screen(
                 "ADVERSE PRELIMINARY RULING",
@@ -599,17 +703,16 @@ FIRST_SCREEN: dict[str, dict[str, dict[str, FirstScreen]]] = {
                     "Bad news carries limited information.",
                     "The relationship tribunal has convened. 👍",
                 ),
-                "Five minutes of silence carries very little information, and cannot support a "
-                "conclusion about the relationship.",
-                with_basis=("Five minutes.", "Your brain has already convened. 🤠"),
+                LATENCY_REALITY_EN,
+                with_basis=("One unanswered message.", "Your brain has already convened. 🤠"),
             ),
         ),
         "scientific": _bi(
             _screen(
                 "ADVERSE PRELIMINARY RULING",
                 ("负向证据已收稿，n=1。", "同行评审不予受理此项结论。"),
-                "五分钟的未回复本身信息量很低，不足以支持关系层面的结论。",
-                with_basis=("一个五分钟的样本被扩展成了结论。", "推论已经跑在数据前面。🤠"),
+                LATENCY_REALITY_ZH,
+                with_basis=("一个未回复样本被扩展成了结论。", "推论已经跑在数据前面。🤠"),
             ),
             _screen(
                 "ADVERSE PRELIMINARY RULING",
@@ -617,10 +720,9 @@ FIRST_SCREEN: dict[str, dict[str, dict[str, FirstScreen]]] = {
                     "Adverse submission received, n=1.",
                     "Peer review declines to consider this conclusion.",
                 ),
-                "Five minutes of silence carries very little information, and cannot support a "
-                "conclusion about the relationship.",
+                LATENCY_REALITY_EN,
                 with_basis=(
-                    "A five-minute sample was extended into a conclusion.",
+                    "A single unanswered message was extended into a conclusion.",
                     "The inference has outrun the data. 🤠",
                 ),
             ),
@@ -628,16 +730,15 @@ FIRST_SCREEN: dict[str, dict[str, dict[str, FirstScreen]]] = {
         "extreme": _bi(
             _screen(
                 "ADVERSE PRELIMINARY RULING",
-                ("五分钟。", "判决庭已经有人在门口排队了。👍"),
-                "五分钟的未回复本身信息量很低，不足以支持关系层面的结论。",
-                with_basis=("委员会已连夜开会。", "议题：一次五分钟的未回复。🤠"),
+                ("未回复已登记。", "判决庭已经有人在门口排队了。👍"),
+                LATENCY_REALITY_ZH,
+                with_basis=("委员会已连夜开会。", "议题：一次未回复。🤠"),
             ),
             _screen(
                 "ADVERSE PRELIMINARY RULING",
-                ("Five minutes.", "There is already a queue outside the tribunal. 👍"),
-                "Five minutes of silence carries very little information, and cannot support a "
-                "conclusion about the relationship.",
-                with_basis=("The committee met overnight.", "Agenda: one five-minute silence. 🤠"),
+                ("Delay logged.", "There is already a queue outside the tribunal. 👍"),
+                LATENCY_REALITY_EN,
+                with_basis=("The committee met overnight.", "Agenda: one unanswered message. 🤠"),
             ),
         ),
     },
@@ -968,14 +1069,16 @@ FIRST_SCREEN: dict[str, dict[str, dict[str, FirstScreen]]] = {
         _bi(
             _screen(
                 "MATERIALS RECEIVED",
-                ("材料已收悉，不予批准。👍",),
-                "输入里没有可分类的情感证据，因此没有可降权的对象。",
+                ("材料已收悉。", "本机构暂时不知道该送哪个窗口。👍"),
+                "本次输入没有命中 NED 当前支持的信号类型。这不代表输入本身没有意义，"
+                "只表示当前规则没有给出可解释的分类。",
             ),
             _screen(
                 "MATERIALS RECEIVED",
-                ("Materials received, not approved. 👍",),
-                "There is no classifiable emotional evidence here, so there is "
-                "nothing to discount.",
+                ("Materials received.", "This agency currently has no window to route it to. 👍"),
+                "This input did not match any signal type NED currently supports. That does not "
+                "mean the input itself is meaningless; it means the current rules produced no "
+                "interpretable classification.",
             ),
         )
     ),
@@ -1130,6 +1233,9 @@ def web_personality_catalog() -> dict[str, object]:
         "self_discount_signal_types": list(SELF_DISCOUNT_SIGNAL_TYPES),
         "self_discount_promotes": list(SELF_DISCOUNT_PROMOTES),
         "fact_signal_types": {key: list(value) for key, value in FACT_SIGNAL_TYPES.items()},
+        "fact_from_observed": list(FACT_FROM_OBSERVED),
+        "duration_artifacts": list(DURATION_ARTIFACTS),
+        "display_repairs": [list(pair) for pair in DISPLAY_REPAIRS],
         "quality_source": QUALITY_SOURCE,
         "quality_bands": [[maximum, zh, en] for maximum, zh, en in QUALITY_BANDS],
         "quality_top": {"zh": QUALITY_TOP[0], "en": QUALITY_TOP[1]},
@@ -1144,7 +1250,10 @@ __all__ = [
     "ANALYSIS_FEEDBACK",
     "BOUNDARY_SITUATIONS",
     "COMPARISON_REASON_VERDICTS",
+    "DISPLAY_REPAIRS",
+    "DURATION_ARTIFACTS",
     "EXPLICIT_QUALITY",
+    "FACT_FROM_OBSERVED",
     "FACT_SIGNAL_TYPES",
     "FIRST_SCREEN",
     "FNBP_HIT_FEEDBACK",
@@ -1169,15 +1278,18 @@ __all__ = [
     "analysis_feedback",
     "emoji_discipline",
     "explicit_quality_label",
+    "fact_from_observed",
     "fact_signal_types",
     "first_screen",
     "fnbp_feedback",
+    "has_missing_duration",
     "is_boundary_situation",
     "nea_framing",
     "pair_quality_label",
     "quality_label",
     "reading_basis_present",
     "reading_message",
+    "repair_display_text",
     "resolve_situation",
     "screen_situation",
     "verdict_display",

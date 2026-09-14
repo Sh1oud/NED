@@ -1215,6 +1215,210 @@ def test_the_generic_positive_fact_is_unaffected(analyzer: NedAnalyzer) -> None:
         assert cli_fact(result) == result.raw_interpretation == expected, text
 
 
+# --------------------------------------------------------------------------- #
+# Phase 1: latency presentation safety, and no_signal may not overclaim
+# --------------------------------------------------------------------------- #
+
+LATENCY_LONG = "他今天一整天都没回我消息"
+LATENCY_NO_DURATION = "没回我消息"
+LATENCY_CANONICAL = "五分钟没回复"
+LATENCY_DEMO = "消息发出去五分钟没回复。"
+NEUTRAL_INPUT = "今天天气真好"
+UNRECOGNISED_INPUT = "我表白了，被拒绝了"
+
+#: What a user must never see on a latency screen, whatever the input.
+BROKEN_DURATION_TOKENS = ("—未回复", "—未有回复", "— 未回复", "— 未有回复", "— without a reply")
+
+
+def shown_strings(result: Any) -> tuple[str, ...]:
+    """Every engine string a screen would put in front of a user."""
+
+    situation, _basis, language = screen_context(result)
+    screen = p.first_screen(situation, "normal", language)
+    return (
+        screen.title,
+        *screen.lines,
+        screen.reality,
+        screen_fact(result, situation),
+        p.repair_display_text(result.verdict.text),
+        p.repair_display_text(result.reality_check),
+        p.repair_display_text(result.raw_interpretation),
+    )
+
+
+def test_a_a_long_silence_never_claims_a_short_one(analyzer: NedAnalyzer) -> None:
+    """A. the reported defect: an all-day silence rendered as five minutes."""
+
+    result = analyzer.analyze_text(LATENCY_LONG, mode="normal")
+    assert result.verdict.code == "nea.latency_insufficient"
+    shown = shown_strings(result)
+    for token in (*BROKEN_DURATION_TOKENS, "短时间", "五分钟", "5 分钟", "short interval"):
+        assert not any(token in item for item in shown), token
+
+
+def test_a_a_long_silence_states_an_observation_not_a_verdict(analyzer: NedAnalyzer) -> None:
+    result = analyzer.analyze_text(LATENCY_LONG, mode="normal")
+    screen = screen_for(result)
+    assert screen.title == "ADVERSE PRELIMINARY RULING"
+    assert "终审庭" in " ".join(screen.lines)
+    assert "时长与上下文" in screen.reality
+
+
+@pytest.mark.parametrize("text", [LATENCY_LONG, LATENCY_NO_DURATION, "昨晚到现在没回", "no reply"])
+def test_c_no_input_produces_a_broken_duration_slot(analyzer: NedAnalyzer, text: str) -> None:
+    """C. the placeholder must never reach the screen, in either language."""
+
+    result = analyzer.analyze_text(text, mode="normal")
+    if result.verdict.code != "nea.latency_insufficient":
+        return
+    shown = shown_strings(result)
+    for token in BROKEN_DURATION_TOKENS:
+        assert not any(token in item for item in shown), (text, token)
+    repaired = p.repair_display_text(result.reality_check)
+    if result.language == "en":
+        assert "one unanswered message" in repaired, text
+    else:
+        assert "只有一次未回复" in repaired, text
+
+
+def test_c_the_fact_comes_from_the_neutral_reading(analyzer: NedAnalyzer) -> None:
+    """The engine's latency sentence always says "a short interval"; it is not usable."""
+
+    for text in (LATENCY_LONG, LATENCY_NO_DURATION):
+        result = analyzer.analyze_text(text, mode="normal")
+        situation, _basis, _language = screen_context(result)
+        fact = screen_fact(result, situation)
+        assert fact == result.observed_evidence or fact == result.signal_label, text
+        assert "短时间" not in fact, text
+
+
+def test_b_the_canonical_five_minute_case_is_untouched(analyzer: NedAnalyzer) -> None:
+    """B. the approved demo screen keeps its two lines and its engine reading."""
+
+    result = analyzer.analyze_text(LATENCY_DEMO, mode="normal")
+    screen = screen_for(result)
+    assert screen.title == "ADVERSE PRELIMINARY RULING"
+    assert screen.lines == ("坏消息信息量：有限。", "关系终审庭已经擅自开庭。👍")
+    assert "5 分钟" in p.repair_display_text(result.verdict.text)
+    assert "5 分钟" in p.repair_display_text(result.reality_check)
+    assert p.has_missing_duration(result.verdict.text) is False
+
+
+def test_the_repair_table_is_case_insensitive_and_targeted() -> None:
+    """Shipped sentences start with a capital; the repair must still match."""
+
+    assert p.repair_display_text("Reject. — without a reply is not evidence. 👍") == (
+        "Reject. one unanswered message is not evidence. 👍"
+    )
+    assert p.repair_display_text("The only datum is — without a reply.") == (
+        "The only datum is one unanswered message."
+    )
+    assert p.repair_display_text("That is not bad news; it is simply no news.") == (
+        "That is not bad news; NED simply had no classification for it."
+    )
+    assert p.repair_display_text("The sender has not replied within a short interval.") == (
+        "A reply delay has been recorded."
+    )
+    # ordinary copy passes through untouched
+    for text in (
+        "好消息已送外审；坏消息编辑部直录。",
+        "明确边界。NED 停止狡辩。🚧",
+        "Reject. 5 分钟未回复不构成证据。👍",
+    ):
+        assert p.repair_display_text(text) == text
+
+
+def test_the_repair_never_touches_user_text(analyzer: NedAnalyzer) -> None:
+    """Only engine strings are repaired: the input is never rewritten."""
+
+    text = "他说 —未回复 — 未有回复 短时间 五分钟"
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.input == text
+
+    script = (ROOT / "ned" / "app" / "static" / "app.js").read_text(encoding="utf-8")
+    assert "repairDisplayText(d.reality_check)" in script
+    assert "repairDisplayText(d.raw_interpretation)" in script
+    assert "repairDisplayText(d.input)" not in script
+
+
+# --------------------------------------------------------------------------- #
+# no_signal: NED may report its own blind spot, never the reader's emptiness
+# --------------------------------------------------------------------------- #
+
+OVERRCLAIM = "这不是坏消息，只是没有消息。"
+CAPABILITY = "当前支持的信号类型"
+
+
+@pytest.mark.parametrize(
+    "text", [NEUTRAL_INPUT, UNRECOGNISED_INPUT, "他把我微信删了", "她说她需要一点空间"]
+)
+def test_d_a_the_fallback_screen_names_neds_own_limit(analyzer: NedAnalyzer, text: str) -> None:
+    """D + E + F. One honest fallback for both genuinely empty and unrecognised input."""
+
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code == "ned.no_signal", text
+    screen = screen_for(result)
+    blob = " ".join([screen.title, *screen.lines, screen.reality])
+    assert screen.title == "MATERIALS RECEIVED"
+    assert "不知道该送哪个窗口" in blob
+    assert CAPABILITY in blob
+    assert "不代表输入本身没有意义" in blob
+    assert OVERRCLAIM not in blob
+
+
+def test_e_the_overclaim_is_repaired_in_technical_details_too(analyzer: NedAnalyzer) -> None:
+    result = analyzer.analyze_text(UNRECOGNISED_INPUT, mode="normal")
+    repaired = p.repair_display_text(result.reality_check)
+    assert OVERRCLAIM not in repaired
+    assert "没有可解释的分类" in repaired
+    assert p.repair_display_text(result.verdict.text) == result.verdict.text
+
+
+def test_e_an_unrecognised_input_is_still_not_classified(analyzer: NedAnalyzer) -> None:
+    """Phase 1 does not implement coverage: the input stays unsupported, honestly."""
+
+    result = analyzer.analyze_text(UNRECOGNISED_INPUT, mode="normal")
+    assert result.evidence == []
+    assert result.signal_strength == 0.0
+    assert situation_of(result) == p.SITUATION_NO_SIGNAL
+
+
+def test_d_the_fallback_is_the_same_in_every_mode() -> None:
+    screens = {mode: p.first_screen(p.SITUATION_NO_SIGNAL, mode, "zh") for mode in p.MODES}
+    assert screens["normal"] == screens["scientific"] == screens["extreme"]
+
+
+def test_f_the_capability_safe_copy_ships_to_both_surfaces(client: TestClient) -> None:
+    catalog = p.web_personality_catalog()
+    assert p.SITUATION_NO_SIGNAL in catalog["first_screen"]
+    page = client.get("/").text
+    match = re.search(r'<script id="personality-catalog"[^>]*>(.*?)</script>', page, re.DOTALL)
+    assert match is not None
+    embedded = json.loads(match.group(1))
+    assert embedded["display_repairs"] == catalog["display_repairs"]
+    assert embedded["duration_artifacts"] == catalog["duration_artifacts"]
+    assert embedded["fact_from_observed"] == [p.SITUATION_LATENCY]
+    script = (ROOT / "ned" / "app" / "static" / "app.js").read_text(encoding="utf-8")
+    assert "display_repairs" in script and "fact_from_observed" in script
+
+
+def test_g_the_engine_still_reports_what_it_reports(analyzer: NedAnalyzer) -> None:
+    """G. the repairs are display-only: the payload keeps the engine's own strings."""
+
+    result = analyzer.analyze_text(LATENCY_LONG, mode="normal")
+    assert "—未回复" in result.verdict.text, "the engine string is untouched"
+    assert "—未有回复" in result.reality_check
+    assert result.raw_interpretation == "对方在短时间内没有回复。"
+
+    no_signal = analyzer.analyze_text(UNRECOGNISED_INPUT, mode="normal")
+    assert OVERRCLAIM in no_signal.reality_check
+
+
+def test_h_technical_details_is_still_folded(structure: _Structure) -> None:
+    assert structure.by_id["technical-details"]["open"] is False
+    assert structure.by_id["asym-technical-details"]["open"] is False
+
+
 def test_the_shipped_rule_is_untouched_by_the_attribution_fix() -> None:
     """Only the displayed sentence changed: the rule, its trigger and its priority did not."""
 
