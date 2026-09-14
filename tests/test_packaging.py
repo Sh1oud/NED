@@ -42,5 +42,5 @@ def test_version_has_a_single_source() -> None:
 
     from ned.app.version import __version__
 
-    assert __version__ == "0.1.2"
+    assert __version__ == "0.1.3"
     assert __version__.count(".") == 2

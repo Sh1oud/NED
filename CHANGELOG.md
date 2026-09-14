@@ -15,6 +15,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Web UI i18n.
 - Saved report export.
 
+## [0.1.3] - 2026-09-14
+
+### Fixed
+
+- Web UI: the FNBP "NED Reminder" card was rendered inside the Asymmetry panel,
+  so running the branch predictor in the Lab tab never displayed it. The reminder
+  now appears in the Lab panel, directly under the FNBP verdict, and the existing
+  verdict line is preserved.
+- Web UI: both FNBP outcomes now show their personality copy — a prediction miss
+  adds "NED 提醒：预测不是事实。期待也不是证据。🤠", a prediction hit adds
+  "🎯 命中了。但 NED 提醒：一次预测成功，不等于发现了规律。🤠" — and the English
+  line stays as auxiliary information.
+
+### Unchanged
+
+- Branch prediction, hit/miss counting, the pipeline trace, the statistics, the
+  seed behaviour and the REST payloads are untouched: the reminder is display-only
+  personality copy and never reaches an API response.
+
 ## [0.1.2] - 2026-09-14
 
 ### Fixed
@@ -107,7 +126,8 @@ emotional evidence de-weighting engine.
   no database, no accounts, no paid APIs. v0.1 never calls an external LLM; the
   `LLMProvider` interface exists as a stub for future work.
 
-[Unreleased]: https://github.com/Sh1oud/NED/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/Sh1oud/NED/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/Sh1oud/NED/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Sh1oud/NED/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Sh1oud/NED/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Sh1oud/NED/releases/tag/v0.1.0
