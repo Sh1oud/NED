@@ -122,6 +122,11 @@ from calm cyan to "Industrial-grade denial" magenta.
   does not independently prove love. 👍"
 - **Evidence Asymmetry Detector.** Measures the double standard directly: how heavily
   you discount good news versus how fast you accept bad news. Produces a 0–100 score.
+- **Explicit boundary detection.** A direct refusal is not ambiguous evidence:
+  `别烦我`, `不要再联系我`, `滚出去` and their English equivalents are reported as a
+  boundary signal with a high information content, and NED neither de-weights them
+  nor invents an escape for them. Uncertainty is not the same as denying clear
+  evidence.
 - **FNBP — Fuyuki Notification Branch Predictor.** A Lab easter egg that simulates
   mispredicting every notification as being from one specific person, complete with
   pipeline flushes and wasted cycles.
@@ -243,7 +248,7 @@ ned fnbp --expected Fuyuki --actual 张三 --actual 李四 --count 5
 
 ```bash
 curl -s http://127.0.0.1:8000/api/health
-# {"status":"ok","version":"0.1.3","uptime_seconds":12.3,"local_only":true,"engine":"ned-local-rules"}
+# {"status":"ok","version":"0.1.4","uptime_seconds":12.3,"local_only":true,"engine":"ned-local-rules"}
 ```
 
 ```bash
@@ -284,7 +289,7 @@ curl -s -X POST http://127.0.0.1:8000/api/analyze \
     "rule_id": "ped.friendly_unexcluded"
   },
   "breakdown": { "positive_mass": 55.0, "escape_pressure": 0.42, "escape_capacity": 0.33 },
-  "engine": { "name": "ned-local-rules", "version": "0.1.3", "provider": "local-rule", "offline": true },
+  "engine": { "name": "ned-local-rules", "version": "0.1.4", "provider": "local-rule", "offline": true },
   "disclaimer": "NED cannot determine whether someone likes you. Humans are not APIs. …"
 }
 ```

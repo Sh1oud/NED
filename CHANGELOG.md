@@ -15,6 +15,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Web UI i18n.
 - Saved report export.
 
+## [0.1.4] - 2026-09-14
+
+### Added
+
+- Rule packs: a `direct_rejection` signal type with Chinese and English rules for
+  explicit rejection and boundary statements (`别烦我`, `不要再联系我`, `滚出去`,
+  `离我远点`, `别再给我发消息`, `leave me alone`, …). The patterns are generative
+  rather than fixed sentences, so narrative forms (`他让我滚出去别烦他了`,
+  `她叫我以后不要再联系她`) and reported statements (`对方明确说不想再和我说话`)
+  are covered too.
+- Rule packs: the `ned.direct_rejection` verdict (warning severity) and a
+  `direct_rejection` reality check, so a stated boundary is reported as a boundary.
+
+### Fixed
+
+- An explicitly stated refusal is no longer answered with `signal_type = none`, an
+  evidence strength of zero and the `ned.no_signal` verdict. The negative pack only
+  knew about reply latency, cold replies, cancelled plans and self-authored
+  conclusions, so a refusal matched no rule at all. Uncertainty is not the same as
+  denying clear evidence.
+- A boundary is no longer reinterpreted as a fuzzy signal. The boundary verdict
+  outranks the asymmetry headline, which would otherwise describe a strong refusal
+  as weak negative evidence being amplified, and when there is no positive evidence
+  in the input no semantic escape hypothesis is generated for it at all.
+
+### Changed
+
+- The new rules carry a weight of 96 and an information content of 90 — the
+  deliberate mirror of the reply-latency rule (weight 90, information 5): a stated
+  boundary is an observed behaviour, not an inference.
+- Context exclusions keep the signal precise: word homographs (`滚烫`, `翻滚`,
+  `滚去睡觉`), jokes, game talk, meta-discussion, being fired, and sentences that
+  deny or question the wording (`他没有让我滚`, `他是不是想让我滚？`) are not
+  boundaries.
+- No other rule pack, scoring formula, API field, web asset or launcher changed.
+
+### Known follow-up
+
+- `positive_evidence_discount` is still reported for inputs that contain no positive
+  evidence (35.5 with the default mode): it is the mode baseline plus the
+  amplification term. This patch does not change that logic; it is tracked as a
+  separate issue.
+
 ## [0.1.3] - 2026-09-14
 
 ### Fixed
@@ -126,7 +169,8 @@ emotional evidence de-weighting engine.
   no database, no accounts, no paid APIs. v0.1 never calls an external LLM; the
   `LLMProvider` interface exists as a stub for future work.
 
-[Unreleased]: https://github.com/Sh1oud/NED/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/Sh1oud/NED/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/Sh1oud/NED/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/Sh1oud/NED/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Sh1oud/NED/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Sh1oud/NED/compare/v0.1.0...v0.1.1
