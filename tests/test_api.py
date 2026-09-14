@@ -195,6 +195,21 @@ def test_fnbp_endpoint_hits_when_the_sender_matches(client: TestClient) -> None:
     assert payload["wasted_cycles"] == 0
 
 
+def test_personality_layer_does_not_extend_api_json(client: TestClient) -> None:
+    """Personality copy belongs only to the human-readable web and CLI layers."""
+
+    payloads = (
+        client.post("/api/analyze", json={"text": "marry me", "mode": "extreme"}).json(),
+        client.post(
+            "/api/asymmetry",
+            json={"positive_text": "她主动找我聊了两个小时", "negative_text": "五分钟没回复"},
+        ).json(),
+        client.post("/api/fnbp", json={"notifications": 2}).json(),
+    )
+    for payload in payloads:
+        assert "personality" not in payload
+
+
 def test_openapi_schema_is_available(client: TestClient) -> None:
     schema = client.get("/openapi.json").json()
     assert "/api/analyze" in schema["paths"]
@@ -215,6 +230,10 @@ def test_web_ui_renders(client: TestClient) -> None:
     assert "Analyze Evidence" in body
     assert "Alternative Hypotheses" in body
     assert "NED Reaching Level" in body
+    assert 'id="personality-catalog"' in body
+    assert 'id="reaching-personality"' in body
+    assert 'id="asym-personality"' in body
+    assert 'id="fnbp-personality"' in body
     assert "Reality Check" in body
     assert "Final Verdict" in body
     assert "Negative Evidence Amplifier" in body
@@ -235,6 +254,9 @@ def test_web_ui_has_the_blocks_the_script_writes_into(client: TestClient) -> Non
         "egg-list",
         "reaching-bar",
         "reaching-value",
+        "reaching-personality",
+        "asym-personality",
+        "fnbp-personality",
         "hypotheses-list",
         "evidence-rows",
         "breakdown-rows",

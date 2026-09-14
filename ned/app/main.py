@@ -14,6 +14,7 @@ from fastapi.templating import Jinja2Templates
 
 from ned.app.api.routes import router
 from ned.app.core.analyzer import NedAnalyzer
+from ned.app.ui.personality import web_personality_catalog
 from ned.app.version import (
     DISCLAIMER,
     FULL_NAME,
@@ -82,6 +83,7 @@ def create_app() -> FastAPI:
             "examples": [case.model_dump() for case in instance.examples()],
             "disclaimer": instance.book.disclaimer or DISCLAIMER,
             "privacy_note": PRIVACY_NOTE,
+            "personality_catalog": web_personality_catalog(),
         }
 
     @app.get("/", response_class=HTMLResponse, include_in_schema=False)

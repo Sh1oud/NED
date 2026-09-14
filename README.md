@@ -26,6 +26,7 @@ Everything may also be 人好. 👍
 - [Screenshots](#screenshots)
 - [Features](#features)
 - [Installation](#installation)
+- [Windows quick start](#windows-quick-start)
 - [Quick start](#quick-start)
 - [CLI usage](#cli-usage)
 - [API usage](#api-usage)
@@ -156,6 +157,14 @@ Runtime-only install:
 pip install .
 ```
 
+## Windows quick start
+
+下载或解压项目后，直接双击项目根目录中的 `start_ned.bat`。
+
+启动器会确认当前目录、检查 Python、安装 NED，并在浏览器可访问的本地地址启动服务。
+它使用 Python 模块入口启动，不依赖 `ned` 命令是否已经加入 Windows `PATH`。若提示找不到
+Python，请安装 Python 3.12+ 后重试；出错时窗口会保持打开并显示原因。
+
 ## Quick start
 
 ```bash
@@ -232,7 +241,7 @@ ned fnbp --expected Fuyuki --actual 张三 --actual 李四 --count 5
 
 ```bash
 curl -s http://127.0.0.1:8000/api/health
-# {"status":"ok","version":"0.1.0","uptime_seconds":12.3,"local_only":true,"engine":"ned-local-rules"}
+# {"status":"ok","version":"0.1.1","uptime_seconds":12.3,"local_only":true,"engine":"ned-local-rules"}
 ```
 
 ```bash
@@ -273,7 +282,7 @@ curl -s -X POST http://127.0.0.1:8000/api/analyze \
     "rule_id": "ped.friendly_unexcluded"
   },
   "breakdown": { "positive_mass": 55.0, "escape_pressure": 0.42, "escape_capacity": 0.33 },
-  "engine": { "name": "ned-local-rules", "version": "0.1.0", "provider": "local-rule", "offline": true },
+  "engine": { "name": "ned-local-rules", "version": "0.1.1", "provider": "local-rule", "offline": true },
   "disclaimer": "NED cannot determine whether someone likes you. Humans are not APIs. …"
 }
 ```

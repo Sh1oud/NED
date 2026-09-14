@@ -198,6 +198,12 @@
                   <span class="readout-label" id="reaching-label">—</span>
                   <span class="reaching-alert" id="reaching-alert" hidden>NED is currently reaching.</span>
                 </div>
+                <div class="personality-feedback" id="reaching-personality" hidden aria-live="polite">
+                  <div class="label">NED Message</div>
+                  <p id="reaching-personality-technical">—</p>
+                  <p id="reaching-personality-zh">—</p>
+                  <p class="personality-en" id="reaching-personality-en">—</p>
+                </div>
                 <div class="bar bar-lg" id="reaching-track" data-state="contained" role="progressbar" aria-label="NED reaching level" aria-valuemin="0" aria-valuemax="100">
                   <span class="bar-fill" id="reaching-bar"></span>
                 </div>
@@ -263,6 +269,12 @@
                 <span class="bar-fill sev-chaos" id="analyze-asym-bar"></span>
               </div>
               <p class="note" id="analyze-asym-reality">—</p>
+              <div class="personality-feedback" id="analyze-asym-personality" hidden aria-live="polite">
+                <div class="label">NED Message</div>
+                <p id="analyze-asym-personality-technical">—</p>
+                <p id="analyze-asym-personality-zh">—</p>
+                <p class="personality-en" id="analyze-asym-personality-en">—</p>
+              </div>
             </section>
 
             <section class="card card-wide" id="engine-notes-block" hidden>
@@ -404,6 +416,12 @@
                 <div class="bar bar-lg" id="asym-score-track" data-state="contained" role="progressbar" aria-label="Asymmetry score" aria-valuemin="0" aria-valuemax="100">
                   <span class="bar-fill sev-chaos" id="asym-score-bar"></span>
                 </div>
+                <div class="personality-feedback" id="asym-personality" hidden aria-live="polite">
+                  <div class="label">NED Message</div>
+                  <p id="asym-personality-technical">—</p>
+                  <p id="asym-personality-zh">—</p>
+                  <p class="personality-en" id="asym-personality-en">—</p>
+                </div>
               </div>
             </section>
 
@@ -434,6 +452,15 @@
                 <div class="chip-row">
                   <span class="severity-chip mono" id="asym-verdict-severity">—</span>
                 </div>
+              </div>
+            </section>
+
+              <section class="card">
+                <div class="label">NED Reminder</div>
+                <div class="personality-feedback" id="fnbp-personality">
+                  <p class="personality-title" id="fnbp-personality-title">—</p>
+                  <p id="fnbp-personality-zh">—</p>
+                  <p class="personality-en" id="fnbp-personality-en">—</p>
               </div>
             </section>
           </div>
@@ -555,6 +582,7 @@
     </footer>
   </div>
 
+  <script id="personality-catalog" type="application/json">{{ personality_catalog | tojson }}</script>
   <script src="/static/app.js" defer></script>
 </body>
 </html>

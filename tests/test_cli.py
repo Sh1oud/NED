@@ -66,6 +66,28 @@ def test_analyze_rejects_an_unknown_mode() -> None:
     assert "Unknown mode" in result.stdout
 
 
+def test_analyze_reaching_report_includes_personality_copy() -> None:
+    result = runner.invoke(
+        app,
+        [
+            "analyze",
+            "marry me",
+            "--mode",
+            "extreme",
+            "--history",
+            "I love you",
+            "--history",
+            "be my partner",
+            "--history",
+            "let us get married",
+        ],
+    )
+    assert result.exit_code == 0
+    assert "NED is currently reaching." in result.stdout
+    assert "Technical: NED has detected evidence overreach." in result.stdout
+    assert "NED believes the current reasoning" in result.stdout
+
+
 def test_analyze_accepts_history_for_escalation() -> None:
     result = runner.invoke(
         app,
@@ -115,6 +137,7 @@ def test_asymmetry_command_renders_panel() -> None:
     assert result.exit_code == 0
     assert "Evidence Asymmetry Detector" in result.stdout
     assert "EXTREMELY HIGH" in result.stdout
+    assert "NED 已经开始怀疑你的怀疑。🤠" in result.stdout
 
 
 def test_asymmetry_command_requires_input() -> None:
@@ -142,8 +165,23 @@ def test_fnbp_command() -> None:
 def test_fnbp_command_renders_pipeline_log() -> None:
     result = runner.invoke(app, ["fnbp", "--count", "2"])
     assert result.exit_code == 0
+    assert "怎么又不是她效应" in result.stdout
+    assert "NED 提醒：" in result.stdout
+    assert "预测不是事实。期待也不是证据。🤠" in result.stdout
+    assert "Prediction is not reality. Expectation is not evidence." in result.stdout
     assert "PIPELINE FLUSHED" in result.stdout
     assert "Fuyuki Notification Branch Predictor" in result.stdout
+
+
+def test_fnbp_command_personalizes_a_successful_prediction() -> None:
+    result = runner.invoke(
+        app,
+        ["fnbp", "--expected", "Fuyuki", "--actual", "Fuyuki", "--count", "2"],
+    )
+    assert result.exit_code == 0
+    assert "🎯 命中了。" in result.stdout
+    assert "一次预测成功，不等于发现了规律。🤠" in result.stdout
+    assert "One successful prediction does not mean a pattern has been discovered." in result.stdout
 
 
 def test_demo_runs_every_example_case() -> None:

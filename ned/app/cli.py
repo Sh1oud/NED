@@ -28,6 +28,12 @@ from ned.app.core.models import (
     FnbpResult,
     Mode,
 )
+from ned.app.ui.personality import (
+    PersonalityFeedback,
+    analysis_feedback,
+    asymmetry_feedback,
+    fnbp_feedback,
+)
 from ned.app.version import FULL_NAME, MOTTO, NAME, SUBTITLE, TAGLINE, __version__
 
 app = typer.Typer(
@@ -92,6 +98,18 @@ def reaching_style(level: float) -> str:
     return "cyan"
 
 
+def personality_lines(feedback: PersonalityFeedback | None) -> tuple[Text, ...]:
+    """Build display-only NED feedback for the human-readable CLI."""
+
+    if feedback is None:
+        return ()
+    return (
+        Text(f"Technical: {feedback.technical}", style="yellow"),
+        Text(f"NED message: {feedback.zh}", style="bold yellow"),
+        Text(feedback.en, style="dim"),
+    )
+
+
 def emit(payload: Any, as_json: bool) -> bool:
     """Print JSON when asked, otherwise return False so callers render richly."""
 
@@ -148,6 +166,8 @@ def render_analysis(result: AnalysisResult, out: Console) -> None:
     )
     if result.ned_reaching_level >= 80:
         reaching.add_row("", Text("NED is currently reaching.", style="bold yellow"))
+    for line in personality_lines(analysis_feedback(result.ned_reaching_level)):
+        reaching.add_row("", line)
     out.print(
         Panel(
             reaching,
@@ -271,6 +291,7 @@ def render_asymmetry_panel(result: AsymmetryResult) -> Panel:
     scores.add_row("Negative threshold", Text(result.negative_threshold, style="bold red"))
     scores.add_row("Asymmetry score", bar(result.asymmetry_score, style="magenta"))
     scores.add_row("", Text(result.asymmetry_label, style="bold magenta"))
+    feedback = asymmetry_feedback(result.asymmetry_score)
 
     return Panel(
         Group(
@@ -279,6 +300,7 @@ def render_asymmetry_panel(result: AsymmetryResult) -> Panel:
             scores,
             Text(""),
             Text(f"Reality check: {result.reality_check}", style="green"),
+            *personality_lines(feedback),
             Text(
                 f"Verdict: {verdict_text(result.verdict.emoji, result.verdict.text)}",
                 style="bold magenta",
@@ -291,6 +313,8 @@ def render_asymmetry_panel(result: AsymmetryResult) -> Panel:
 
 def render_fnbp(result: FnbpResult, out: Console) -> None:
     """Render the branch-predictor easter egg as a pipeline log."""
+
+    feedback = fnbp_feedback(result.prediction_misses)
 
     log = Table(show_header=False, box=None, padding=(0, 1))
     for item in result.per_notification:
@@ -324,6 +348,9 @@ def render_fnbp(result: FnbpResult, out: Console) -> None:
                     f"Verdict: {verdict_text(result.verdict.emoji, result.verdict.text)}",
                     style="bold magenta",
                 ),
+                Text(feedback["title"], style="bold yellow"),
+                Text(feedback["zh"], style="bold yellow"),
+                Text(feedback["en"], style="dim"),
                 Text(result.codename_note, style="dim"),
             ),
             title="FNBP — Fuyuki Notification Branch Predictor",

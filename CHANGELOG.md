@@ -15,6 +15,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Web UI i18n.
 - Saved report export.
 
+## [0.1.1] - 2026-09-14
+
+### Added
+
+- NED Personality Layer: centralized, bilingual, display-only feedback for
+  Analyze Evidence, the Evidence Asymmetry Detector and the FNBP easter egg.
+- `start_ned.bat`, a Windows double-click launcher that installs and starts NED
+  without requiring the `ned` console command to be on `PATH`.
+
+### Changed
+
+- The human-readable Web and CLI reports now add satirical feedback after a
+  score has been computed; scores, verdict selection and API JSON are unchanged.
+- The FNBP easter egg now gives outcome-specific reminders for prediction hits
+  and misses while preserving its branch-prediction trace and statistics.
+
 ## [0.1.0] - 2026-09-13
 
 Initial public release of **NED — Nov1ce Evidence Denier**, a fully-offline
@@ -67,4 +83,5 @@ emotional evidence de-weighting engine.
   `LLMProvider` interface exists as a stub for future work.
 
 [Unreleased]: https://github.com/Sh1oud/NED/compare/v0.1.0...HEAD
+[0.1.1]: https://github.com/Sh1oud/NED/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Sh1oud/NED/releases/tag/v0.1.0

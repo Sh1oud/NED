@@ -72,6 +72,41 @@
   function nums(pairs) { pairs.forEach(function (p) { setNum(p[0], p[1], p[2], p[3]); }); }
   function bars(pairs) { pairs.forEach(function (p) { setBar(p[0], p[1]); }); }
 
+  function personalityCatalog() {
+    var node = $("personality-catalog");
+    if (!node) { return {}; }
+    try { return obj(JSON.parse(node.textContent || "{}")); } catch (e) { return {}; }
+  }
+  var PERSONALITY_CATALOG = personalityCatalog();
+
+  function personalityFor(module, score) {
+    var levels = list(PERSONALITY_CATALOG[module]);
+    var value = Number(score);
+    if (!isFinite(value)) { return null; }
+    for (var i = 0; i < levels.length; i += 1) {
+      var feedback = obj(levels[i]);
+      if (value >= Number(feedback.minimum)) { return feedback; }
+    }
+    return null;
+  }
+
+  function renderPersonality(id, module, score) {
+    var feedback = personalityFor(module, score);
+    setHidden(id, !feedback);
+    if (!feedback) { return; }
+    setText(id + "-technical", "Technical: " + txt(feedback.technical));
+    setText(id + "-zh", feedback.zh);
+    setText(id + "-en", feedback.en);
+  }
+
+  function renderFnbpPersonality(predictionMisses) {
+    var messages = obj(PERSONALITY_CATALOG.fnbp);
+    var feedback = obj(Number(predictionMisses) > 0 ? messages.miss : messages.hit);
+    setText("fnbp-personality-title", feedback.title);
+    setText("fnbp-personality-zh", feedback.zh);
+    setText("fnbp-personality-en", feedback.en);
+  }
+
   /* --------------------------------------------------------------- network */
 
   function postJson(url, body) {
@@ -307,6 +342,7 @@
     setBar("reaching-bar", value);
     setState("reaching-track", bandFor(value));
     setHidden("reaching-alert", !(has && value >= 80));
+    setHidden("reaching-personality", !(has && value >= 80));
     var legend = $("reaching-legend");
     if (!legend || !legend.querySelectorAll) { return; }
     Array.prototype.forEach.call(legend.querySelectorAll(".legend-item"), function (item) {
@@ -391,6 +427,7 @@
     setRaw("verdict-emoji", typeof v.emoji === "string" ? v.emoji : "");
     renderHypotheses(d.alternative_explanations);
     renderReaching(d.ned_reaching_level, d.reaching_label);
+    renderPersonality("reaching-personality", "analysis", d.ned_reaching_level);
     renderEvidence(d.evidence);
     renderBreakdown(d.breakdown);
     renderNEA(d);
@@ -402,6 +439,9 @@
       setText("analyze-asym-label", asym.asymmetry_label);
       setBar("analyze-asym-bar", asym.asymmetry_score);
       setText("analyze-asym-reality", txt(asym.reality_check || d.asymmetry_reality_check));
+      renderPersonality("analyze-asym-personality", "asymmetry", asym.asymmetry_score);
+    } else {
+      setHidden("analyze-asym-personality", true);
     }
     return report;
   }
@@ -525,6 +565,7 @@
       ["asym-score-bar", d.asymmetry_score]
     ]);
     setState("asym-score-track", bandFor(clampPct(d.asymmetry_score)));
+    renderPersonality("asym-personality", "asymmetry", d.asymmetry_score);
     texts([
       ["asym-pos-threshold", d.positive_threshold], ["asym-neg-threshold", d.negative_threshold],
       ["asym-score-label", d.asymmetry_label], ["asym-reality-text", d.reality_check],
@@ -634,6 +675,7 @@
     ]);
     setNum("fnbp-rate", d.mispredict_rate, 1, "%");
     setRaw("fnbp-verdict-emoji", typeof v.emoji === "string" ? v.emoji : "");
+    renderFnbpPersonality(d.prediction_misses);
     return report;
   }
 

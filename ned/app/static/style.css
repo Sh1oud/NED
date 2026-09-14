@@ -522,6 +522,34 @@ textarea.input { min-height: 84px; }
   padding: 2px 9px;
 }
 
+.personality-feedback {
+  border-left: 2px solid var(--chaos);
+  display: grid;
+  gap: 5px;
+  margin-top: 4px;
+  padding: 5px 0 5px 10px;
+}
+
+.personality-feedback p {
+  color: var(--text-faint);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.personality-feedback p:last-child {
+  color: var(--chaos);
+}
+
+.personality-feedback .personality-title {
+  color: var(--warning);
+  font-weight: 700;
+}
+
+.personality-feedback .personality-en {
+  color: var(--text-dim);
+}
+
 /* ------------------------------------------------------------------ bars */
 
 .bar {
