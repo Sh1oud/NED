@@ -103,6 +103,17 @@
       }
     },
     {
+      "id": "nea.hostile_expression_insufficient",
+      "priority": 38,
+      "when": { "signal_type": ["hostile_expression"] },
+      "severity": "reject",
+      "emoji": "👍",
+      "texts": {
+        "zh": "输入报告了明确的敌意或辱骂表达。NED 按输入所述保留这条负向证据，但它不是读心术：这不足以证明这段关系已经结束，也不足以证明对方永远恨你。👍",
+        "en": "The input reports a clearly hostile or abusive expression. NED preserves that negative evidence as stated, but it is not mind-reading: this is not proof that the relationship is over, nor that they will always hate you. 👍"
+      }
+    },
+    {
       "id": "ned.extreme_insufficient_sample",
       "priority": 40,
       "when": { "positive_mass": { "gte": 85 } },

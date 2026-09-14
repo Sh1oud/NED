@@ -113,6 +113,8 @@ class NegativeEvidenceAmplifier:
             # A stated boundary is not weak evidence, so it gets the boundary check
             # rather than the generic "this proves nothing either" one.
             check_id = "direct_rejection"
+        elif span.signal_type == SignalType.HOSTILE_EXPRESSION:
+            check_id = "hostile_expression"
         elif span.signal_type == SignalType.RESPONSE_LATENCY:
             check_id = "latency_only"
         else:

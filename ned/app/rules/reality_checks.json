@@ -13,6 +13,11 @@
       "en": "The input contains an explicitly stated refusal or boundary, and an explicit boundary deserves to be respected. NED does not de-weight this evidence: a stated boundary is a behaviour, not an inference. It records an explicit boundary, which neither says anything about your worth nor licenses reading anyone's entire inner state."
     },
     {
+      "id": "hostile_expression",
+      "zh": "输入报告了一次明确的敌意或辱骂表达。NED 按输入所述保留这条证据，不对其进行语义降权；但一次敌意表达说明的是这次互动，不足以概括对方对你的全部态度，也不足以宣告这段关系的结局。",
+      "en": "The input reports a clearly hostile or abusive expression. NED preserves that evidence as stated rather than semantically de-weighting it; however, one hostile expression describes this interaction, not the whole of someone's attitude toward you, and does not determine how the relationship ends."
+    },
+    {
       "id": "negative_only",
       "zh": "输入描述的是不利或中性事件（{negative_desc}）。NED 指出一个对称的事实：这类事件同样不构成关于态度的证据，把它当作结论只是在换一个方向重复同一个错误。",
       "en": "The input describes an unfavourable or neutral event ({negative_desc}). NED notes the symmetric fact: such an event is equally not evidence about anyone's attitude, and treating it as a conclusion simply repeats the same mistake in the other direction."

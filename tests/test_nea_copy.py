@@ -51,6 +51,7 @@ REQUIRED_FAMILIES = (
     "cold_reply",
     "plan_cancelled",
     "direct_rejection",
+    "hostile_expression",
 )
 
 #: (input, family, verdict). Every family now owns a verdict, so no input with a
@@ -61,6 +62,7 @@ FAMILY_CASES = (
     ("她就回了一个嗯", "cold_reply", "nea.cold_reply_insufficient"),
     ("她临时说有事，改天吧", "plan_cancelled", "nea.plan_cancelled_insufficient"),
     ("他让我滚出去别烦他了", "direct_rejection", "ned.direct_rejection"),
+    ("她怒骂我", "hostile_expression", "nea.hostile_expression_insufficient"),
 )
 
 

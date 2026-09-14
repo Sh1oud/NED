@@ -293,6 +293,8 @@ class NedAnalyzer:
         # chooses the reality check even when positive evidence is also present.
         if any(span.signal_type is SignalType.DIRECT_REJECTION for span in spans):
             return "direct_rejection"
+        if any(span.signal_type is SignalType.HOSTILE_EXPRESSION for span in spans):
+            return "hostile_expression"
         if has_positive and has_negative:
             return "asymmetry_pair"
         if has_negative:

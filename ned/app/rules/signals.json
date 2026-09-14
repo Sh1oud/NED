@@ -676,7 +676,8 @@
         "(滚|走开|别烦|别再|不要联系|离我|别再)[^。！？!?]{0,12}(这句话|是什么意思|的意思|含义|台词|歌词|引用|例句)",
         "(没有|没|从未|从来没|从没|不曾|根本没|并没|没人|没有人|谁也没)[^。！？!?，,;；\n]{0,4}(让我|叫我|要我|说过?|讲过?|提过?|发过?|写过?|想)[^。！？!?，,;；\n]{0,2}(滚|走开|一边去|离我|别|不要|不用|不想)",
         "(是不是|是否|难道|会不会|算不算)[^。！？!?，,]{0,4}(想|要|会|打算)?[^。！？!?，,]{0,2}(让我|叫我|要我|滚|走开|离我|别|不要|不用|不想)",
-        "(让|叫|要)我[^。！？!?]{0,4}(滚|走开|一边去|离我)[^。！？!?]{0,3}(吗|嘛)[？?]"
+        "(让|叫|要)我[^。！？!?]{0,4}(滚|走开|一边去|离我)[^。！？!?]{0,3}(吗|嘛)[？?]",
+        "滚你(妈|大爷)的"
       ],
       "interpretations": {
         "zh": "对方直接、明确地表达了拒绝或边界。",
@@ -691,6 +692,61 @@
         "en": "Am I starting to feel that there is no room left in this relationship at all?"
       },
       "notes": "The deliberate mirror image of the latency rule: weight and information content are both high because a stated boundary is an observed behaviour, not an inference. NED displays it and does not de-weight it."
+    },
+    {
+      "signal_type": "hostile_expression",
+      "polarity": "negative",
+      "weight": 92,
+      "information_content": 72,
+      "salience": 1.3,
+      "interpretations": {
+        "zh": "输入报告了明确的敌意或辱骂表达。",
+        "en": "The input reports a clearly hostile or abusive expression."
+      },
+      "description": {
+        "zh": "敌意或辱骂表达",
+        "en": "a hostile or abusive expression"
+      },
+      "amplified_interpretation": {
+        "zh": "我是不是开始觉得，对方已经彻底否定我了？",
+        "en": "Am I starting to feel that they have written me off completely?"
+      },
+      "notes": "The mirror of the latency rule in the other direction: the weight is high because an insult is an observed act, while the information content is below the boundary rule because it describes this exchange rather than the relationship's trajectory. NED treats hostility as evidence without reading anyone's mind.",
+      "id": "zh.hostile_expression",
+      "label": "Hostile or abusive expression (辱骂)",
+      "labels": {
+        "en": "Hostile or abusive expression (辱骂)",
+        "zh": "敌意 / 辱骂表达"
+      },
+      "patterns": [
+        "(去你(妈|大爷|娘)的?|滚你(妈|大爷)的?|操你(妈|大爷)|草你(妈|大爷)|日你(妈|大爷))",
+        "(你他妈|妈的你)",
+        "你有病(吧|啊|吗)?",
+        "(你|你们)(真|就|根本)?(是|算)?(个)?(废物|垃圾|蠢货|蠢猪|笨蛋|蠢东西|傻[逼bB]|煞笔|贱人|人渣|王八蛋|混蛋|智障|白痴|神经病|脑子有病|脑子进水)",
+        "(闭嘴|死开|有多远滚多远|滚一边去)",
+        "(你算什么东西|你算老几|你配吗)",
+        "(骂|说|凶|吼)(我|你)(是|就是|是个|个)?[^。！？!?]{0,4}(废物|垃圾|蠢货|蠢猪|笨蛋|蠢东西|傻[逼bB]|煞笔|贱人|人渣|王八蛋|混蛋|智障|白痴|神经病|脑子有病|有病)",
+        "(怒骂|辱骂|大骂|痛骂|臭骂|咒骂|斥骂)(我|了我|了我一顿)?",
+        "(骂|吼|凶)(了)?我(一顿|一通)?",
+        "(冲|对|冲着|对着)(着)?我(破口大骂|大吼大叫|发火|咆哮|爆粗口|说难听话|恶语相向|出言不逊)",
+        "(对我|向我)(恶语相向|出言不逊|爆粗口|说难听话)",
+        "(羞辱|嘲讽|挖苦|贬低|数落)(了)?我",
+        "说(了)?难听话"
+      ],
+      "exclude": [
+        "(?<!不是)(玩笑|开玩笑|调侃|哈哈|笑死|闹着玩|逗|梗|乐)[^。！？!?]{0,10}(骂|凶|吼|去你|傻|神经|有病|闭嘴|垃圾|废物|混蛋|笨蛋)",
+        "(骂|凶|吼|去你妈|操你|傻[逼bB]|神经病|有病|闭嘴|混蛋|笨蛋)[^。！？!?]{0,20}(?<!不是)(哈哈|玩笑|开玩笑|笑死|闹着玩|逗|梗|乐)",
+        "(骂|喷|怼)(着)?玩",
+        "(游戏|队友|开黑|排位|副本|局里|比赛|群聊|对喷|互喷|嘴炮|弹幕)[^。！？!?]{0,12}(骂|对骂|互骂|喷|凶|吼)",
+        "(互相|相互|互)(骂|喷|怼|凶)",
+        "(电影|电视剧|剧里|戏里|小说|书里|视频|直播|新闻|段子|台词|歌词|综艺)[^。！？!?]{0,12}(骂|辱骂|怒骂|说)[^。！？!?]{0,10}(去你|操你|傻[逼bB]|煞笔|贱人|混蛋|王八蛋|神经病|脑子有病|闭嘴|垃圾|废物)",
+        "(骂|怒骂|辱骂|去你|操你|傻[逼bB]|有病|闭嘴|垃圾|废物)[^。！？!?]{0,8}(的书|的文章|的论文|的研究|的课程|这个词|这句话|什么意思|是什么意思|含义|语义|怎么解释|的定义|的概念|的用法)",
+        "(讨论|聊到|引用|分析|解释|研究|词典|翻译|这个词|这句话)[^。！？!?]{0,10}(骂|怒骂|辱骂|去你|操你|傻[逼bB]|有病|闭嘴|垃圾|废物)",
+        "(骂|怒骂|辱骂)[^。！？!?]{0,8}(这个词|这句话|是什么意思|什么意思|含义|语义|怎么解释)",
+        "垃圾(桶|袋|车|站|分类|回收|食品|话|邮件|短信|时间)",
+        "废物(利用|回收)",
+        "神经病学"
+      ]
     },
     {
       "id": "zh.response_latency",
@@ -885,6 +941,53 @@
         "en": "Am I starting to feel that there is no room left in this relationship at all?"
       },
       "notes": "The deliberate mirror image of the latency rule: weight and information content are both high because a stated boundary is an observed behaviour, not an inference. NED displays it and does not de-weight it."
+    },
+    {
+      "signal_type": "hostile_expression",
+      "polarity": "negative",
+      "weight": 92,
+      "information_content": 72,
+      "salience": 1.3,
+      "interpretations": {
+        "zh": "输入报告了明确的敌意或辱骂表达。",
+        "en": "The input reports a clearly hostile or abusive expression."
+      },
+      "description": {
+        "zh": "敌意或辱骂表达",
+        "en": "a hostile or abusive expression"
+      },
+      "amplified_interpretation": {
+        "zh": "我是不是开始觉得，对方已经彻底否定我了？",
+        "en": "Am I starting to feel that they have written me off completely?"
+      },
+      "notes": "The mirror of the latency rule in the other direction: the weight is high because an insult is an observed act, while the information content is below the boundary rule because it describes this exchange rather than the relationship's trajectory. NED treats hostility as evidence without reading anyone's mind.",
+      "id": "en.hostile_expression",
+      "label": "Hostile or abusive expression",
+      "labels": {
+        "en": "Hostile or abusive expression",
+        "zh": "敌意 / 辱骂表达"
+      },
+      "patterns": [
+        "\\b(fuck|screw|damn) (you|off)\\b",
+        "\\bshut (up|your mouth)\\b",
+        "\\bgo (to hell|screw yourself)\\b",
+        "\\byou'?re (an? )?(idiot|moron|jerk|asshole|bastard|loser|imbecile|scumbag|disgrace|pathetic|worthless)\\b",
+        "\\byou (are|r) (an? )?(idiot|moron|jerk|asshole|bastard|loser|imbecile|scumbag|disgrace|pathetic|worthless)\\b",
+        "\\b(asshole|bastard|jerk|moron|imbecile|scumbag|piece of shit|son of a bitch)\\b",
+        "\\b(cursed|cursing|swore|swearing|yelled|yelling|screamed|screaming|shouted|shouting) at me\\b",
+        "\\b(insulted|berated|belittled|mocked|ridiculed|humiliated|demeaned) me\\b",
+        "\\bverbally (abused|attacked) me\\b",
+        "\\bcalled me (names|an? (idiot|moron|jerk|asshole|loser|imbecile))\\b",
+        "\\b(chewed me out|shouted abuse at me|lashed out at me)\\b"
+      ],
+      "exclude": [
+        "\\b(jok(e|ing)|kidding|jk|lol|haha|banter|bantering|teasing|playfully)\\b[^.!?]{0,25}\\b(insult|insulted|cursed|swore|yelled|shouted|idiot|asshole|shut up|moron)\\b",
+        "\\b(insult|insulted|cursed|swore|yelled|shouted|idiot|asshole|moron)\\b[^.!?]{0,25}\\b(jok(e|ing)|kidding|banter|lol|haha|playfully|fun)\\b",
+        "\\b(trash talk|trash-talk|smack talk)\\b",
+        "\\b(game|gaming|match|raid|teammate|squad|lobby|in-game|chat)\\b[^.!?]{0,25}\\b(insult|insulted|cursed|swore|yelled|shouted|called me)\\b",
+        "\\b(movie|film|show|series|novel|book|quote|quoted|lyrics|song|news|meme)\\b[^.!?]{0,25}\\b(insult|insulted|cursed|swore|yelled|shouted|abuse|fuck you|idiot)\\b",
+        "\\b(discuss|discussing|meaning|means|word|phrase|definition|dictionary|what does)\\b[^.!?]{0,25}\\b(insult|insulting|cursing|swearing|abuse|idiot|shut up|fuck you|screw you|go to hell|asshole|bastard|jerk|moron|scumbag)\\b"
+      ]
     },
     {
       "id": "en.latency",
