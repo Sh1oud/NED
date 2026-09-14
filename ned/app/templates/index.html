@@ -130,195 +130,215 @@
             </div>
           </div>
 
-          <div class="grid">
-            <section class="card">
-              <div class="label">Signal Classification</div>
-              <div id="signal-classification" class="kv">
-                <div class="kv-row"><span class="kv-k">Signal type</span><span class="kv-v mono" id="sc-signal-type">—</span></div>
-                <div class="kv-row"><span class="kv-k">Label</span><span class="kv-v" id="sc-signal-label">—</span></div>
-                <div class="kv-row"><span class="kv-k">Language</span><span class="kv-v mono" id="sc-language">—</span></div>
-              </div>
-            </section>
+          <!-- The 30-second screen. Facts, plain-language quality, NED's line. -->
+          <section class="first-screen" id="first-screen" data-situation="neutral" aria-label="NED result">
+            <h2 class="screen-title" id="screen-title">—</h2>
+            <p class="screen-fact" id="screen-fact">—</p>
+            <p class="screen-quality-row" id="screen-quality-row" hidden>
+              <span class="screen-quality-label" id="screen-quality-label">Evidence quality</span>
+              <span class="screen-quality" id="screen-quality">—</span>
+            </p>
+            <div class="screen-lines" id="screen-lines"></div>
+            <p class="screen-reality" id="screen-reality">—</p>
+          </section>
 
-            <section class="card">
-              <div class="label">Evidence Strength</div>
-              <div id="evidence-strength" class="stack">
-                <div class="readout">
-                  <span class="readout-value mono" id="evidence-strength-value">—</span>
-                  <span class="readout-unit">signal strength</span>
-                </div>
-                <div class="bar" role="progressbar" aria-label="Evidence strength" aria-valuemin="0" aria-valuemax="100">
-                  <span class="bar-fill" id="evidence-strength-bar"></span>
-                </div>
-              </div>
-            </section>
+          <!-- Everything the engine actually computed. Folded by default. -->
+          <details class="technical-details" id="technical-details">
+            <summary>Technical Details</summary>
+            <div class="technical-body">
+              <p class="legacy-note">This block explains the screen above. It never changes it. Legacy composite fields (<code>asymmetry_score</code>, <code>asymmetry_label</code>, sub-scores) are compatibility-only and are deprecated.</p>
 
-            <section class="card">
-              <div class="label">Discount</div>
-              <div id="discount-block" class="stack">
-                <div class="bar-meta">
-                  <span class="bar-label">Positive evidence discount</span>
-                  <span class="bar-value mono" id="discount-value">—</span>
-                </div>
-                <div class="bar" role="progressbar" aria-label="Positive evidence discount" aria-valuemin="0" aria-valuemax="100">
-                  <span class="bar-fill sev-warning" id="discount-bar"></span>
-                </div>
-              </div>
-            </section>
-
-            <section class="card">
-              <div class="label">Amplification</div>
-              <div id="amplification-block" class="stack">
-                <div class="bar-meta">
-                  <span class="bar-label">Negative evidence amplification</span>
-                  <span class="bar-value mono" id="amplification-value">—</span>
-                </div>
-                <div class="bar" role="progressbar" aria-label="Negative evidence amplification" aria-valuemin="0" aria-valuemax="100">
-                  <span class="bar-fill sev-reject" id="amplification-bar"></span>
-                </div>
-              </div>
-            </section>
-
-            <section class="card card-wide">
-              <div class="label">Hypotheses</div>
-              <div id="alternative-hypotheses" class="stack">
-                <h3 class="subhead">Alternative Hypotheses</h3>
-                <p class="note">These are alternative hypotheses, not findings. Each one exists to re-open the possibility that 可能只是人好。👍</p>
-                <ol class="hypo-list" id="hypotheses-list">
-                  <li class="hypo hypo-empty">No alternative hypotheses computed yet.</li>
-                </ol>
-              </div>
-            </section>
-
-            <section class="card card-wide">
-              <div class="label">NED Reaching Level</div>
-              <div id="reaching-block" class="stack">
-                <div class="readout readout-lg">
-                  <span class="readout-value mono" id="reaching-value">—</span>
-                  <span class="readout-label" id="reaching-label">—</span>
-                  <span class="reaching-alert" id="reaching-alert" hidden>NED is currently reaching.</span>
-                </div>
-                <div class="personality-feedback" id="reaching-personality" hidden aria-live="polite">
-                  <div class="label">NED Message</div>
-                  <p id="reaching-personality-technical">—</p>
-                  <p id="reaching-personality-zh">—</p>
-                  <p class="personality-en" id="reaching-personality-en">—</p>
-                </div>
-                <div class="bar bar-lg" id="reaching-track" data-state="contained" role="progressbar" aria-label="NED reaching level" aria-valuemin="0" aria-valuemax="100">
-                  <span class="bar-fill" id="reaching-bar"></span>
-                </div>
-                <ul class="legend" id="reaching-legend">
-                  {% for band in reaching_labels %}
-                  <li class="legend-item" data-min="{{ band.min }}" data-max="{{ band.max }}">
-                    <span class="legend-range mono">{{ band.min }}–{{ band.max }}</span>
-                    <span class="legend-label">{{ band.label }}</span>
-                  </li>
-                  {% endfor %}
-                </ul>
-              </div>
-            </section>
-
-            <section class="card">
-              <div class="label">Reality Check</div>
-              <div id="reality-check" class="stack">
-                <h3 class="subhead">Reality Check</h3>
-                <p class="prose" id="reality-check-text">—</p>
-              </div>
-            </section>
-
-            <section class="card card-wide" id="nea-block" hidden>
-              <div class="label">Negative Evidence Amplifier</div>
-              <div class="stack">
-                <h3 class="subhead">Observed evidence vs amplified reading</h3>
-                <div class="kv">
-                  <div class="kv-row">
-                    <span class="kv-k">Observed evidence</span>
-                    <span class="kv-v" id="nea-observed">—</span>
+              <div class="grid">
+                <section class="card">
+                  <div class="label">Signal Classification</div>
+                  <div id="signal-classification" class="kv">
+                    <div class="kv-row"><span class="kv-k">Signal type</span><span class="kv-v mono" id="sc-signal-type">—</span></div>
+                    <div class="kv-row"><span class="kv-k">Label</span><span class="kv-v" id="sc-signal-label">—</span></div>
+                    <div class="kv-row"><span class="kv-k">Language</span><span class="kv-v mono" id="sc-language">—</span></div>
                   </div>
-                  <div class="kv-row">
-                    <span class="kv-k">Amplified reading</span>
-                    <span class="kv-v alarm" id="nea-amplified">—</span>
+                </section>
+
+                <section class="card">
+                  <div class="label">Evidence Strength</div>
+                  <div id="evidence-strength" class="stack">
+                    <div class="readout">
+                      <span class="readout-value mono" id="evidence-strength-value">—</span>
+                      <span class="readout-unit">signal strength</span>
+                    </div>
+                    <div class="bar" role="progressbar" aria-label="Evidence strength" aria-valuemin="0" aria-valuemax="100">
+                      <span class="bar-fill" id="evidence-strength-bar"></span>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="card">
+                  <div class="label">Discount</div>
+                  <div id="discount-block" class="stack">
+                    <div class="bar-meta">
+                      <span class="bar-label">Positive evidence discount</span>
+                      <span class="bar-value mono" id="discount-value">—</span>
+                    </div>
+                    <div class="bar" role="progressbar" aria-label="Positive evidence discount" aria-valuemin="0" aria-valuemax="100">
+                      <span class="bar-fill sev-warning" id="discount-bar"></span>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="card">
+                  <div class="label">Amplification</div>
+                  <div id="amplification-block" class="stack">
+                    <div class="bar-meta">
+                      <span class="bar-label">Negative evidence amplification</span>
+                      <span class="bar-value mono" id="amplification-value">—</span>
+                    </div>
+                    <div class="bar" role="progressbar" aria-label="Negative evidence amplification" aria-valuemin="0" aria-valuemax="100">
+                      <span class="bar-fill sev-reject" id="amplification-bar"></span>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="card card-wide">
+                  <div class="label">Hypotheses</div>
+                  <div id="alternative-hypotheses" class="stack">
+                    <h3 class="subhead">Alternative Hypotheses</h3>
+                    <p class="note">These are alternative hypotheses, not findings. Each one exists to re-open the possibility that 可能只是人好。👍</p>
+                    <ol class="hypo-list" id="hypotheses-list">
+                      <li class="hypo hypo-empty">No alternative hypotheses computed yet.</li>
+                    </ol>
+                  </div>
+                </section>
+
+                <section class="card card-wide">
+                  <div class="label">NED Reaching Level</div>
+                  <div id="reaching-block" class="stack">
+                    <div class="readout readout-lg">
+                      <span class="readout-value mono" id="reaching-value">—</span>
+                      <span class="readout-label" id="reaching-label">—</span>
+                      <span class="reaching-alert" id="reaching-alert" hidden>NED is currently reaching.</span>
+                    </div>
+                    <div class="personality-feedback" id="reaching-personality" hidden aria-live="polite">
+                      <div class="label">NED Message</div>
+                      <p id="reaching-personality-technical">—</p>
+                      <p id="reaching-personality-zh">—</p>
+                      <p class="personality-en" id="reaching-personality-en">—</p>
+                    </div>
+                    <div class="bar bar-lg" id="reaching-track" data-state="contained" role="progressbar" aria-label="NED reaching level" aria-valuemin="0" aria-valuemax="100">
+                      <span class="bar-fill" id="reaching-bar"></span>
+                    </div>
+                    <ul class="legend" id="reaching-legend">
+                      {% for band in reaching_labels %}
+                      <li class="legend-item" data-min="{{ band.min }}" data-max="{{ band.max }}">
+                        <span class="legend-range mono">{{ band.min }}–{{ band.max }}</span>
+                        <span class="legend-label">{{ band.label }}</span>
+                      </li>
+                      {% endfor %}
+                    </ul>
+                  </div>
+                </section>
+
+                <section class="card">
+                  <div class="label">Reality Check</div>
+                  <div id="reality-check" class="stack">
+                    <h3 class="subhead">Reality Check</h3>
+                    <p class="prose" id="reality-check-text">—</p>
+                  </div>
+                </section>
+
+                <section class="card card-wide" id="nea-block" hidden>
+                  <div class="label">Negative Evidence Amplifier</div>
+                  <div class="stack">
+                    <h3 class="subhead">Observed evidence vs amplified reading</h3>
+                    <div class="kv">
+                      <div class="kv-row">
+                        <span class="kv-k">Observed evidence</span>
+                        <span class="kv-v" id="nea-observed">—</span>
+                      </div>
+                      <div class="kv-row">
+                        <span class="kv-k">Amplified reading</span>
+                        <span class="kv-v alarm" id="nea-amplified">—</span>
+                      </div>
+                    </div>
+                    <p class="note" id="nea-framing">—</p>
+                    <p class="note">Nothing here is advice, and nothing here is a fact about anyone.</p>
+                  </div>
+                </section>
+
+                <section class="card verdict-card">
+                  <div class="label">Verdict</div>
+                  <div id="final-verdict" class="stack">
+                    <h3 class="subhead">Final Verdict</h3>
+                    <p class="verdict-line">
+                      <span class="verdict-emoji" id="verdict-emoji" aria-hidden="true"></span>
+                      <span class="verdict-text" id="verdict-text">—</span>
+                    </p>
+                    <div class="chip-row">
+                      <span class="severity-chip mono" id="verdict-severity">—</span>
+                      <span class="code-chip mono" id="verdict-code">—</span>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="card card-wide" id="analyze-asymmetry" hidden>
+                  <div class="label">Attached Evidence Comparison</div>
+                  <div class="kv">
+                    <div class="kv-row"><span class="kv-k">Evidence comparable</span><span class="kv-v mono" id="analyze-asym-comparable">—</span></div>
+                    <div class="kv-row"><span class="kv-k">NED treatment gap</span><span class="kv-v mono" id="analyze-asym-score">—</span></div>
+                    <div class="kv-row"><span class="kv-k">Your reading</span><span class="kv-v mono" id="analyze-asym-label">—</span></div>
+                  </div>
+                  <div class="bar" role="progressbar" aria-label="NED treatment gap" aria-valuemin="0" aria-valuemax="100">
+                    <span class="bar-fill sev-chaos" id="analyze-asym-bar"></span>
+                  </div>
+                  <p class="note" id="analyze-asym-reality">—</p>
+                </section>
+
+                <section class="card card-wide" id="engine-notes-block" hidden>
+                  <div class="label">Engine Notes</div>
+                  <div class="stack">
+                    <ul class="notes" id="mode-notes"></ul>
+                    <ul class="notes notes-eggs" id="egg-list" hidden></ul>
+                  </div>
+                </section>
+              </div>
+
+              <details class="disclosure">
+                <summary>Raw interpretation &amp; matched evidence</summary>
+                <div class="disclosure-body">
+                  <div class="label">Raw Interpretation</div>
+                  <p class="prose" id="raw-interpretation">—</p>
+                  <div class="label">Evidence Rows</div>
+                  <div class="table-wrap">
+                    <table class="table" id="evidence-table">
+                      <thead>
+                        <tr>
+                          <th>Rule ID</th>
+                          <th>Evidence text</th>
+                          <th>Signal</th>
+                          <th>Polarity</th>
+                          <th class="num">Base</th>
+                          <th class="num">Info</th>
+                          <th>Matched keywords</th>
+                        </tr>
+                      </thead>
+                      <tbody id="evidence-rows">
+                        <tr><td colspan="7" class="muted">No evidence rows.</td></tr>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-                <p class="note" id="nea-framing">—</p>
-                <p class="note">Nothing here is advice, and nothing here is a fact about anyone.</p>
-              </div>
-            </section>
+              </details>
 
-            <section class="card verdict-card">
-              <div class="label">Verdict</div>
-              <div id="final-verdict" class="stack">
-                <h3 class="subhead">Final Verdict</h3>
-                <p class="verdict-line">
-                  <span class="verdict-emoji" id="verdict-emoji" aria-hidden="true"></span>
-                  <span class="verdict-text" id="verdict-text">—</span>
-                </p>
-                <div class="chip-row">
-                  <span class="severity-chip mono" id="verdict-severity">—</span>
-                  <span class="code-chip mono" id="verdict-code">—</span>
+              <details class="disclosure disclosure-legacy">
+                <summary>Legacy composite sub-scores (deprecated, compatibility only)</summary>
+                <div class="disclosure-body">
+                  <div class="table-wrap">
+                    <table class="table table-kv" id="breakdown">
+                      <tbody id="breakdown-rows">
+                        <tr><th scope="row" class="mono">—</th><td class="mono">—</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-            </section>
-
-            <section class="card card-wide" id="analyze-asymmetry" hidden>
-              <div class="label">Attached Evidence Comparison</div>
-              <div class="kv">
-                <div class="kv-row"><span class="kv-k">Evidence comparable</span><span class="kv-v mono" id="analyze-asym-comparable">—</span></div>
-                <div class="kv-row"><span class="kv-k">NED treatment gap</span><span class="kv-v mono" id="analyze-asym-score">—</span></div>
-                <div class="kv-row"><span class="kv-k">Your reading</span><span class="kv-v mono" id="analyze-asym-label">—</span></div>
-              </div>
-              <div class="bar" role="progressbar" aria-label="NED treatment gap" aria-valuemin="0" aria-valuemax="100">
-                <span class="bar-fill sev-chaos" id="analyze-asym-bar"></span>
-              </div>
-              <p class="note" id="analyze-asym-reality">—</p>
-            </section>
-
-            <section class="card card-wide" id="engine-notes-block" hidden>
-              <div class="label">Engine Notes</div>
-              <div class="stack">
-                <ul class="notes" id="mode-notes"></ul>
-                <ul class="notes notes-eggs" id="egg-list" hidden></ul>
-              </div>
-            </section>
-          </div>
-
-          <details class="disclosure">
-            <summary>Raw interpretation &amp; matched evidence</summary>
-            <div class="disclosure-body">
-              <div class="label">Raw Interpretation</div>
-              <p class="prose" id="raw-interpretation">—</p>
-              <div class="label">Evidence Rows</div>
-              <div class="table-wrap">
-                <table class="table" id="evidence-table">
-                  <thead>
-                    <tr>
-                      <th>Rule ID</th>
-                      <th>Evidence text</th>
-                      <th>Signal</th>
-                      <th>Polarity</th>
-                      <th class="num">Base</th>
-                      <th class="num">Info</th>
-                      <th>Matched keywords</th>
-                    </tr>
-                  </thead>
-                  <tbody id="evidence-rows">
-                    <tr><td colspan="7" class="muted">No evidence rows.</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </details>
-
-          <details class="disclosure">
-            <summary>Internal scoring breakdown (non-authoritative)</summary>
-            <div class="disclosure-body">
-              <div class="table-wrap">
-                <table class="table table-kv" id="breakdown">
-                  <tbody id="breakdown-rows">
-                    <tr><th scope="row" class="mono">—</th><td class="mono">—</td></tr>
-                  </tbody>
-                </table>
-              </div>
+              </details>
             </div>
           </details>
 
@@ -363,77 +383,101 @@
             </div>
           </div>
 
-          <div class="grid">
-            <section class="card card-wide" id="asym-profile">
-              <div class="label">Evidence Profile</div>
-              <div class="stack">
-                <div class="kv">
-                  <div class="kv-row"><span class="kv-k">Comparable</span><span class="kv-v mono" id="asym-profile-comparable">—</span></div>
-                  <div class="kv-row"><span class="kv-k">Reason</span><span class="kv-v mono" id="asym-profile-reason">—</span></div>
-                </div>
-                <div class="table-wrap">
-                  <table class="table" id="asym-profile-table">
-                    <thead>
-                      <tr><th>Side</th><th>Class</th><th>Raw strength</th><th>Information</th></tr>
-                    </thead>
-                    <tbody id="asym-profile-rows"></tbody>
-                  </table>
-                </div>
-                <div class="kv">
-                  <div class="kv-row"><span class="kv-k">Raw strength gap</span><span class="kv-v mono" id="asym-profile-raw-gap">—</span></div>
-                  <div class="kv-row"><span class="kv-k">Information gap</span><span class="kv-v mono" id="asym-profile-information-gap">—</span></div>
-                </div>
-                <p class="note">The clues themselves: raw strength, information content and evidence class. NED's own policy and your own wording are not part of this block.</p>
-              </div>
-            </section>
+          <section class="first-screen" id="asym-first-screen" data-situation="neutral" aria-label="NED comparison result">
+            <h2 class="screen-title" id="asym-screen-title">—</h2>
+            <div class="screen-quotes" id="asym-screen-quotes" hidden></div>
+            <p class="screen-fact" id="asym-screen-fact">—</p>
+            <p class="screen-quality-row" id="asym-screen-quality-row" hidden>
+              <span class="screen-quality-label">Evidence quality</span>
+              <span class="screen-quality" id="asym-screen-quality-positive">—</span>
+              <span class="screen-quality" id="asym-screen-quality-negative">—</span>
+            </p>
+            <div class="screen-lines" id="asym-screen-lines"></div>
+            <p class="screen-reality" id="asym-screen-reality">—</p>
+          </section>
 
-            <section class="card" id="asym-treatment">
-              <div class="label">NED Treatment</div>
-              <div class="stack">
-                <div class="kv">
-                  <div class="kv-row"><span class="kv-k">Mode</span><span class="kv-v mono" id="asym-treatment-mode">—</span></div>
-                  <div class="kv-row"><span class="kv-k">Positive discount</span><span class="kv-v mono" id="asym-treatment-discount">—</span></div>
-                  <div class="kv-row"><span class="kv-k">Priors</span><span class="kv-v mono" id="asym-treatment-priors">—</span></div>
-                  <div class="kv-row"><span class="kv-k">Treated positive weight</span><span class="kv-v mono" id="asym-treatment-positive">—</span></div>
-                  <div class="kv-row"><span class="kv-k">Treated negative weight</span><span class="kv-v mono" id="asym-treatment-negative">—</span></div>
-                  <div class="kv-row"><span class="kv-k">Negative amplification</span><span class="kv-v mono" id="asym-treatment-amplification">—</span></div>
-                  <div class="kv-row"><span class="kv-k">Treatment gap</span><span class="kv-v mono" id="asym-treatment-gap">—</span></div>
-                </div>
-                <p class="note">What the current NED mode does to evidence it has already read. This block describes NED, never you.</p>
-              </div>
-            </section>
+          <details class="technical-details" id="asym-technical-details">
+            <summary>Technical Details</summary>
+            <div class="technical-body">
+              <p class="legacy-note">This block explains the screen above. It never changes it. Legacy composite fields are compatibility-only and are deprecated.</p>
 
-            <section class="card" id="asym-reading">
-              <div class="label">Your Reading</div>
-              <div class="stack">
-                <p class="prose" id="asym-reading-status">—</p>
-                <div class="chip-row" id="asym-reading-basis"></div>
-                <p class="note" id="asym-reading-detail">—</p>
-                <p class="note">This block is the only place NED speaks about your evidential standard, and it only speaks when your own wording is in the input.</p>
-              </div>
-            </section>
+              <div class="grid">
+                <section class="card card-wide" id="asym-profile">
+                  <div class="label">Evidence Profile</div>
+                  <div class="stack">
+                    <div class="kv">
+                      <div class="kv-row"><span class="kv-k">Comparable</span><span class="kv-v mono" id="asym-profile-comparable">—</span></div>
+                      <div class="kv-row"><span class="kv-k">Reason</span><span class="kv-v mono" id="asym-profile-reason">—</span></div>
+                    </div>
+                    <div class="table-wrap">
+                      <table class="table" id="asym-profile-table">
+                        <thead>
+                          <tr><th>Side</th><th>Class</th><th>Raw strength</th><th>Information</th></tr>
+                        </thead>
+                        <tbody id="asym-profile-rows"></tbody>
+                      </table>
+                    </div>
+                    <div class="kv">
+                      <div class="kv-row"><span class="kv-k">Raw strength gap</span><span class="kv-v mono" id="asym-profile-raw-gap">—</span></div>
+                      <div class="kv-row"><span class="kv-k">Information gap</span><span class="kv-v mono" id="asym-profile-information-gap">—</span></div>
+                    </div>
+                    <p class="note">The clues themselves: raw strength, information content and evidence class. NED's own policy and your own wording are not part of this block.</p>
+                  </div>
+                </section>
 
-            <section class="card">
-              <div class="label">Reality Check</div>
-              <div id="asym-reality" class="stack">
-                <p class="prose" id="asym-reality-text">—</p>
-              </div>
-            </section>
+                <section class="card" id="asym-treatment">
+                  <div class="label">NED Treatment</div>
+                  <div class="stack">
+                    <div class="kv">
+                      <div class="kv-row"><span class="kv-k">Mode</span><span class="kv-v mono" id="asym-treatment-mode">—</span></div>
+                      <div class="kv-row"><span class="kv-k">Positive discount</span><span class="kv-v mono" id="asym-treatment-discount">—</span></div>
+                      <div class="kv-row"><span class="kv-k">Priors</span><span class="kv-v mono" id="asym-treatment-priors">—</span></div>
+                      <div class="kv-row"><span class="kv-k">Treated positive weight</span><span class="kv-v mono" id="asym-treatment-positive">—</span></div>
+                      <div class="kv-row"><span class="kv-k">Treated negative weight</span><span class="kv-v mono" id="asym-treatment-negative">—</span></div>
+                      <div class="kv-row"><span class="kv-k">Negative amplification</span><span class="kv-v mono" id="asym-treatment-amplification">—</span></div>
+                      <div class="kv-row"><span class="kv-k">Treatment gap</span><span class="kv-v mono" id="asym-treatment-gap">—</span></div>
+                    </div>
+                    <p class="note">What the current NED mode does to evidence it has already read. This block describes NED, never you.</p>
+                  </div>
+                </section>
 
-            <section class="card verdict-card">
-              <div class="label">Verdict</div>
-              <div id="asym-verdict" class="stack">
-                <p class="verdict-line">
-                  <span class="verdict-emoji" id="asym-verdict-emoji" aria-hidden="true"></span>
-                  <span class="verdict-text" id="asym-verdict-text">—</span>
-                </p>
-                <div class="chip-row">
-                  <span class="severity-chip mono" id="asym-verdict-severity">—</span>
-                </div>
-              </div>
-            </section>
+                <section class="card" id="asym-reading">
+                  <div class="label">Your Reading</div>
+                  <div class="stack">
+                    <p class="prose" id="asym-reading-status">—</p>
+                    <div class="chip-row" id="asym-reading-basis"></div>
+                    <p class="note" id="asym-reading-detail">—</p>
+                    <div class="kv">
+                      <div class="kv-row"><span class="kv-k">Positive self-discount</span><span class="kv-v mono" id="asym-reading-positive-basis">—</span></div>
+                      <div class="kv-row"><span class="kv-k">Negative self-conclusion</span><span class="kv-v mono" id="asym-reading-negative-basis">—</span></div>
+                    </div>
+                    <p class="note">This block is the only place NED speaks about your evidential standard, and it only speaks when your own wording is in the input.</p>
+                  </div>
+                </section>
 
-          </div>
+                <section class="card">
+                  <div class="label">Reality Check</div>
+                  <div id="asym-reality" class="stack">
+                    <p class="prose" id="asym-reality-text">—</p>
+                  </div>
+                </section>
+
+                <section class="card verdict-card">
+                  <div class="label">Verdict</div>
+                  <div id="asym-verdict" class="stack">
+                    <p class="verdict-line">
+                      <span class="verdict-emoji" id="asym-verdict-emoji" aria-hidden="true"></span>
+                      <span class="verdict-text" id="asym-verdict-text">—</span>
+                    </p>
+                    <div class="chip-row">
+                      <span class="severity-chip mono" id="asym-verdict-severity">—</span>
+                    </div>
+                  </div>
+                </section>
+
+              </div>
+            </div>
+          </details>
 
           <footer class="report-foot">
             <p class="disclaimer" id="asym-disclaimer">—</p>

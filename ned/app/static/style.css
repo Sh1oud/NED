@@ -693,6 +693,145 @@ textarea.input { min-height: 84px; }
 #asym-pos-threshold { color: var(--warning); border-color: var(--warning); }
 #asym-neg-threshold { color: var(--accent); border-color: var(--accent); }
 
+/* ------------------------------------------------------------ first screen */
+
+.first-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 18px 18px 20px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--sev);
+  border-radius: var(--radius);
+  background: var(--panel-2);
+}
+
+.screen-title {
+  margin: 0;
+  font-size: clamp(1.25rem, 4.6vw, 1.9rem);
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.screen-fact {
+  margin: 0;
+  font-size: clamp(0.95rem, 2.6vw, 1.05rem);
+  color: var(--text-dim);
+}
+
+.screen-quality-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+}
+
+.screen-quality-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-faint);
+}
+
+.screen-quality-row > .screen-quality {
+  font-size: clamp(1rem, 3vw, 1.15rem);
+  font-weight: 700;
+  color: var(--sev);
+}
+
+.screen-quality-row > .screen-quality + .screen-quality::before {
+  content: "\00b7";
+  margin-right: 10px;
+  color: var(--text-faint);
+}
+
+.screen-quotes { display: flex; flex-direction: column; gap: 4px; }
+
+.screen-quote {
+  margin: 0;
+  padding-left: 12px;
+  border-left: 2px solid var(--accent-2);
+  font-size: clamp(0.95rem, 2.6vw, 1.1rem);
+  color: var(--text-dim);
+}
+
+.screen-lines { display: flex; flex-direction: column; gap: 6px; }
+
+.screen-line {
+  margin: 0;
+  padding-left: 12px;
+  border-left: 3px solid var(--line-strong);
+  font-size: clamp(1.15rem, 4vw, 1.6rem);
+  line-height: 1.35;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.screen-reality {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+/* A boundary screen must look like NED stopped joking. */
+#first-screen[data-situation="boundary"],
+#asym-first-screen[data-situation="timeline_boundary"] {
+  border-left-color: var(--warning);
+  background: var(--panel-3);
+}
+
+#first-screen[data-situation="boundary"] .screen-line,
+#asym-first-screen[data-situation="timeline_boundary"] .screen-line {
+  border-left-color: var(--warning);
+}
+
+.technical-details {
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+}
+
+.technical-details > summary {
+  cursor: pointer;
+  padding: 13px 16px;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-dim);
+  list-style: none;
+}
+
+.technical-details > summary::-webkit-details-marker { display: none; }
+.technical-details > summary::before { content: "\25B8 "; color: var(--accent); }
+.technical-details[open] > summary::before { content: "\25BE "; }
+.technical-details > summary:hover { color: var(--text); }
+
+.technical-details .technical-body { padding: 0 14px 16px; }
+.technical-details .grid { margin-top: 0; }
+
+.legacy-note {
+  margin: 0 0 12px;
+  font-size: 0.76rem;
+  line-height: 1.5;
+  color: var(--text-faint);
+}
+
+.disclosure-legacy > summary { color: var(--text-faint); }
+
+@media (max-width: 460px) {
+  .first-screen { padding: 14px; gap: 10px; }
+  .screen-title { font-size: 1.15rem; }
+  .screen-line { font-size: 1.08rem; padding-left: 10px; }
+  .screen-quality-row { gap: 6px; }
+}
+
 /* ------------------------------------------------------------ disclosures */
 
 .disclosure {

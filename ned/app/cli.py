@@ -24,16 +24,27 @@ from ned.app.core.models import (
     AnalysisResult,
     AsymmetryRequest,
     AsymmetryResult,
+    AsymmetrySide,
     FnbpRequest,
     FnbpResult,
     Mode,
+    Verdict,
 )
 from ned.app.ui.personality import (
+    FORBIDDEN_EMOJI,
+    QUALITY_SOURCE,
     PersonalityFeedback,
     analysis_feedback,
+    emoji_discipline,
+    explicit_quality_label,
+    first_screen,
     fnbp_feedback,
     nea_framing,
+    quality_label,
+    reading_basis_present,
     reading_message,
+    resolve_situation,
+    verdict_display,
 )
 from ned.app.version import FULL_NAME, MOTTO, NAME, SUBTITLE, TAGLINE, __version__
 
@@ -121,6 +132,89 @@ def personality_lines(feedback: PersonalityFeedback | None) -> tuple[Text, ...]:
     )
 
 
+def screen_context(result: AnalysisResult) -> tuple[str, bool, str]:
+    """Which screen this verdict belongs to, whether the reader spoke, and the language."""
+
+    situation = resolve_situation(result.verdict.code)
+    language = "en" if result.language == "en" else "zh"
+    basis = reading_basis_present(signal_types=[span.signal_type.value for span in result.evidence])
+    return situation, basis, language
+
+
+def screen_fact(result: AnalysisResult) -> str:
+    """The observed fact, in the engine's own words."""
+
+    return result.raw_interpretation or result.observed_evidence or result.signal_label
+
+
+def screen_quality(situation: str, result: AnalysisResult, language: str) -> str:
+    """Plain-language evidence quality, derived from engine readings only."""
+
+    source = QUALITY_SOURCE.get(situation, "none")
+    if source == "explicit":
+        return explicit_quality_label(language)
+    if source == "strength":
+        return quality_label(result.signal_strength, language)
+    if source == "negative_information":
+        values = [
+            span.information_content for span in result.evidence if span.polarity == "negative"
+        ]
+        return quality_label(max(values), language) if values else ""
+    return ""
+
+
+def panel_verdict(verdict: Verdict, situation: str, basis: bool, language: str) -> str:
+    """Verdict sentence as this screen is allowed to show it.
+
+    Boundary screens drop the boundary-forbidden emoji, both inside the sentence
+    and in the separate emoji slot, without touching the verdict itself.
+    """
+
+    shown = emoji_discipline(
+        situation, verdict_display(verdict.code, verdict.text, basis=basis, language=language)
+    )
+    forbidden = FORBIDDEN_EMOJI.get(situation, ())
+    if verdict.emoji and verdict.emoji in forbidden:
+        return shown
+    return verdict_text(verdict.emoji, shown)
+
+
+def render_first_screen(
+    result: AnalysisResult, situation: str, basis: bool, language: str, out: Console
+) -> None:
+    """NED's screen: title, observed fact, plain quality, one line, one reality check."""
+
+    screen = first_screen(situation, result.mode, language, basis=basis)
+    body = Table(show_header=False, box=None, padding=(0, 2))
+    body.add_row("Observed evidence", Text(screen_fact(result)))
+    quality = screen_quality(situation, result, language)
+    if quality:
+        body.add_row("Evidence quality", Text(quality, style="bold white"))
+    lines: list[Text] = [Text("")]
+    lines.extend(Text(line, style="bold white") for line in screen.lines)
+    lines.append(Text(""))
+    lines.append(Text(screen.reality, style="dim italic"))
+    out.print()
+    out.print(
+        Panel(
+            Group(body, *lines),
+            title=screen.title,
+            border_style=SEVERITY_STYLE.get(result.verdict.severity, "white"),
+        )
+    )
+
+
+def side_quality(side: AsymmetrySide | None, evidence_class: str, polarity: str) -> str:
+    """Plain-language quality for one side of a comparison."""
+
+    if side is None:
+        return ""
+    if evidence_class == "boundary":
+        return explicit_quality_label("zh")
+    reading = side.information_content if polarity == "negative" else side.raw_strength
+    return quality_label(reading, "zh")
+
+
 def emit(payload: Any, as_json: bool) -> bool:
     """Print JSON when asked, otherwise return False so callers render richly."""
 
@@ -141,9 +235,12 @@ def verdict_text(emoji: str, text: str) -> str:
 
 
 def render_analysis(result: AnalysisResult, out: Console) -> None:
-    """Render an analysis result as a lab report."""
+    """Render an analysis result: NED's screen first, the evidence after it."""
 
+    situation, basis, language = screen_context(result)
+    render_first_screen(result, situation, basis, language, out)
     out.print()
+    out.print(Text("Technical Details " + "\u2500" * 44, style="dim"))
     out.print(
         Panel(
             Group(
@@ -248,7 +345,7 @@ def render_analysis(result: AnalysisResult, out: Console) -> None:
     out.print(
         Panel(
             Text(
-                verdict_text(result.verdict.emoji, result.verdict.text),
+                panel_verdict(result.verdict, situation, basis, language),
                 style=f"bold {verdict_style}",
             ),
             title=f"Final Verdict ({result.verdict.code})",
@@ -365,8 +462,38 @@ def render_asymmetry_panel(result: AsymmetryResult) -> Panel:
         Text(reading_message(reading.status, (result.mode and "zh") or "zh"), style="bold yellow")
     )
 
+    situation = resolve_situation(result.verdict.code, profile.comparison_reason)
+    basis = bool(reading.reading_present)
+    screen = first_screen(situation, result.mode, "zh", basis=basis)
+
+    screen_body = Table(show_header=False, box=None, padding=(0, 2))
+    for label, side in (("positive", result.positive), ("negative", result.negative)):
+        if side is None:
+            screen_body.add_row(label, Text("\u2014"))
+            continue
+        screen_body.add_row(label, Text(side.description or side.text))
+    screen_body.add_row(
+        "evidence quality",
+        Text(
+            "positive "
+            + (side_quality(result.positive, profile.positive_class, "positive") or "\u2014")
+            + "  negative "
+            + (side_quality(result.negative, profile.negative_class, "negative") or "\u2014"),
+            style="bold white",
+        ),
+    )
+    screen_lines: list[Text] = [Text(screen.title, style="bold white"), Text("")]
+    screen_lines.extend(Text(line, style="bold white") for line in screen.lines)
+    screen_lines.append(Text(""))
+    screen_lines.append(Text(screen.reality, style="dim italic"))
+    screen_lines.append(Text(""))
+    screen_lines.append(Text("Technical Details", style="dim"))
+
     return Panel(
         Group(
+            *screen_lines,
+            screen_body,
+            Text(""),
             Text("Evidence Profile", style="bold"),
             Text(
                 f"comparable: {'yes' if profile.comparable else 'NO'}"
@@ -387,7 +514,7 @@ def render_asymmetry_panel(result: AsymmetryResult) -> Panel:
             Text(""),
             Text(f"Reality check: {result.reality_check}", style="green"),
             Text(
-                f"Verdict: {verdict_text(result.verdict.emoji, result.verdict.text)}",
+                f"Verdict: {panel_verdict(result.verdict, situation, basis, 'zh')}",
                 style="bold magenta",
             ),
         ),

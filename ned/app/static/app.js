@@ -1,7 +1,12 @@
 /* NED - Nov1ce Evidence Denier
    Frontend controller. No dependencies, no build step, no third-party requests.
    Every value the API returns is untrusted text, so the renderers are defensive
-   by design: a missing field becomes an em dash instead of a throw. */
+   by design: a missing field becomes an em dash instead of a throw.
+
+   The result page is a personality page first: title, fact, plain-language
+   evidence quality, NED's line, a short reality check, and only then a folded
+   Technical Details block. All of that copy comes from the personality
+   catalogue that the server embeds; this file only looks values up. */
 (function () {
   "use strict";
 
@@ -21,6 +26,7 @@
   function $(id) { return document.getElementById(id); }
   function obj(v) { return v && typeof v === "object" && !Array.isArray(v) ? v : {}; }
   function list(v) { return Array.isArray(v) ? v : []; }
+  function keys(v) { return Object.keys(obj(v)); }
   function clear(node) { while (node && node.firstChild) { node.removeChild(node.firstChild); } }
   function el(tag, cls, text) {
     var n = document.createElement(tag);
@@ -37,6 +43,15 @@
     });
   }
   function txt(v) { return v === null || v === undefined || v === "" || typeof v === "object" ? DASH : String(v); }
+  function first(v) {
+    for (var i = 1; i < arguments.length; i += 1) {
+      var candidate = arguments[i];
+      if (candidate !== null && candidate !== undefined && candidate !== "" && typeof candidate !== "object") {
+        return String(candidate);
+      }
+    }
+    return DASH;
+  }
   // null, undefined and "" mean "no number at all", which is not the same as 0:
   // Number(null) is 0, and a declined comparison must not read as a perfect score.
   function num(v, digits) {
@@ -78,15 +93,21 @@
   function nums(pairs) { pairs.forEach(function (p) { setNum(p[0], p[1], p[2], p[3]); }); }
   function bars(pairs) { pairs.forEach(function (p) { setBar(p[0], p[1]); }); }
 
+  /* ----------------------------------------------------------- personality */
+
   function personalityCatalog() {
     var node = $("personality-catalog");
     if (!node) { return {}; }
     try { return obj(JSON.parse(node.textContent || "{}")); } catch (e) { return {}; }
   }
-  var PERSONALITY_CATALOG = personalityCatalog();
+  var CATALOG = personalityCatalog();
+
+  function catalogueList(key) { return list(CATALOG[key]); }
+  function catalogueObj(key) { return obj(CATALOG[key]); }
+  function languageOf(payload) { return txt(obj(payload).language) === "en" ? "en" : "zh"; }
 
   function personalityFor(module, score) {
-    var levels = list(PERSONALITY_CATALOG[module]);
+    var levels = list(CATALOG[module]);
     var value = Number(score);
     if (!isFinite(value)) { return null; }
     for (var i = 0; i < levels.length; i += 1) {
@@ -106,11 +127,139 @@
   }
 
   function renderFnbpPersonality(predictionMisses) {
-    var messages = obj(PERSONALITY_CATALOG.fnbp);
+    var messages = obj(CATALOG.fnbp);
     var feedback = obj(Number(predictionMisses) > 0 ? messages.miss : messages.hit);
     setText("fnbp-personality-title", feedback.title);
     setText("fnbp-personality-zh", feedback.zh);
     setText("fnbp-personality-en", feedback.en);
+  }
+
+  // Which screen are we on? The decision table lives in the personality
+  // catalogue, so the web page and the CLI can never disagree about it.
+  function situationFor(verdictCode, comparisonReason) {
+    var code = String(verdictCode || "");
+    var reason = String(comparisonReason || "");
+    if (reason && catalogueList("comparison_reason_verdicts").indexOf(code) !== -1) {
+      var mapped = catalogueObj("situation_by_comparison_reason")[reason];
+      if (mapped !== undefined) { return String(mapped); }
+    }
+    var byVerdict = catalogueObj("situation_by_verdict")[code];
+    return byVerdict === undefined ? "neutral" : String(byVerdict);
+  }
+
+  function firstScreenCopy(situation, mode, language) {
+    var all = catalogueObj("first_screen");
+    var neutral = obj(all.neutral);
+    function pick(container, key) {
+      var found = obj(container)[key];
+      return found && keys(found).length > 0 ? found : null;
+    }
+    var perMode = pick(all, situation) || pick(all, "neutral") || obj(neutral.normal);
+    var perLanguage = pick(perMode, mode) || pick(perMode, "normal") || obj(neutral.normal);
+    return obj(perLanguage[language]) || obj(perLanguage.zh) || {};
+  }
+
+  // Plain-language evidence quality. The bands come from the personality
+  // catalogue; the reading itself is an engine number that stays in the payload.
+  function qualityFromValue(value, language) {
+    if (!isNum(value)) { return ""; }
+    var reading = Number(value);
+    var bands = catalogueList("quality_bands");
+    for (var i = 0; i < bands.length; i += 1) {
+      var band = list(bands[i]);
+      if (reading < Number(band[0])) { return String(language === "en" ? band[2] : band[1]); }
+    }
+    var top = catalogueObj("quality_top");
+    return txt(language === "en" ? top.en : top.zh);
+  }
+
+  function explicitQuality(language) {
+    var band = catalogueObj("explicit_quality");
+    return txt(language === "en" ? band.en : band.zh);
+  }
+
+  function qualityForSituation(situation, payload, language) {
+    var source = String(catalogueObj("quality_source")[situation] || "none");
+    if (source === "explicit") { return explicitQuality(language); }
+    if (source === "strength") { return qualityFromValue(obj(payload).signal_strength, language); }
+    if (source === "negative_information") {
+      var strongest = null;
+      list(obj(payload).evidence).forEach(function (rawRow) {
+        var row = obj(rawRow);
+        if (String(row.polarity || "") !== "negative") { return; }
+        var info = Number(row.information_content);
+        if (!isFinite(info)) { return; }
+        if (strongest === null || info > strongest) { strongest = info; }
+      });
+      return strongest === null ? "" : qualityFromValue(strongest, language);
+    }
+    return "";
+  }
+
+  function sideQuality(side, klass, polarity, language) {
+    if (String(klass || "") === "boundary") { return explicitQuality(language); }
+    var raw = obj(side);
+    return qualityFromValue(polarity === "negative" ? raw.information_content : raw.raw_strength, language);
+  }
+
+  // The reader's own wording is the only licence for a second-person line.
+  function basisFromSignals(evidence) {
+    var allowed = catalogueList("reading_signal_types");
+    var found = false;
+    list(evidence).forEach(function (rawRow) {
+      if (allowed.indexOf(String(obj(rawRow).signal_type || "")) !== -1) { found = true; }
+    });
+    return found;
+  }
+
+  function applyEmojiDiscipline(situation, text) {
+    var forbidden = list(catalogueObj("forbidden_emoji")[situation]);
+    var cleaned = String(text === null || text === undefined ? "" : text);
+    forbidden.forEach(function (emoji) { cleaned = cleaned.split(String(emoji)).join(""); });
+    return cleaned.replace(/\s+/g, " ").trim();
+  }
+
+  // Display-only: an engine verdict that names a reader who never spoke falls
+  // back to an NED-self-referential sentence. The verdict itself is untouched.
+  // The emoji slot never repeats a mark the sentence already ends with, and a
+  // forbidden emoji is dropped there too, so a boundary screen cannot show 🤠
+  // next to a sentence that had it removed.
+  function displayVerdictEmoji(emoji, situation, text) {
+    var value = typeof emoji === "string" ? emoji : "";
+    if (!value) { return ""; }
+    if (String(text === null || text === undefined ? "" : text).indexOf(value) !== -1) { return ""; }
+    var forbidden = list(catalogueObj("forbidden_emoji")[situation]);
+    return forbidden.indexOf(value) === -1 ? value : "";
+  }
+
+  function displayVerdictText(code, text, situation, basis, language) {
+    var cleaned = String(text === null || text === undefined ? "" : text);
+    var override = obj(catalogueObj("verdict_overrides")[String(code || "")]);
+    var withoutBasis = obj(override.without_basis);
+    if (!basis && keys(withoutBasis).length > 0) {
+      var replacement = language === "en" ? withoutBasis.en : withoutBasis.zh;
+      if (replacement) { cleaned = String(replacement); }
+    }
+    return applyEmojiDiscipline(situation, cleaned);
+  }
+
+  function renderScreenLines(hostId, lines) {
+    var host = $(hostId);
+    if (!host) { return; }
+    clear(host);
+    list(lines).forEach(function (line) {
+      if (line === null || line === undefined || line === "") { return; }
+      host.appendChild(el("blockquote", "screen-line", String(line)));
+    });
+  }
+
+  function renderQuotes(hostId, quotes) {
+    var host = $(hostId);
+    if (!host) { return; }
+    clear(host);
+    var rows = list(quotes).filter(function (q) { return q !== null && q !== undefined && q !== ""; });
+    host.hidden = rows.length === 0;
+    rows.forEach(function (quote) { host.appendChild(el("p", "screen-quote", String(quote))); });
   }
 
   /* --------------------------------------------------------------- network */
@@ -328,9 +477,9 @@
     if (!body) { return; }
     clear(body);
     var data = obj(raw);
-    var keys = Object.keys(data);
-    if (keys.length === 0) { keys = [DASH]; }
-    keys.forEach(function (key) {
+    var names = Object.keys(data);
+    if (names.length === 0) { names = [DASH]; }
+    names.forEach(function (key) {
       var tr = el("tr");
       var th = el("th", "mono", key);
       th.scope = "row";
@@ -371,8 +520,8 @@
       ["nea-amplified", amplified === "" ? DASH : amplified]
     ]);
     // The inflated reading is the interpretation under test, not a finding.
-    var framing = obj(PERSONALITY_CATALOG.nea_framing);
-    setText("nea-framing", txt(d.language) === "en" ? framing.en : framing.zh);
+    var framing = obj(CATALOG.nea_framing);
+    setText("nea-framing", languageOf(d) === "en" ? framing.en : framing.zh);
   }
 
   function renderNotes(notes, eggs) {
@@ -402,6 +551,23 @@
     if (block) { block.hidden = rows.length === 0 && eggRows.length === 0; }
   }
 
+  function renderAnalyzeScreen(d, situation, basis) {
+    var language = languageOf(d);
+    var copy = firstScreenCopy(situation, String(d.mode || "normal"), language);
+    var lines = list(copy.lines);
+    if (basis && list(copy.lines_with_basis).length > 0) { lines = list(copy.lines_with_basis); }
+    setState("analyze-results", severityOf(obj(d.verdict).severity));
+    var panel = $("first-screen");
+    if (panel) { panel.setAttribute("data-situation", situation); }
+    setText("screen-title", copy.title);
+    setText("screen-fact", first(d.raw_interpretation, d.observed_evidence, d.signal_label));
+    setText("screen-reality", copy.reality);
+    renderScreenLines("screen-lines", lines);
+    var quality = qualityForSituation(situation, d, language);
+    setHidden("screen-quality-row", !quality);
+    setText("screen-quality", quality || DASH);
+  }
+
   function renderAnalyze(data) {
     var report = $("analyze-results");
     if (!report) { return; }
@@ -409,20 +575,31 @@
     var v = obj(d.verdict);
     var engine = obj(d.engine);
     var asym = d.asymmetry && typeof d.asymmetry === "object" ? d.asymmetry : null;
+    var language = languageOf(d);
+    var reason = asym ? obj(obj(asym).evidence_profile).comparison_reason : "";
+    var situation = situationFor(v.code, reason);
+    var basis = basisFromSignals(d.evidence)
+      || Boolean(asym && obj(obj(asym).user_interpretation).reading_present);
+
     report.hidden = false;
     report.classList.remove("is-loading");
     report.setAttribute("data-severity", severityOf(v.severity));
+    report.setAttribute("data-situation", situation);
+
+    renderAnalyzeScreen(d, situation, basis);
 
     texts([
       ["result-mode", d.mode], ["result-language", d.language], ["result-signal-type", d.signal_type],
       ["sc-signal-type", d.signal_type], ["sc-signal-label", d.signal_label], ["sc-language", d.language],
       ["reality-check-text", d.reality_check], ["raw-interpretation", d.raw_interpretation],
-      ["verdict-text", v.text], ["verdict-code", v.code], ["verdict-severity", v.severity],
+      ["verdict-code", v.code], ["verdict-severity", v.severity],
       ["engine-name", engine.name], ["engine-provider", engine.provider],
       ["engine-escapes", engine.escapes_used === undefined ? DASH : int(engine.escapes_used)],
       ["result-disclaimer", d.disclaimer],
       ["result-generated-at", d.generated_at ? "generated_at " + txt(d.generated_at) : DASH]
     ]);
+    var shownVerdict = displayVerdictText(v.code, v.text, situation, basis, language);
+    setText("verdict-text", shownVerdict);
     nums([
       ["evidence-strength-value", d.signal_strength, 1, " / 100"],
       ["discount-value", d.positive_evidence_discount, 1, "%"],
@@ -433,7 +610,7 @@
       ["discount-bar", d.positive_evidence_discount],
       ["amplification-bar", d.negative_evidence_amplification]
     ]);
-    setRaw("verdict-emoji", typeof v.emoji === "string" ? v.emoji : "");
+    setRaw("verdict-emoji", displayVerdictEmoji(v.emoji, situation, shownVerdict));
     renderHypotheses(d.alternative_explanations);
     renderReaching(d.ned_reaching_level, d.reaching_label);
     renderPersonality("reaching-personality", "analysis", d.ned_reaching_level);
@@ -447,7 +624,7 @@
       var treatment = obj(asym.ned_treatment);
       var profile = obj(asym.evidence_profile);
       var reading = obj(asym.user_interpretation);
-      var messages = obj(PERSONALITY_CATALOG.user_reading);
+      var messages = obj(CATALOG.user_reading);
       var message = obj(messages[reading.status]);
       setText("analyze-asym-comparable", profile.comparable ? "yes" : "NO");
       setNum(
@@ -458,7 +635,7 @@
         1,
         "%"
       );
-      setText("analyze-asym-label", txt(d.language) === "en" ? message.en : message.zh);
+      setText("analyze-asym-label", language === "en" ? message.en : message.zh);
       setBar("analyze-asym-bar", treatment.treatment_gap === null || treatment.treatment_gap === undefined
         ? null
         : treatment.treatment_gap * 100);
@@ -546,6 +723,41 @@
 
   /* the legacy score, label and sub-score readouts are no longer rendered */
 
+  function renderAsymScreen(d, situation, basis, language) {
+    var copy = firstScreenCopy(situation, String(d.mode || "normal"), language);
+    var lines = list(copy.lines);
+    if (basis && list(copy.lines_with_basis).length > 0) { lines = list(copy.lines_with_basis); }
+    var panel = $("asym-first-screen");
+    if (panel) { panel.setAttribute("data-situation", situation); }
+    setText("asym-screen-title", copy.title);
+
+    var profile = obj(d.evidence_profile);
+    var positive = obj(d.positive);
+    var negative = obj(d.negative);
+    var prefix = language === "en" ? "positive: " : "正向：";
+    var suffix = language === "en" ? "  negative: " : "  负向：";
+    setText(
+      "asym-screen-fact",
+      prefix + first(positive.description, positive.text, profile.positive_class, DASH)
+        + suffix + first(negative.description, negative.text, profile.negative_class, DASH)
+    );
+
+    var reading = obj(d.user_interpretation);
+    var quotes = [];
+    if (reading.positive_reading) { quotes.push("\u300c" + reading.positive_reading + "\u300d"); }
+    if (reading.negative_reading) { quotes.push("\u300c" + reading.negative_reading + "\u300d"); }
+    renderQuotes("asym-screen-quotes", quotes);
+
+    var positiveQuality = sideQuality(positive, profile.positive_class, "positive", language);
+    var negativeQuality = sideQuality(negative, profile.negative_class, "negative", language);
+    setHidden("asym-screen-quality-row", !positiveQuality && !negativeQuality);
+    setText("asym-screen-quality-positive", positiveQuality || DASH);
+    setText("asym-screen-quality-negative", negativeQuality || DASH);
+
+    setText("asym-screen-reality", copy.reality);
+    renderScreenLines("asym-screen-lines", lines);
+  }
+
   function renderAsymmetry(data) {
     var report = $("asym-results");
     if (!report) { return; }
@@ -554,9 +766,16 @@
     var profile = obj(d.evidence_profile);
     var treatment = obj(d.ned_treatment);
     var reading = obj(d.user_interpretation);
+    var language = languageOf(d);
+    var situation = situationFor(v.code, profile.comparison_reason);
+    var basis = Boolean(reading.reading_present);
+
     report.hidden = false;
     report.classList.remove("is-loading");
     report.setAttribute("data-severity", severityOf(v.severity));
+    report.setAttribute("data-situation", situation);
+
+    renderAsymScreen(d, situation, basis, language);
 
     // 1. Evidence Profile: the clues, and the two pairwise readings.
     var gap = function (value) { return value === null || value === undefined ? DASH : num(value, 3); };
@@ -581,9 +800,9 @@
     ]);
 
     // 3. Your Reading: the only second-person layer.
-    var messages = obj(PERSONALITY_CATALOG.user_reading);
+    var messages = obj(CATALOG.user_reading);
     var message = obj(messages[reading.status]);
-    setText("asym-reading-status", txt(d.language) === "en" ? message.en : message.zh);
+    setText("asym-reading-status", language === "en" ? message.en : message.zh);
     var basisHost = $("asym-reading-basis");
     if (basisHost) {
       clear(basisHost);
@@ -594,13 +813,17 @@
     var detail = [];
     if (reading.positive_reading) { detail.push("positive: " + reading.positive_reading); }
     if (reading.negative_reading) { detail.push("negative: " + reading.negative_reading); }
-    setText("asym-reading-detail", detail.length ? detail.join("  ·  ") : DASH);
+    setText("asym-reading-detail", detail.length ? detail.join("  \u00b7  ") : DASH);
+    setText("asym-reading-positive-basis", reading.positive_self_discount_present ? "yes" : "no");
+    setText("asym-reading-negative-basis", reading.negative_self_conclusion_present ? "yes" : "no");
 
     texts([
       ["asym-reality-text", d.reality_check],
-      ["asym-verdict-text", v.text], ["asym-verdict-severity", v.severity], ["asym-disclaimer", d.disclaimer]
+      ["asym-verdict-severity", v.severity], ["asym-disclaimer", d.disclaimer]
     ]);
-    setRaw("asym-verdict-emoji", typeof v.emoji === "string" ? v.emoji : "");
+    var shownAsymVerdict = displayVerdictText(v.code, v.text, situation, basis, language);
+    setText("asym-verdict-text", shownAsymVerdict);
+    setRaw("asym-verdict-emoji", displayVerdictEmoji(v.emoji, situation, shownAsymVerdict));
     return report;
   }
 
@@ -796,7 +1019,13 @@
     // Single debug hook; nothing else is attached to window.
     window.NED = {
       state: state,
+      catalog: CATALOG,
       escapeHtml: escapeHtml,
+      situationFor: situationFor,
+      firstScreenCopy: firstScreenCopy,
+      qualityFromValue: qualityFromValue,
+      displayVerdictText: displayVerdictText,
+      displayVerdictEmoji: displayVerdictEmoji,
       renderAnalyze: renderAnalyze,
       renderAsymmetry: renderAsymmetry,
       renderFnbp: renderFnbp,
