@@ -133,3 +133,21 @@ git push origin main --tags
 
 Last verified: 2026-09-13, on Windows 11 / Python 3.13.15, commit at the RC cut
 (`pytest` 224 passed, `ruff` clean, `mypy` clean, live HTTP and CLI checks green).
+
+---
+
+## 10. v0.1.7 Comedy Recovery — closing record
+
+Recorded at the release candidate cut. Nothing here replaces the checks above;
+it is the evidence for this particular version.
+
+| Check | Result |
+| --- | --- |
+| Version identity | `__version__ = "0.1.7"`, `/api/health` and `/api/version` report it |
+| Tests | see `## [0.1.7]` in `CHANGELOG.md`; full suite green at the RC commit |
+| Rule pack | 38 signals, unchanged shapes; three guards added, no new family |
+| Boundary safety | `明确边界。NED 停止狡辩。🚧`, no comedy on boundary or hostile screens |
+| Clean install | launcher created a fresh `.venv` from the extracted ZIP and served the UI |
+| First screen | representative screens verified in `normal` mode through the real CLI and web assets |
+
+Release name: **NED v0.1.7 — Comedy Recovery**

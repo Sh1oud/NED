@@ -82,6 +82,30 @@ discarded.
 
 ---
 
+## What's new in 0.1.7 — Comedy Recovery
+
+NED no longer only refuses good news: **it refuses good news in the register of
+whichever department the evidence belongs to.** 👍
+
+- **Personality recovery.** The first screen is written for a person: a title, one
+  observed fact, a plain-language quality, one or two lines, one reality check.
+- **Natural-language coverage.** Ordinary ways of describing the same events are
+  recognised: `他约我周末去看电影`, `他今天第一次主动给我发消息`,
+  `他给我点了一杯奶茶`, `他记得我爱吃什么`, `他说了一百遍“想我了”`,
+  `她说我们还是做朋友吧`, `我表白被拒了`.
+- **Quote, perspective and negation safety.** NED quotes the reader's own words or
+  nothing; `我想你了` is not reported as the other person's longing; a reported
+  clause the same sentence reverses (`他从来不说喜欢我`, `以前秒回，现在半天才回`)
+  is not read as present evidence.
+- **Explicit boundary safety.** A stated boundary stays sober — `明确边界。NED
+  停止狡辩。🚧` — with no jokes attached, in every mode.
+- **Absurd administrative comedy that follows the input.** Six families, six
+  registers: 建议扩大样本量至 IMAX。👍 / 卷宗中出现了一杯奶茶。 /
+  本机构查阅了配料表，未发现“喜欢你”成分。👍 / 凌晨三点不是爱情单位。 /
+  形容词不是结婚证。👍 / 一百遍来自同一个人。NED：样本量 n=1。👍
+
+---
+
 ## Screenshots
 
 | View | Image | Status |
@@ -130,6 +154,13 @@ from calm cyan to "Industrial-grade denial" magenta.
 - **FNBP — Fuyuki Notification Branch Predictor.** A Lab easter egg that simulates
   mispredicting every notification as being from one specific person, complete with
   pipeline flushes and wasted cycles.
+- **Comedy packs.** Recognised positive evidence gets copy about that family
+  instead of one generic screen: an invitation is filed as an invitation
+  (`建议扩大样本量至 IMAX。👍`), a drink arrives as evidence
+  (`卷宗中出现了一杯奶茶。`), being remembered is a memory-module check, and
+  affection is a statement that still has to be verified
+  (`一百遍来自同一个人。NED：样本量 n=1。👍`). Boundary and hostile screens
+  never borrow a joke.
 - **Three modes:** `normal`, `scientific` (peer-review register), `extreme`
   (Nov1ce Mode).
 - **Escalation across turns:** pass earlier messages and NED will keep explaining until
@@ -248,7 +279,7 @@ ned fnbp --expected Fuyuki --actual 张三 --actual 李四 --count 5
 
 ```bash
 curl -s http://127.0.0.1:8000/api/health
-# {"status":"ok","version":"0.1.6","uptime_seconds":12.3,"local_only":true,"engine":"ned-local-rules"}
+# {"status":"ok","version":"0.1.7","uptime_seconds":12.3,"local_only":true,"engine":"ned-local-rules"}
 ```
 
 ```bash
@@ -289,7 +320,7 @@ curl -s -X POST http://127.0.0.1:8000/api/analyze \
     "rule_id": "ped.friendly_unexcluded"
   },
   "breakdown": { "positive_mass": 55.0, "escape_pressure": 0.42, "escape_capacity": 0.33 },
-  "engine": { "name": "ned-local-rules", "version": "0.1.6", "provider": "local-rule", "offline": true },
+  "engine": { "name": "ned-local-rules", "version": "0.1.7", "provider": "local-rule", "offline": true },
   "disclaimer": "NED cannot determine whether someone likes you. Humans are not APIs. …"
 }
 ```

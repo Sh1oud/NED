@@ -15,6 +15,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Web UI i18n.
 - Saved report export.
 
+## [0.1.7] - 2026-09-14
+
+**NED v0.1.7 — Comedy Recovery**
+
+NED no longer only refuses good news: it refuses good news in the register of
+whichever department the evidence belongs to. 👍
+
+### Added
+
+- Personality recovery: the 30-second screen is built for a person, not for a
+  schema. A title, one observed fact, a plain-language evidence quality, one or
+  two lines of NED, and one short reality check.
+- Comedy packs: seven families of recognised positive evidence now get copy about
+  that family instead of one generic screen — invitation, initiation, gift, care,
+  sustained interaction, reported affection/longing, and compliment. Each pack
+  carries one or two main lines and three to five topic-specific alternative
+  explanations. Families without a pack keep the generic screen.
+- Natural-language coverage: the ordinary ways people describe the same events
+  are recognised — `他约我周末去看电影`, `她问我周末有没有空`,
+  `他今天第一次主动给我发消息`, `他给我点了一杯奶茶`, `他记得我爱吃什么`,
+  `他说了一百遍“想我了”`, `她说我们还是做朋友吧`, `我表白被拒了`.
+- Quote fidelity: a screen that quotes the reader now quotes their own words,
+  captured from the input, or shows no quotation at all.
+- Perspective safety: `我想你了` is the reader's own feeling and is no longer
+  reported as the other person's expressed longing; a quoted counterpart line
+  (`她对我说“我想你了”`) still is.
+- Negation and reversal guards: a reported clause that the same sentence reverses
+  (`他从来不说喜欢我`, `以前秒回，现在半天才回`) is no longer read as present
+  positive evidence.
+- Attribution guards: `秒回别人` is not `秒回我`, and `她说她只是把我当朋友` is
+  her statement, not the reader's own discount.
+
+### Changed
+
+- The positive screens are family-aware in the default mode; the scientific and
+  extreme modes keep their own register.
+- A single greeting is no longer described as 规律性: the display says one
+  greeting happened unless the input states a frequency. Display only — the
+  engine sentence and the payload are unchanged.
+- Copy safety: no user-facing line certifies the reported event any more.
+  "线下邀约已确认" became "线下邀约材料已进入卷宗", and "物资援助已确认" became
+  "卷宗中出现了一杯奶茶". NED files reports; it does not investigate them.
+- Comedy escalation: one line per family is deliberately unhinged, and every
+  other line keeps a real reasoning principle attached, with NED itself as the
+  butt of the joke (`本机构决定继续嘴硬`).
+
+### Fixed
+
+- `他从来不说喜欢我` no longer produces "对方据称表达了喜欢".
+- `我想你了` / `我好想你` / `我想见你` no longer produce "对方表达了想念".
+- `她总是秒回别人，却不回我` no longer produces "对方回复速度很快".
+- `她说她只是把我当朋友` no longer counts as the reader's self-discount.
+- `她昨天跟我说晚安` no longer claims a routine greeting pattern.
+
+### Unchanged
+
+- Detection patterns of every family except the three guards above, every weight,
+  `information_content`, `salience`, the scoring model, the amplification
+  formula, the reaching level, the asymmetry detector, comparability, the REST
+  schema and the verdict priorities. Rule pack: 38 signals.
+- Boundary and hostile screens carry no comedy at all, in any mode.
+- Explicit boundaries keep their rule: 明确边界。NED 停止狡辩。🚧
+
+### Known limitations
+
+- Recognition stays where it is: eleven ordinary inputs from the 50-input
+  playtest are still silently unmatched, including `他把我微信删了`,
+  `她把我介绍给她朋友了` and `他今天突然不理我了`.
+- Three families' positive screens still share copy inside the family (up to
+  four inputs), by design.
+- English personality copy and the scientific/extreme coverage remain generic.
+
 ## [0.1.6] - 2026-09-14
 
 ### Added
@@ -242,7 +314,8 @@ emotional evidence de-weighting engine.
   no database, no accounts, no paid APIs. v0.1 never calls an external LLM; the
   `LLMProvider` interface exists as a stub for future work.
 
-[Unreleased]: https://github.com/Sh1oud/NED/compare/v0.1.6...HEAD
+[Unreleased]: https://github.com/Sh1oud/NED/compare/v0.1.7...HEAD
+[0.1.7]: https://github.com/Sh1oud/NED/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/Sh1oud/NED/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/Sh1oud/NED/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/Sh1oud/NED/compare/v0.1.3...v0.1.4
