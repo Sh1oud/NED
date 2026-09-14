@@ -7,7 +7,7 @@ read it from here too.
 
 from __future__ import annotations
 
-__version__ = "0.1.4"
+__version__ = "0.1.5"
 
 #: Bumped only when the REST contract changes in a breaking way.
 API_VERSION = "1"

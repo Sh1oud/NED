@@ -15,6 +15,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Web UI i18n.
 - Saved report export.
 
+## [0.1.5] - 2026-09-14
+
+### Fixed
+
+- Verdicts: `cold_reply` and `plan_cancelled` were detected but had no verdict of
+  their own, so an input that carried evidence reached the catch-all
+  `ned.no_signal`, whose text claims that no evidence exists. Negative signals no
+  longer fall through to the no-signal verdict.
+- Web UI and CLI: the amplified reading is now framed as the interpretation under
+  test ("这是 NED 正在检查的夸大解读，不是 NED 的结论。") instead of being presented
+  as a finding of NED's. The boundary reality check also states that an explicit
+  boundary deserves respect.
+
+### Changed
+
+- All five negative families share one subjective voice for the amplified reading
+  ("我是不是开始觉得，……？" / "Am I starting to feel that ...?"), including the
+  fallback used when a custom rule pack ships no reading of its own. An extreme
+  conclusion may appear only inside that frame.
+- Verdicts: added `nea.cold_reply_insufficient` (priority 36) and
+  `nea.plan_cancelled_insufficient` (priority 37). Both acknowledge the observed
+  signal and refuse the strong conclusion. No existing priority changed.
+- `ned.no_signal` English copy widened to "No clear emotional evidence detected.
+  NED stands down. 👍" so it matches the Chinese. The rule is now reached only when
+  nothing at all was detected.
+
+### Unchanged
+
+- Detection patterns, weights, information content, the scoring model, the
+  amplification formula, the asymmetry detector, the `direct_rejection` rule and
+  its priority, and the REST schema. The two new verdicts reuse the existing
+  `Verdict` shape, so no API field was added.
+
 ## [0.1.4] - 2026-09-14
 
 ### Added
@@ -169,7 +202,8 @@ emotional evidence de-weighting engine.
   no database, no accounts, no paid APIs. v0.1 never calls an external LLM; the
   `LLMProvider` interface exists as a stub for future work.
 
-[Unreleased]: https://github.com/Sh1oud/NED/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/Sh1oud/NED/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/Sh1oud/NED/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/Sh1oud/NED/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/Sh1oud/NED/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Sh1oud/NED/compare/v0.1.1...v0.1.2
