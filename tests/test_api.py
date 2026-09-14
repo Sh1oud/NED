@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+import re
+
 import pytest
 from fastapi.testclient import TestClient
 from ned.app.version import __version__
@@ -261,6 +264,10 @@ def test_web_ui_has_the_blocks_the_script_writes_into(client: TestClient) -> Non
         "evidence-rows",
         "breakdown-rows",
         "copy-json",
+        "fnbp-personality",
+        "fnbp-personality-title",
+        "fnbp-personality-zh",
+        "fnbp-personality-en",
     ):
         assert f'id="{element_id}"' in body, element_id
 
@@ -303,3 +310,49 @@ def test_api_does_not_store_input(client: TestClient) -> None:
         if path.is_file() and path.suffix in {".db", ".sqlite", ".log", ".jsonl"}:
             raise AssertionError(f"unexpected storage artefact: {path}")
     assert marker not in " ".join(path.name for path in package_dir.rglob("*") if path.is_file())
+
+
+def test_web_ui_fnbp_reminder_is_in_the_lab_panel(client: TestClient) -> None:
+    """The FNBP reminder must be rendered in the Lab panel, under its verdict.
+
+    Regression guard: it shipped inside the Asymmetry panel, so running the
+    branch predictor never displayed the reminder.
+    """
+
+    body = client.get("/").text
+    lab = body.split('id="panel-lab"', 1)[1]
+    asymmetry = body.split('id="panel-asymmetry"', 1)[1].split('id="panel-lab"', 1)[0]
+
+    assert 'id="fnbp-verdict-text"' in lab, "the FNBP verdict must stay in the Lab panel"
+    assert 'id="fnbp-personality"' in lab, "the FNBP reminder must be inside the Lab panel"
+    assert 'id="fnbp-personality-title"' in lab
+    assert 'id="fnbp-personality-zh"' in lab
+    assert 'id="fnbp-personality-en"' in lab
+    assert 'id="fnbp-personality"' not in asymmetry, (
+        "the reminder must not be in the Asymmetry panel"
+    )
+    assert lab.index('id="fnbp-verdict-text"') < lab.index('id="fnbp-personality"'), (
+        "the reminder must come after the verdict"
+    )
+
+
+def test_web_ui_ships_both_fnbp_reminder_messages(client: TestClient) -> None:
+    """Both FNBP messages must reach the page, and the script must write them."""
+
+    body = client.get("/").text
+    match = re.search(r'<script id="personality-catalog"[^>]*>(.*?)</script>', body, re.DOTALL)
+    assert match, "the personality catalog script tag is missing"
+    catalog = json.loads(match.group(1))
+
+    hit = catalog["fnbp"]["hit"]
+    miss = catalog["fnbp"]["miss"]
+    assert hit["title"] == "🎯 命中了。"
+    assert "一次预测成功，不等于发现了规律" in hit["zh"]
+    assert hit["en"] == "One successful prediction does not mean a pattern has been discovered."
+    assert miss["title"] == "NED 提醒："
+    assert "预测不是事实。期待也不是证据" in miss["zh"]
+    assert miss["en"] == "Prediction is not reality. Expectation is not evidence."
+
+    app_js = client.get("/static/app.js").text
+    assert "renderFnbpPersonality(d.prediction_misses)" in app_js
+    assert "fnbp-personality-zh" in app_js
