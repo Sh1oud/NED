@@ -1,20 +1,23 @@
 @echo off
+chcp 936 >nul 2>nul
 rem ===================================================================
 rem  NED launcher for Windows  (double-click after extracting the ZIP)
 rem
 rem  Flow: detect Python 3.12+ -> prepare .venv -> pip install -e . -> ned serve
-rem
 rem  ENCODING NOTES -- please do not "fix" the following:
 rem    * This file is saved as GBK/cp936 with CRLF line endings.
 rem      cmd.exe mis-parses LF-only batch files (goto, blocks and multibyte
 rem      text break), which is why .gitattributes marks *.bat as "-text" so the
 rem      bytes stored in git -- and inside GitHub's "Download ZIP" -- stay CRLF.
-rem    * No chcp call: switching the codepage inside a batch file makes cmd.exe
-rem      mis-split non-ASCII lines and execute fragments of them.
-rem    * On a Chinese Windows console (cp936) the Chinese messages below are
-rem      readable. On other console codepages they appear as mojibake, but the
-rem      script still works: every command, label and check here is ASCII, and
-rem      each message also carries an ASCII marker such as [ ERROR ].
+rem    * UTF-8 + BOM was measured on a cp936 console and errors out on the very
+rem      first line ("'@echo' is not recognized"), leaving command echoing on.
+rem      GBK + CRLF is the only variant that parsed and displayed correctly.
+rem    * chcp 936 below normalises the console codepage: on a Chinese Windows it
+rem      is a no-op, and on a machine whose console defaults to UTF-8 it makes
+rem      the Chinese messages below readable. If cp936 is unavailable the call
+rem      fails silently and only the Chinese text degrades -- every command,
+rem      label and check in this file is ASCII, and each message carries an
+rem      ASCII marker such as [ ERROR ].
 rem ===================================================================
 setlocal EnableExtensions
 title NED Æô¶¯Æ÷
