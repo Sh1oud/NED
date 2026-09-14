@@ -1,55 +1,156 @@
 @echo off
-setlocal
-title NED å¯åŠ¨å™¨
+rem ===================================================================
+rem  NED launcher for Windows  (double-click after extracting the ZIP)
+rem
+rem  Flow: detect Python 3.12+ -> prepare .venv -> pip install -e . -> ned serve
+rem
+rem  ENCODING NOTES -- please do not "fix" the following:
+rem    * This file is saved as GBK/cp936 with CRLF line endings.
+rem      cmd.exe mis-parses LF-only batch files (goto, blocks and multibyte
+rem      text break), which is why .gitattributes marks *.bat as "-text" so the
+rem      bytes stored in git -- and inside GitHub's "Download ZIP" -- stay CRLF.
+rem    * No chcp call: switching the codepage inside a batch file makes cmd.exe
+rem      mis-split non-ASCII lines and execute fragments of them.
+rem    * On a Chinese Windows console (cp936) the Chinese messages below are
+rem      readable. On other console codepages they appear as mojibake, but the
+rem      script still works: every command, label and check here is ASCII, and
+rem      each message also carries an ASCII marker such as [ ERROR ].
+rem ===================================================================
+setlocal EnableExtensions
+title NED Æô¶¯Æ÷
 
+rem ---------- 0. must run from the project root ----------
 cd /d "%~dp0"
-
+if not exist "pyproject.toml" goto :err_not_project
+if not exist "ned\app\cli.py" goto :err_not_project
 echo.
-echo [ NED å¯åŠ¨å™¨ ] æ­£åœ¨ç¡®è®¤é¡¹ç›®ç›®å½•...
-if not exist "pyproject.toml" goto :not_project_root
-if not exist "ned\app\cli.py" goto :not_project_root
+echo [ NED ] ÏîÄ¿Ä¿Â¼£º%CD%
+echo [ NED ] ÕýÔÚ¼ì²é Python »·¾³...
 
-echo [ NED å¯åŠ¨å™¨ ] æ­£åœ¨æ£€æŸ¥ Python çŽ¯å¢ƒ...
-where py >nul 2>nul
-if not errorlevel 1 (
-    set "NED_PYTHON=py -3"
-) else (
-    where python >nul 2>nul
-    if errorlevel 1 goto :python_missing
-    set "NED_PYTHON=python"
-)
+rem ---------- 1. find a Python 3.12+ that actually works ----------
+rem Having py.exe does NOT mean "py -3" works, and "python" may be the Microsoft
+rem Store placeholder (which prints nothing). So we validate the *output* of
+rem --version instead of trusting the exit code.
+set "NED_PY="
+set "NED_VER="
 
-echo [ NED å¯åŠ¨å™¨ ] æ­£åœ¨å®‰è£… NEDï¼ˆé¦–æ¬¡è¿è¡Œå¯èƒ½éœ€è¦ä¸€ç‚¹æ—¶é—´ï¼‰...
-%NED_PYTHON% -m pip install -e .
-if errorlevel 1 goto :install_failed
+for /f "tokens=1,2" %%A in ('py -3 --version 2^>nul') do set "NED_VER=%%A %%B"
+if not defined NED_VER goto :try_python_cmd
+echo %NED_VER%| findstr /b /c:"Python 3." >nul
+if errorlevel 1 goto :try_python_cmd
+set "NED_PY=py -3"
+goto :python_found
 
+:try_python_cmd
+set "NED_VER="
+for /f "tokens=1,2" %%A in ('python --version 2^>nul') do set "NED_VER=%%A %%B"
+if not defined NED_VER goto :err_no_python
+echo %NED_VER%| findstr /b /c:"Python 3." >nul
+if errorlevel 1 goto :err_no_python
+set "NED_PY=python"
+
+:python_found
+for /f "tokens=2" %%V in ("%NED_VER%") do set "NED_PY_VER=%%V"
+for /f "tokens=1 delims=." %%X in ("%NED_PY_VER%") do set "NED_PY_MAJOR=%%X"
+for /f "tokens=2 delims=." %%Y in ("%NED_PY_VER%") do set "NED_PY_MINOR=%%Y"
+if not "%NED_PY_MAJOR%"=="3" goto :err_py_too_old
+if %NED_PY_MINOR% LSS 12 goto :err_py_too_old
+echo [ NED ] ÒÑÕÒµ½ Python %NED_PY_VER%£¨µ÷ÓÃ·½Ê½£º%NED_PY%£©
+
+rem ---------- 2. local virtualenv + editable install ----------
+set "NED_VENV=%~dp0.venv"
+set "NED_VPY=%NED_VENV%\Scripts\python.exe"
+set "NED_CLI=%NED_VENV%\Scripts\ned.exe"
+
+if not exist "%NED_VPY%" goto :install_package
+"%NED_VPY%" -c "import ned" >nul 2>nul
+if errorlevel 1 goto :install_package
+if not exist "%NED_CLI%" goto :install_package
+"%NED_CLI%" version >nul 2>nul
+if errorlevel 1 goto :install_package
+echo [ NED ] ÒÑ°²×°ÇÒ¿ÉÓÃ£¬Ìø¹ý°²×°²½Öè¡£
+goto :launch
+
+:install_package
+if exist "%NED_VPY%" goto :do_install
+echo [ NED ] Ê×´ÎÔËÐÐ£ºÕýÔÚ´´½¨±¾µØÐéÄâ»·¾³ .venv£¨Ö»ÐèÒ»´Î£©...
+%NED_PY% -m venv "%NED_VENV%"
+if not exist "%NED_VPY%" goto :err_venv_failed
+
+:do_install
+echo [ NED ] ÕýÔÚ°²×° NED£ºpip install -e .£¨Ê×´ÎÐèÒªÁªÍø£¬¿ÉÄÜÒª¼¸·ÖÖÓ£©...
+"%NED_VPY%" -m pip install --disable-pip-version-check -e "%~dp0."
+if errorlevel 1 goto :err_install_failed
+if not exist "%NED_CLI%" goto :err_launcher_missing
+
+rem ---------- 3. start the project CLI: ned serve ----------
+:launch
 echo.
-echo [ NED å¯åŠ¨å™¨ ] æ­£åœ¨å¯åŠ¨æœ¬åœ°æœåŠ¡...
-echo [ NED å¯åŠ¨å™¨ ] æµè§ˆå™¨åœ°å€ï¼šhttp://127.0.0.1:8000/
-echo [ NED å¯åŠ¨å™¨ ] æŒ‰ Ctrl+C å¯åœæ­¢æœåŠ¡ã€‚
+echo [ NED ] ÕýÔÚÆô¶¯ NED ±¾µØ·þÎñ...
+echo [ NED ] ä¯ÀÀÆ÷µØÖ·£ºhttp://127.0.0.1:8000/
+echo [ NED ] ¹Ø±Õ±¾´°¿Ú»ò°´ Ctrl+C ¼´¿ÉÍ£Ö¹·þÎñ¡£
 echo.
-%NED_PYTHON% -m ned.app.cli serve
-set "NED_EXIT_CODE=%errorlevel%"
-
+start "" /min cmd /c "timeout /t 4 /nobreak >nul & start http://127.0.0.1:8000/"
+"%NED_CLI%" serve
+set "NED_EXIT=%errorlevel%"
 echo.
-echo [ NED å¯åŠ¨å™¨ ] æœåŠ¡å·²åœæ­¢ï¼ˆé€€å‡ºä»£ç ï¼š%NED_EXIT_CODE%ï¼‰ã€‚
+echo [ NED ] ·þÎñÒÑÍ£Ö¹£¨ÍË³ö´úÂë£º%NED_EXIT%£©¡£
+if not "%NED_EXIT%"=="0" echo [ NED ] ÌáÊ¾£º¿É¸ÄÓÃ "%NED_VPY%" -m ned.app.cli serve ÖØÊÔ¡£
 pause
-exit /b %NED_EXIT_CODE%
+exit /b %NED_EXIT%
 
-:not_project_root
+rem ---------- error branches: every one of them pauses ----------
+:err_not_project
 echo.
-echo [ é”™è¯¯ ] æœªæ‰¾åˆ° NED é¡¹ç›®æ–‡ä»¶ã€‚è¯·å°† start_ned.bat æ”¾åœ¨é¡¹ç›®æ ¹ç›®å½•åŽå†è¿è¡Œã€‚
+echo [ ERROR ] Î´ÕÒµ½ NED ÏîÄ¿ÎÄ¼þ¡£
+echo           ÇëÈ·ÈÏ start_ned.bat Óë pyproject.toml ÔÚÍ¬Ò»¸öÎÄ¼þ¼ÐÄÚ£¬
+echo           ²¢ÇÒÊÇÏÈ°Ñ ZIP ÍêÕû½âÑ¹ÔÙÔËÐÐ£¨²»ÒªÔÚÑ¹Ëõ°üÔ¤ÀÀ´°¿ÚÀïË«»÷£©¡£
 pause
 exit /b 1
 
-:python_missing
+:err_no_python
 echo.
-echo [ é”™è¯¯ ] æœªæ‰¾åˆ° Pythonã€‚è¯·å…ˆå®‰è£… Python 3.12+ï¼Œç„¶åŽé‡æ–°åŒå‡»æ­¤æ–‡ä»¶ã€‚
+echo [ ERROR ] Î´ÕÒµ½¿ÉÓÃµÄ Python 3¡£
+echo           1. Çë°²×° Python 3.12 »ò¸ü¸ß°æ±¾£º
+echo              https://www.python.org/downloads/windows/
+echo              °²×°Ê±Îñ±Ø¹´Ñ¡ Add python.exe to PATH¡£
+echo           2. Èç¹ûÒÑ¾­×°¹ý»¹ÊÇ±¨Õâ¸ö´í£¬¿ÉÄÜÊÇ Microsoft Store µÄÕ¼Î»³ÌÐò£º
+echo              ´ò¿ª ÉèÖÃ - Ó¦ÓÃ - ¸ß¼¶Ó¦ÓÃÉèÖÃ - Ó¦ÓÃÖ´ÐÐ±ðÃû£¬
+echo              ¹Ø±Õ python.exe Óë python3.exe ÕâÁ½¸ö±ðÃûºóÖØÊÔ¡£
+echo           3. ×°ºÃºóÖØÐÂË«»÷±¾ÎÄ¼þ¼´¿É¡£
 pause
 exit /b 1
 
-:install_failed
+:err_py_too_old
 echo.
-echo [ é”™è¯¯ ] NED å®‰è£…å¤±è´¥ã€‚è¯·æ£€æŸ¥ç½‘ç»œã€Python ç‰ˆæœ¬å’Œç»ˆç«¯ä¸­çš„é”™è¯¯ä¿¡æ¯åŽé‡è¯•ã€‚
+echo [ ERROR ] Python °æ±¾¹ýµÍ£º¼ì²âµ½ %NED_PY_VER%£¬NED ÐèÒª 3.12 »ò¸ü¸ß°æ±¾¡£
+echo           Çë°²×°ÐÂ°æ Python£ºhttps://www.python.org/downloads/windows/
+pause
+exit /b 1
+
+:err_venv_failed
+echo.
+echo [ ERROR ] ´´½¨ÐéÄâ»·¾³ .venv Ê§°Ü¡£
+echo           ³£¼ûÔ­Òò£ºÄ¿Â¼Ã»ÓÐÐ´È¨ÏÞ¡¢´ÅÅÌ¿Õ¼ä²»×ã¡¢É±¶¾Èí¼þÀ¹½Ø¡£
+echo           Èç¹û½âÑ¹ÔÚ C:\Program Files Ö®ÀàµÄÊÜ±£»¤Ä¿Â¼£¬Çë¸ÄÎª½âÑ¹µ½
+echo           ×ÀÃæ»òÎÄµµµÈÆÕÍ¨ÎÄ¼þ¼ÐºóÖØÊÔ¡£
+echo           Ò²¿ÉÒÔÊÖ¶¯Ö´ÐÐ£º%NED_PY% -m venv "%~dp0.venv"
+pause
+exit /b 1
+
+:err_install_failed
+echo.
+echo [ ERROR ] NED °²×°Ê§°Ü£¨pip install -e . ·µ»ØÁË´íÎó£¬ÇëÍùÉÏ·­¿´¾ßÌåÐÅÏ¢£©¡£
+echo           ³£¼ûÔ­Òò£ºÍøÂç²»Í¨¡¢¹«Ë¾´úÀí¡¢Python °²×°È±ÉÙ pip¡£
+echo           ¿ÉÊÖ¶¯ÖØÊÔ£º
+echo              cd /d "%~dp0"
+echo              .venv\Scripts\python.exe -m pip install -e .
+pause
+exit /b 1
+
+:err_launcher_missing
+echo.
+echo [ ERROR ] °²×°Íê³É£¬µ«Ã»ÓÐÕÒµ½Æô¶¯Æ÷ .venv\Scripts\ned.exe¡£
+echo           ÇëÉ¾³ý .venv ÎÄ¼þ¼ÐºóÖØÐÂË«»÷±¾ÎÄ¼þ¡£
 pause
 exit /b 1

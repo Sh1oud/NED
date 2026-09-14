@@ -1,9 +1,12 @@
 # Normalize line endings so Windows and CI checkouts agree.
 * text=auto eol=lf
 
-# Windows-only scripts (none yet) would need CRLF; keep the door open.
-*.bat text eol=crlf
-*.cmd text eol=crlf
+# Windows batch files must keep CRLF. cmd.exe mis-parses LF-only batch files
+# (nested blocks, goto and multibyte text break), and GitHub's "Download ZIP"
+# archives the stored bytes without applying any eol conversion - so the bytes in
+# git have to be CRLF already, which is what -text guarantees.
+*.bat -text
+*.cmd -text
 *.ps1 text eol=crlf
 
 # Binary assets (screenshots added later must not be mangled).
