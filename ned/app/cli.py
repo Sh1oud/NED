@@ -38,6 +38,7 @@ from ned.app.ui.personality import (
     analysis_feedback,
     emoji_discipline,
     explicit_quality_label,
+    fact_signal_types,
     first_screen,
     fnbp_feedback,
     nea_framing,
@@ -149,9 +150,24 @@ def screen_context(result: AnalysisResult) -> tuple[str, bool, str]:
     return situation, basis, language
 
 
-def screen_fact(result: AnalysisResult) -> str:
-    """The observed fact, in the engine's own words."""
+def screen_fact(result: AnalysisResult, situation: str) -> str:
+    """The observed fact, aligned with the screen the verdict produced.
 
+    When the primary signal is the evidence that decided the screen, the engine's
+    own reading is already about it. When it is not — a boundary inside an
+    otherwise affectionate message, for instance — the screen shows the engine's
+    label for the evidence that did decide it. Nothing is dropped: Technical
+    Details still lists every span.
+    """
+
+    wanted = fact_signal_types(situation)
+    if wanted and result.signal_type.value not in wanted:
+        span = next(
+            (item for item in result.evidence if item.signal_type.value in wanted),
+            None,
+        )
+        if span is not None:
+            return span.label or span.text
     return result.raw_interpretation or result.observed_evidence or result.signal_label
 
 
@@ -194,7 +210,7 @@ def render_first_screen(
 
     screen = first_screen(situation, result.mode, language, basis=basis)
     body = Table(show_header=False, box=None, padding=(0, 2))
-    body.add_row("Observed evidence", Text(screen_fact(result)))
+    body.add_row("Observed evidence", Text(screen_fact(result, situation)))
     quality = screen_quality(situation, result, language)
     if quality:
         body.add_row("Evidence quality", Text(quality, style="bold white"))

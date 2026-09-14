@@ -20,6 +20,7 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 from ned.app.cli import app as cli_app
+from ned.app.cli import screen_context, screen_fact
 from ned.app.core.analyzer import NedAnalyzer
 from ned.app.ui import personality as p
 from typer.testing import CliRunner
@@ -953,13 +954,19 @@ def test_j_the_promotion_cannot_fire_without_the_basis(analyzer: NedAnalyzer) ->
             assert SIGNED_OFF not in shown, (text, mode)
 
 
-def test_j_the_rule_only_promotes_the_generic_positive_screen() -> None:
-    """The promotion is data, and it is allowed on exactly one screen."""
+def test_j_the_rule_only_promotes_the_screens_it_names() -> None:
+    """The promotion is data, and it is allowed on two screens, for two reasons.
+
+    ``positive`` is promoted because the discount deserves its own answer.
+    ``self_discount_only`` is corrected because that screen asserts there is no
+    positive evidence, and here there is.
+    """
 
     assert p.SELF_DISCOUNT_PROMOTES == (p.SITUATION_POSITIVE,)
+    promotable = {p.SITUATION_POSITIVE, p.SITUATION_SELF_DISCOUNT_ONLY}
     for base in p.FIRST_SCREEN:
         promoted = p.screen_situation(base, self_discount=True, positive_evidence=True)
-        expected = p.SITUATION_SELF_DISCOUNT_POSITIVE if base == p.SITUATION_POSITIVE else base
+        expected = p.SITUATION_SELF_DISCOUNT_POSITIVE if base in promotable else base
         assert promoted == expected, base
 
 
@@ -982,6 +989,230 @@ def test_the_self_service_joke_attacks_the_discount_not_the_reader() -> None:
             shown = " ".join([screen.title, *screen.lines, screen.reality])
             for banned in ("她一定", "她肯定", "她其实", "自欺", "骗自己", "已经确定", "结局"):
                 assert banned not in shown, (language, mode, banned)
+
+
+# --------------------------------------------------------------------------- #
+# QA patch: the fact aligns with the screen, and a lone discount gets a screen
+# --------------------------------------------------------------------------- #
+
+MIXED_BOUNDARY = "她说喜欢我，但后来让我别再联系她"
+MIXED_BOUNDARY_DISCOUNT = "她说喜欢我，但后来让我别再联系她，可能只是人好"
+PLAIN_BOUNDARY = "她说别再联系我了。"
+DISCOUNT_ONLY = "可能只是人好"
+
+
+def cli_fact(result: Any) -> str:
+    """The fact line exactly as the CLI composes it."""
+
+    situation, _basis, _language = screen_context(result)
+    return screen_fact(result, situation)
+
+
+def test_a_a_lone_discount_gets_its_own_screen(analyzer: NedAnalyzer) -> None:
+    """A. the only thing submitted was the rejection rationale."""
+
+    result = analyzer.analyze_text(DISCOUNT_ONLY, mode="normal")
+    assert result.verdict.code == "ned.self_discount_noted"
+    assert situation_of(result) == p.SITUATION_SELF_DISCOUNT_ONLY
+    screen = screen_for(result)
+    blob = " ".join([screen.title, *screen.lines, screen.reality])
+    assert screen.title == "SELF-DISCOUNT NOTED"
+    assert "驳回理由已经提前准备好了。👍" in blob
+    # the old landing was the generic comparison decline, which is off topic here
+    assert "不足以支持一次对称比较" not in blob
+    assert "不评估你的证据标准" not in blob
+    assert "NO ADMISSIBLE COMPARISON" not in blob
+
+
+@pytest.mark.parametrize("mode", p.MODES)
+def test_a_the_lone_discount_speaks_in_all_three_registers(
+    analyzer: NedAnalyzer, mode: str
+) -> None:
+    result = analyzer.analyze_text(DISCOUNT_ONLY, mode=mode)  # type: ignore[arg-type]
+    screen = screen_for(result)
+    titles = {
+        "normal": "SELF-DISCOUNT NOTED",
+        "scientific": "REVIEW COMMENT PRE-FILED",
+        "extreme": "PREEMPTIVE DENIAL",
+    }
+    assert screen.title == titles[mode]
+    assert len(screen.lines) >= 2
+
+
+def test_a_the_lone_discount_never_invents_the_other_person(analyzer: NedAnalyzer) -> None:
+    for mode in p.MODES:
+        result = analyzer.analyze_text(DISCOUNT_ONLY, mode=mode)  # type: ignore[arg-type]
+        screen = screen_for(result)
+        blob = " ".join([screen.title, *screen.lines, screen.reality])
+        for banned in ("她一定", "她肯定", "她其实", "她喜欢", "她不喜欢", "自欺", "骗自己"):
+            assert banned not in blob, (mode, banned)
+
+
+def test_b_a_discount_with_evidence_is_not_stolen_by_the_lone_discount(
+    analyzer: NedAnalyzer,
+) -> None:
+    """B. positive evidence present, so it is the other screen."""
+
+    result = analyzer.analyze_text(SELF_DISCOUNT_POSITIVE, mode="normal")
+    assert situation_of(result) == p.SITUATION_SELF_DISCOUNT_POSITIVE
+    assert situation_of(result) != p.SITUATION_SELF_DISCOUNT_ONLY
+    blob = " ".join([screen_for(result).title, *screen_for(result).lines])
+    assert "正向证据尚未提交" not in blob
+
+
+def test_b_the_two_discount_screens_are_distinct_in_every_mode() -> None:
+    for mode in p.MODES:
+        only = p.first_screen(p.SITUATION_SELF_DISCOUNT_ONLY, mode, "zh")
+        with_evidence = p.first_screen(p.SITUATION_SELF_DISCOUNT_POSITIVE, mode, "zh")
+        assert only.title != with_evidence.title, mode
+        assert only.lines != with_evidence.lines, mode
+
+
+def test_the_lone_discount_guard_holds_at_rule_level() -> None:
+    """The invariant: a lone discount means no positive evidence."""
+
+    assert (
+        p.screen_situation(
+            p.SITUATION_SELF_DISCOUNT_ONLY, self_discount=True, positive_evidence=True
+        )
+        == p.SITUATION_SELF_DISCOUNT_POSITIVE
+    )
+    assert (
+        p.screen_situation(
+            p.SITUATION_SELF_DISCOUNT_ONLY, self_discount=True, positive_evidence=False
+        )
+        == p.SITUATION_SELF_DISCOUNT_ONLY
+    )
+    assert p.SITUATION_BY_VERDICT["ned.self_discount_noted"] == p.SITUATION_SELF_DISCOUNT_ONLY
+
+
+def test_c_the_boundary_fact_describes_the_boundary(analyzer: NedAnalyzer) -> None:
+    """C. the screen is about the boundary, so the fact must be too."""
+
+    result = analyzer.analyze_text(MIXED_BOUNDARY, mode="normal")
+    assert result.verdict.code == "ned.direct_rejection"
+    assert situation_of(result) == p.SITUATION_BOUNDARY
+    fact = cli_fact(result)
+    assert "拒绝" in fact or "边界" in fact, fact
+    assert fact == "明确拒绝 / 边界表达"
+
+
+def test_c_the_positive_evidence_is_still_in_technical_details(analyzer: NedAnalyzer) -> None:
+    """The mixed input keeps every span; only the headline moved."""
+
+    result = analyzer.analyze_text(MIXED_BOUNDARY, mode="normal")
+    kinds = [span.signal_type.value for span in result.evidence]
+    assert "direct_rejection" in kinds
+    assert "explicit_affection" in kinds
+    positives = [span for span in result.evidence if span.polarity == "positive"]
+    assert positives and positives[0].information_content > 0
+
+
+def test_c_a_plain_boundary_keeps_its_richer_sentence(analyzer: NedAnalyzer) -> None:
+    """No regression: when the boundary already leads, nothing is rewritten."""
+
+    result = analyzer.analyze_text(PLAIN_BOUNDARY, mode="normal")
+    assert cli_fact(result) == result.raw_interpretation
+    assert cli_fact(result) == "对方直接、明确地表达了拒绝或边界。"
+
+
+def test_c_the_boundary_copy_is_untouched_by_the_fact_change(analyzer: NedAnalyzer) -> None:
+    for text in (PLAIN_BOUNDARY, MIXED_BOUNDARY, MIXED_BOUNDARY_DISCOUNT):
+        for mode in p.MODES:
+            result = analyzer.analyze_text(text, mode=mode)  # type: ignore[arg-type]
+            assert situation_of(result) == p.SITUATION_BOUNDARY, (text, mode)
+            screen = screen_for(result)
+            assert screen.title == "EXPLICIT BOUNDARY 🚧"
+            assert screen.lines == (
+                "明确边界。NED 停止狡辩。🚧",
+                "不确定性，不等于否认明确证据。",
+            )
+            assert screen.reality == "说出口的边界是一个行为，不是推断。NED 不对这条证据降权。"
+
+
+def test_c_the_boundary_screen_still_refuses_to_joke(analyzer: NedAnalyzer) -> None:
+    for text in (MIXED_BOUNDARY, MIXED_BOUNDARY_DISCOUNT):
+        result = analyzer.analyze_text(text, mode="normal")
+        screen = screen_for(result)
+        blob = " ".join([screen.title, *screen.lines, screen.reality])
+        assert "👍" not in blob and "🤠" not in blob
+        shown = p.emoji_discipline(p.SITUATION_BOUNDARY, result.verdict.text)
+        assert "👍" not in shown and "🤠" not in shown
+
+
+def test_d_a_hostile_screen_shows_the_hostility(analyzer: NedAnalyzer) -> None:
+    """D. the same rule on the hostile rung."""
+
+    result = analyzer.analyze_text(SELF_DISCOUNT_HOSTILE, mode="normal")
+    assert situation_of(result) == p.SITUATION_HOSTILE
+    assert "敌意" in cli_fact(result)
+    assert situation_of(result) != p.SITUATION_SELF_DISCOUNT_ONLY
+
+
+def test_d_the_rule_says_which_evidence_decides_which_screen() -> None:
+    assert p.fact_signal_types(p.SITUATION_BOUNDARY) == ("direct_rejection",)
+    assert p.fact_signal_types(p.SITUATION_HOSTILE) == ("hostile_expression",)
+    for situation in p.FIRST_SCREEN:
+        if situation not in p.FACT_SIGNAL_TYPES:
+            assert p.fact_signal_types(situation) == ()
+
+
+def test_e_a_lone_discount_creates_no_evidence(analyzer: NedAnalyzer) -> None:
+    """E. no external positive evidence may appear out of nowhere."""
+
+    result = analyzer.analyze_text(DISCOUNT_ONLY, mode="normal")
+    assert [span.signal_type.value for span in result.evidence] == ["self_discount"]
+    assert not any(span.polarity == "positive" for span in result.evidence)
+    assert result.signal_strength == 0.0
+    assert (
+        result.asymmetry is None or result.asymmetry.evidence_profile.negative_raw_strength is None
+    )
+
+
+def test_f_the_web_and_the_cli_share_the_fact_rule(client: TestClient) -> None:
+    """F. one source for the screen, the fact and the promotion."""
+
+    catalog = p.web_personality_catalog()
+    assert catalog["fact_signal_types"] == {
+        key: list(value) for key, value in p.FACT_SIGNAL_TYPES.items()
+    }
+    assert p.SITUATION_SELF_DISCOUNT_ONLY in catalog["first_screen"]
+    page = client.get("/").text
+    match = re.search(r'<script id="personality-catalog"[^>]*>(.*?)</script>', page, re.DOTALL)
+    assert match is not None
+    embedded = json.loads(match.group(1))
+    assert embedded["fact_signal_types"] == catalog["fact_signal_types"]
+    assert (
+        embedded["first_screen"][p.SITUATION_SELF_DISCOUNT_ONLY]
+        == (catalog["first_screen"][p.SITUATION_SELF_DISCOUNT_ONLY])
+    )
+    script = (ROOT / "ned" / "app" / "static" / "app.js").read_text(encoding="utf-8")
+    assert "fact_signal_types" in script
+
+
+def test_f_the_cli_prints_the_lone_discount_screen() -> None:
+    result = runner.invoke(cli_app, ["analyze", DISCOUNT_ONLY, "--mode", "extreme"])
+    assert result.exit_code == 0
+    assert "PREEMPTIVE DENIAL" in result.stdout
+    assert "你甚至还没提交正向证据。" in result.stdout
+    assert "「人好」已经在等着了。👍" in result.stdout
+
+
+def test_g_technical_details_is_still_collapsed(structure: _Structure) -> None:
+    assert structure.by_id["technical-details"]["open"] is False
+    assert structure.by_id["asym-technical-details"]["open"] is False
+
+
+def test_the_generic_positive_fact_is_unaffected(analyzer: NedAnalyzer) -> None:
+    """The fact rule may not touch screens it does not name."""
+
+    for text, expected in (
+        (GENERIC_POSITIVE, "对方据称表达了喜欢（转述）。"),
+        ("她主动找我聊了两个小时", "双方进行了持续时间较长的互动。"),
+        ("她就回了一个嗯。", "对方的回复被描述为简短或冷淡。"),
+    ):
+        result = analyzer.analyze_text(text, mode="normal")
+        assert cli_fact(result) == result.raw_interpretation == expected, text
 
 
 def test_the_shipped_rule_is_untouched_by_the_attribution_fix() -> None:

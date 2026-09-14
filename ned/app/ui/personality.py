@@ -223,6 +223,8 @@ SITUATION_COLD_REPLY = "cold_reply"
 SITUATION_PLAN_CANCELLED = "plan_cancelled"
 SITUATION_SELF_CONCLUSION = "self_conclusion"
 SITUATION_SELF_DISCOUNT_POSITIVE = "self_discount_positive"
+#: ``ned.self_discount_noted``: a discount with nothing to discount.
+SITUATION_SELF_DISCOUNT_ONLY = "self_discount_only"
 SITUATION_STARTED_AGAIN = "started_again"
 SITUATION_POSITIVE = "positive"
 SITUATION_NO_SIGNAL = "no_signal"
@@ -248,6 +250,7 @@ SITUATION_BY_VERDICT: dict[str, str] = {
     "ned.scientific_insufficient_sample": SITUATION_POSITIVE,
     "ned.reaching": SITUATION_POSITIVE,
     "ned.no_signal": SITUATION_NO_SIGNAL,
+    "ned.self_discount_noted": SITUATION_SELF_DISCOUNT_ONLY,
     "evidence.reading_not_present": SITUATION_PAIR_CLEAN,
     "evidence.reading_partial": SITUATION_PAIR_PARTIAL,
 }
@@ -298,9 +301,33 @@ def screen_situation(
     Everything else is untouched, and nothing here can change a verdict.
     """
 
-    if self_discount and positive_evidence and base_situation in SELF_DISCOUNT_PROMOTES:
-        return SITUATION_SELF_DISCOUNT_POSITIVE
+    if self_discount and positive_evidence:
+        if base_situation in SELF_DISCOUNT_PROMOTES:
+            return SITUATION_SELF_DISCOUNT_POSITIVE
+        if base_situation == SITUATION_SELF_DISCOUNT_ONLY:
+            # a discount with positive evidence is not a discount without one
+            return SITUATION_SELF_DISCOUNT_POSITIVE
     return base_situation
+
+
+#: The reader supplied a discount and there is no positive evidence to discount.
+#: ``ned.self_discount_noted`` only fires when the discount is the sole signal.
+SITUATION_SELF_DISCOUNT_ONLY = "self_discount_only"
+
+#: On these screens the observed fact must describe the evidence that decided the
+#: screen, not whichever signal happened to lead the classification. The list only
+#: chooses which existing engine reading to show; it changes no verdict and drops
+#: no evidence from Technical Details.
+FACT_SIGNAL_TYPES: dict[str, tuple[str, ...]] = {
+    SITUATION_BOUNDARY: ("direct_rejection",),
+    SITUATION_HOSTILE: ("hostile_expression",),
+}
+
+
+def fact_signal_types(situation: str) -> tuple[str, ...]:
+    """Evidence types the first screen's fact must describe, when any are present."""
+
+    return FACT_SIGNAL_TYPES.get(situation, ())
 
 
 def is_boundary_situation(situation: str) -> bool:
@@ -884,6 +911,59 @@ FIRST_SCREEN: dict[str, dict[str, dict[str, FirstScreen]]] = {
             ),
         ),
     },
+    SITUATION_SELF_DISCOUNT_ONLY: {
+        "normal": _bi(
+            _screen(
+                "SELF-DISCOUNT NOTED",
+                ("正向证据尚未提交。", "驳回理由已经提前准备好了。👍"),
+                "现在只有你自己给出的降权解释，没有一条可供降权的正向证据。"
+                "降权说明是一个解释，不是现实证据。",
+            ),
+            _screen(
+                "SELF-DISCOUNT NOTED",
+                (
+                    "No positive evidence submitted.",
+                    "The rejection rationale is already prepared. 👍",
+                ),
+                "There is only a discount you supplied, and no positive evidence to discount. "
+                "The discount is an interpretation, not evidence.",
+            ),
+        ),
+        "scientific": _bi(
+            _screen(
+                "REVIEW COMMENT PRE-FILED",
+                ("稿件尚未收到。", "审稿意见已提前提交：可能只是人好。"),
+                "现在只有你自己给出的降权解释，没有一条可供降权的正向证据。"
+                "降权说明是一个解释，不是现实证据。",
+            ),
+            _screen(
+                "REVIEW COMMENT PRE-FILED",
+                (
+                    "Manuscript not received.",
+                    "Reviewer comment already submitted: probably just being nice.",
+                ),
+                "There is only a discount you supplied, and no positive evidence to discount. "
+                "The discount is an interpretation, not evidence.",
+            ),
+        ),
+        "extreme": _bi(
+            _screen(
+                "PREEMPTIVE DENIAL",
+                ("你甚至还没提交正向证据。", "「人好」已经在等着了。👍"),
+                "现在只有你自己给出的降权解释，没有一条可供降权的正向证据。"
+                "降权说明是一个解释，不是现实证据。",
+            ),
+            _screen(
+                "PREEMPTIVE DENIAL",
+                (
+                    "You have not even submitted positive evidence.",
+                    '"Being nice" is already waiting. 👍',
+                ),
+                "There is only a discount you supplied, and no positive evidence to discount. "
+                "The discount is an interpretation, not evidence.",
+            ),
+        ),
+    },
     SITUATION_NO_SIGNAL: _fixed(
         _bi(
             _screen(
@@ -934,6 +1014,7 @@ QUALITY_SOURCE: dict[str, str] = {
     SITUATION_TIMELINE_BOUNDARY: "none",
     SITUATION_TIMELINE: "none",
     SITUATION_NO_SIGNAL: "none",
+    SITUATION_SELF_DISCOUNT_ONLY: "none",
     SITUATION_NEUTRAL: "none",
     SITUATION_PAIR_CLEAN: "none",
     SITUATION_PAIR_PARTIAL: "none",
@@ -1048,6 +1129,7 @@ def web_personality_catalog() -> dict[str, object]:
         "reading_signal_types": list(READING_SIGNAL_TYPES),
         "self_discount_signal_types": list(SELF_DISCOUNT_SIGNAL_TYPES),
         "self_discount_promotes": list(SELF_DISCOUNT_PROMOTES),
+        "fact_signal_types": {key: list(value) for key, value in FACT_SIGNAL_TYPES.items()},
         "quality_source": QUALITY_SOURCE,
         "quality_bands": [[maximum, zh, en] for maximum, zh, en in QUALITY_BANDS],
         "quality_top": {"zh": QUALITY_TOP[0], "en": QUALITY_TOP[1]},
@@ -1063,6 +1145,7 @@ __all__ = [
     "BOUNDARY_SITUATIONS",
     "COMPARISON_REASON_VERDICTS",
     "EXPLICIT_QUALITY",
+    "FACT_SIGNAL_TYPES",
     "FIRST_SCREEN",
     "FNBP_HIT_FEEDBACK",
     "FNBP_MISS_FEEDBACK",
@@ -1086,6 +1169,7 @@ __all__ = [
     "analysis_feedback",
     "emoji_discipline",
     "explicit_quality_label",
+    "fact_signal_types",
     "first_screen",
     "fnbp_feedback",
     "is_boundary_situation",

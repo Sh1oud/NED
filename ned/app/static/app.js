@@ -43,8 +43,11 @@
     });
   }
   function txt(v) { return v === null || v === undefined || v === "" || typeof v === "object" ? DASH : String(v); }
-  function first(v) {
-    for (var i = 1; i < arguments.length; i += 1) {
+  // The first argument with something in it. (Starting at 1 skipped the value
+  // the caller actually wanted, which made the web page show signal labels where
+  // the CLI showed the engine's own sentence.)
+  function first() {
+    for (var i = 0; i < arguments.length; i += 1) {
       var candidate = arguments[i];
       if (candidate !== null && candidate !== undefined && candidate !== "" && typeof candidate !== "object") {
         return String(candidate);
@@ -569,6 +572,22 @@
     return baseSituation;
   }
 
+  // The observed fact must describe the evidence that decided this screen. The
+  // named types are data; when the primary signal is not one of them, the screen
+  // shows the engine's own label for the evidence that actually decided it.
+  function screenFact(d, situation) {
+    var wanted = list(catalogueObj("fact_signal_types")[situation]);
+    if (wanted.length > 0 && wanted.indexOf(String(d.signal_type || "")) === -1) {
+      var found = null;
+      list(d.evidence).forEach(function (rawRow) {
+        var row = obj(rawRow);
+        if (found === null && wanted.indexOf(String(row.signal_type || "")) !== -1) { found = row; }
+      });
+      if (found) { return first(found.label, found.text); }
+    }
+    return first(d.raw_interpretation, d.observed_evidence, d.signal_label);
+  }
+
   function renderAnalyzeScreen(d, situation, basis) {
     var language = languageOf(d);
     var copy = firstScreenCopy(situation, String(d.mode || "normal"), language);
@@ -578,7 +597,7 @@
     var panel = $("first-screen");
     if (panel) { panel.setAttribute("data-situation", situation); }
     setText("screen-title", copy.title);
-    setText("screen-fact", first(d.raw_interpretation, d.observed_evidence, d.signal_label));
+    setText("screen-fact", screenFact(d, situation));
     setText("screen-reality", copy.reality);
     renderScreenLines("screen-lines", lines);
     var quality = qualityForSituation(situation, d, language);
@@ -1046,6 +1065,7 @@
       situationFor: situationFor,
       displaySituation: displaySituation,
       firstScreenCopy: firstScreenCopy,
+      screenFact: screenFact,
       qualityFromValue: qualityFromValue,
       displayVerdictText: displayVerdictText,
       displayVerdictEmoji: displayVerdictEmoji,
