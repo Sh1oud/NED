@@ -1,39 +1,39 @@
 @echo off
-chcp 936 >nul 2>nul
 rem ===================================================================
-rem  NED launcher for Windows  (double-click after extracting the ZIP)
+rem  NED launcher for Windows
 rem
-rem  Flow: detect Python 3.12+ -> prepare .venv -> pip install -e . -> ned serve
-rem  ENCODING NOTES -- please do not "fix" the following:
-rem    * This file is saved as GBK/cp936 with CRLF line endings.
-rem      cmd.exe mis-parses LF-only batch files (goto, blocks and multibyte
-rem      text break), which is why .gitattributes marks *.bat as "-text" so the
-rem      bytes stored in git -- and inside GitHub's "Download ZIP" -- stay CRLF.
-rem    * UTF-8 + BOM was measured on a cp936 console and errors out on the very
-rem      first line ("'@echo' is not recognized"), leaving command echoing on.
-rem      GBK + CRLF is the only variant that parsed and displayed correctly.
-rem    * chcp 936 below normalises the console codepage: on a Chinese Windows it
-rem      is a no-op, and on a machine whose console defaults to UTF-8 it makes
-rem      the Chinese messages below readable. If cp936 is unavailable the call
-rem      fails silently and only the Chinese text degrades -- every command,
-rem      label and check in this file is ASCII, and each message carries an
-rem      ASCII marker such as [ ERROR ].
+rem  Double-click this file after extracting the ZIP. Flow:
+rem    1. locate the project root (this file must sit next to pyproject.toml)
+rem    2. find a working Python 3.12+ ("py -3" first, then "python")
+rem    3. create a project-local .venv if it does not exist yet
+rem    4. pip install -e .                       (first run, needs internet)
+rem    5. start the CLI entry point from pyproject.toml: ned serve
+rem
+rem  NOTES -- please do not "fix" the following:
+rem    * ASCII ONLY. A .bat file is read using the console codepage of the
+rem      machine, which differs between locales. Non-ASCII bytes are therefore
+rem      decoded as different characters on different PCs, and mis-decoded
+rem      bytes can be split by cmd.exe and executed as unrelated commands.
+rem      That is why this file contains no chcp call and no non-English text.
+rem    * CRLF line endings are required: cmd.exe mis-parses LF-only batch
+rem      files. .gitattributes marks *.bat as "-text" so the bytes stored in
+rem      git -- and inside GitHub's "Download ZIP" -- stay CRLF.
+rem    * The CLI is always started through its absolute path, never via PATH.
 rem ===================================================================
 setlocal EnableExtensions
-title NED 启动器
+title NED launcher
 
 rem ---------- 0. must run from the project root ----------
 cd /d "%~dp0"
 if not exist "pyproject.toml" goto :err_not_project
 if not exist "ned\app\cli.py" goto :err_not_project
 echo.
-echo [ NED ] 项目目录：%CD%
-echo [ NED ] 正在检查 Python 环境...
+echo [NED] Project folder: %CD%
+echo [NED] Checking Python...
 
 rem ---------- 1. find a Python 3.12+ that actually works ----------
-rem Having py.exe does NOT mean "py -3" works, and "python" may be the Microsoft
-rem Store placeholder (which prints nothing). So we validate the *output* of
-rem --version instead of trusting the exit code.
+rem "py -3 --version" has to print a version: py.exe can exist without a usable
+rem Python 3, and "python" can be the Microsoft Store placeholder (no output).
 set "NED_PY="
 set "NED_VER="
 
@@ -58,9 +58,9 @@ for /f "tokens=1 delims=." %%X in ("%NED_PY_VER%") do set "NED_PY_MAJOR=%%X"
 for /f "tokens=2 delims=." %%Y in ("%NED_PY_VER%") do set "NED_PY_MINOR=%%Y"
 if not "%NED_PY_MAJOR%"=="3" goto :err_py_too_old
 if %NED_PY_MINOR% LSS 12 goto :err_py_too_old
-echo [ NED ] 已找到 Python %NED_PY_VER%（调用方式：%NED_PY%）
+echo [NED] Found Python %NED_PY_VER% (launcher: %NED_PY%)
 
-rem ---------- 2. local virtualenv + editable install ----------
+rem ---------- 2. project-local environment ----------
 set "NED_VENV=%~dp0.venv"
 set "NED_VPY=%NED_VENV%\Scripts\python.exe"
 set "NED_CLI=%NED_VENV%\Scripts\ned.exe"
@@ -71,89 +71,89 @@ if errorlevel 1 goto :install_package
 if not exist "%NED_CLI%" goto :install_package
 "%NED_CLI%" version >nul 2>nul
 if errorlevel 1 goto :install_package
-echo [ NED ] 已安装且可用，跳过安装步骤。
+echo [NED] Local environment is ready, skipping install.
 goto :launch
 
 :install_package
 if exist "%NED_VPY%" goto :do_install
-echo [ NED ] 首次运行：正在创建本地虚拟环境 .venv（只需一次）...
+echo [NED] Preparing local environment (.venv, first run only)...
 %NED_PY% -m venv "%NED_VENV%"
 if not exist "%NED_VPY%" goto :err_venv_failed
 
 :do_install
-echo [ NED ] 正在安装 NED：pip install -e .（首次需要联网，可能要几分钟）...
+echo [NED] Installing NED (pip install -e ., needs internet)...
 "%NED_VPY%" -m pip install --disable-pip-version-check -e "%~dp0."
 if errorlevel 1 goto :err_install_failed
 if not exist "%NED_CLI%" goto :err_launcher_missing
 
-rem ---------- 3. start the project CLI: ned serve ----------
+rem ---------- 3. start the local server ----------
 :launch
 echo.
-echo [ NED ] 正在启动 NED 本地服务...
-echo [ NED ] 浏览器地址：http://127.0.0.1:8000/
-echo [ NED ] 关闭本窗口或按 Ctrl+C 即可停止服务。
+echo [NED] Starting local server...
+echo [NED] Open http://127.0.0.1:8000/ in your browser.
+echo [NED] Keep this window open; press Ctrl+C to stop the server.
 echo.
 start "" /min cmd /c "timeout /t 4 /nobreak >nul & start http://127.0.0.1:8000/"
 "%NED_CLI%" serve
 set "NED_EXIT=%errorlevel%"
 echo.
-echo [ NED ] 服务已停止（退出代码：%NED_EXIT%）。
-if not "%NED_EXIT%"=="0" echo [ NED ] 提示：可改用 "%NED_VPY%" -m ned.app.cli serve 重试。
+echo [NED] Server stopped (exit code %NED_EXIT%).
+if not "%NED_EXIT%"=="0" echo [NED] Hint: retry with "%NED_VPY%" -m ned.app.cli serve
 pause
 exit /b %NED_EXIT%
 
 rem ---------- error branches: every one of them pauses ----------
 :err_not_project
 echo.
-echo [ ERROR ] 未找到 NED 项目文件。
-echo           请确认 start_ned.bat 与 pyproject.toml 在同一个文件夹内，
-echo           并且是先把 ZIP 完整解压再运行（不要在压缩包预览窗口里双击）。
+echo [ERROR] NED project files were not found.
+echo         Keep start_ned.bat in the same folder as pyproject.toml and
+echo         extract the ZIP completely before running it.
 pause
 exit /b 1
 
 :err_no_python
 echo.
-echo [ ERROR ] 未找到可用的 Python 3。
-echo           1. 请安装 Python 3.12 或更高版本：
-echo              https://www.python.org/downloads/windows/
-echo              安装时务必勾选 Add python.exe to PATH。
-echo           2. 如果已经装过还是报这个错，可能是 Microsoft Store 的占位程序：
-echo              打开 设置 - 应用 - 高级应用设置 - 应用执行别名，
-echo              关闭 python.exe 与 python3.exe 这两个别名后重试。
-echo           3. 装好后重新双击本文件即可。
+echo [ERROR] Python 3.12+ was not found.
+echo         1. Install Python 3.12 or newer:
+echo            https://www.python.org/downloads/windows/
+echo            Tick "Add python.exe to PATH" while installing.
+echo         2. If Python is installed but this error persists, the Microsoft
+echo            Store app-execution alias may be in the way:
+echo            Settings - Apps - Advanced app settings - App execution aliases,
+echo            switch off python.exe and python3.exe, then run this file again.
 pause
 exit /b 1
 
 :err_py_too_old
 echo.
-echo [ ERROR ] Python 版本过低：检测到 %NED_PY_VER%，NED 需要 3.12 或更高版本。
-echo           请安装新版 Python：https://www.python.org/downloads/windows/
+echo [ERROR] Python %NED_PY_VER% is too old; NED needs 3.12 or newer.
+echo         Download: https://www.python.org/downloads/windows/
 pause
 exit /b 1
 
 :err_venv_failed
 echo.
-echo [ ERROR ] 创建虚拟环境 .venv 失败。
-echo           常见原因：目录没有写权限、磁盘空间不足、杀毒软件拦截。
-echo           如果解压在 C:\Program Files 之类的受保护目录，请改为解压到
-echo           桌面或文档等普通文件夹后重试。
-echo           也可以手动执行：%NED_PY% -m venv "%~dp0.venv"
+echo [ERROR] Could not create the local environment (.venv).
+echo         Common causes: no write permission, no free disk space, antivirus.
+echo         If the ZIP was extracted into a protected folder such as
+echo         C:\Program Files, extract it to Desktop or Documents instead.
+echo         Manual retry: %NED_PY% -m venv "%~dp0.venv"
 pause
 exit /b 1
 
 :err_install_failed
 echo.
-echo [ ERROR ] NED 安装失败（pip install -e . 返回了错误，请往上翻看具体信息）。
-echo           常见原因：网络不通、公司代理、Python 安装缺少 pip。
-echo           可手动重试：
-echo              cd /d "%~dp0"
-echo              .venv\Scripts\python.exe -m pip install -e .
+echo [ERROR] Installing NED failed (pip install -e . returned an error).
+echo         Common causes: no internet access, corporate proxy, missing pip.
+echo         Manual retry:
+echo             cd /d "%~dp0"
+echo             .venv\Scripts\python.exe -m pip install -e .
 pause
 exit /b 1
 
 :err_launcher_missing
 echo.
-echo [ ERROR ] 安装完成，但没有找到启动器 .venv\Scripts\ned.exe。
-echo           请删除 .venv 文件夹后重新双击本文件。
+echo [ERROR] Install finished but .venv\Scripts\ned.exe is missing.
+echo         Delete the .venv folder and run this file again.
 pause
 exit /b 1
