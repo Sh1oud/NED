@@ -15,6 +15,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Web UI i18n.
 - Saved report export.
 
+## [0.1.2] - 2026-09-14
+
+### Fixed
+
+- Windows launcher: `start_ned.bat` is now ASCII-only, so it no longer depends on
+  the console codepage of the machine. On Windows with a non-Chinese codepage the
+  previous non-ASCII file was decoded as mojibake, and cmd.exe executed fragments
+  of the mis-decoded text as unrelated commands (one of them triggered the AT
+  command help).
+- Windows launcher: Python detection now judges `py -3 --version` by the output it
+  prints rather than by its exit code, so a Microsoft Store placeholder or a
+  launcher without a usable Python 3 is no longer accepted.
+
+### Changed
+
+- Windows launcher: the first run now creates and uses a project-local `.venv`
+  (Python, pip and `ned.exe` all come from that environment) instead of installing
+  into the system Python.
+- Windows launcher: NED is started through the entry point declared in
+  `pyproject.toml`, by absolute path; the launcher never relies on `ned` being on
+  `PATH`.
+- Windows launcher: the project-local environment is validated before use, so
+  renaming or moving the extracted folder repairs itself instead of failing.
+- No changes to the analysis engine, the rule packs or the REST contract.
+
 ## [0.1.1] - 2026-09-14
 
 ### Added
@@ -82,6 +107,7 @@ emotional evidence de-weighting engine.
   no database, no accounts, no paid APIs. v0.1 never calls an external LLM; the
   `LLMProvider` interface exists as a stub for future work.
 
-[Unreleased]: https://github.com/Sh1oud/NED/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Sh1oud/NED/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/Sh1oud/NED/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Sh1oud/NED/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Sh1oud/NED/releases/tag/v0.1.0
