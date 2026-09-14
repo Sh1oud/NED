@@ -611,11 +611,55 @@
     return first(d.raw_interpretation, d.observed_evidence, d.signal_label);
   }
 
+  // The reader's own words, as the engine captured them: the discount span marks
+  // where the reading starts, and the display extends it to the end of its clause
+  // so the quote is complete and still verbatim. Falls back to the pair layer's
+  // captured reading, then to nothing.
+  function capturedReading(payload) {
+    var allowed = catalogueList("reading_signal_types");
+    var separators = catalogueList("clause_separators");
+    var text = String(obj(payload).input || "");
+    var found = "";
+    list(obj(payload).evidence).forEach(function (rawRow) {
+      if (found) { return; }
+      var row = obj(rawRow);
+      if (allowed.indexOf(String(row.signal_type || "")) === -1) { return; }
+      var start = Number(row.start);
+      var end = Number(row.end);
+      if (!isFinite(start) || !isFinite(end) || start < 0 || end <= start || end > text.length) {
+        if (row.text) { found = String(row.text); }
+        return;
+      }
+      var stop = text.length;
+      for (var index = end; index < text.length; index += 1) {
+        if (separators.indexOf(text.charAt(index)) !== -1) { stop = index; break; }
+      }
+      found = text.slice(start, stop).trim();
+    });
+    if (found) { return found; }
+    var attached = obj(obj(obj(payload).asymmetry).user_interpretation);
+    return typeof attached.positive_reading === "string" ? attached.positive_reading : "";
+  }
+
+  // Substitute the reading into a screen's quote slot, or report that the screen
+  // would have to quote something it does not have.
+  function fillReading(lines, reading) {
+    var slot = String(CATALOG.reading_slot || "{reading}");
+    var rows = list(lines);
+    var needs = rows.some(function (line) { return String(line).indexOf(slot) !== -1; });
+    if (!needs) { return rows; }
+    if (!reading) { return null; }
+    return rows.map(function (line) { return String(line).split(slot).join(reading); });
+  }
+
   function renderAnalyzeScreen(d, situation, basis) {
     var language = languageOf(d);
     var copy = firstScreenCopy(situation, String(d.mode || "normal"), language);
     var lines = list(copy.lines);
-    if (basis && list(copy.lines_with_basis).length > 0) { lines = list(copy.lines_with_basis); }
+    if (basis && list(copy.lines_with_basis).length > 0) {
+      var filled = fillReading(list(copy.lines_with_basis), capturedReading(d));
+      lines = filled === null ? list(copy.lines) : filled;
+    }
     setState("analyze-results", severityOf(obj(d.verdict).severity));
     var panel = $("first-screen");
     if (panel) { panel.setAttribute("data-situation", situation); }
@@ -1092,6 +1136,8 @@
       displaySituation: displaySituation,
       firstScreenCopy: firstScreenCopy,
       screenFact: screenFact,
+      capturedReading: capturedReading,
+      fillReading: fillReading,
       repairDisplayText: repairDisplayText,
       qualityFromValue: qualityFromValue,
       displayVerdictText: displayVerdictText,

@@ -36,6 +36,7 @@ from ned.app.ui.personality import (
     SELF_DISCOUNT_SIGNAL_TYPES,
     PersonalityFeedback,
     analysis_feedback,
+    captured_reading,
     emoji_discipline,
     explicit_quality_label,
     fact_from_observed,
@@ -218,12 +219,34 @@ def panel_verdict(verdict: Verdict, situation: str, basis: bool, language: str) 
     return verdict_text(verdict.emoji, shown)
 
 
+def captured_reading_of(result: AnalysisResult) -> str:
+    """The reader's own words, as the engine captured them.
+
+    The discount span marks where the reading starts; the presentation layer
+    extends it to the end of its clause so the quote is complete and still
+    verbatim. Falls back to the pair layer's captured reading, then to nothing —
+    and a screen with nothing to quote says so without quotation marks.
+    """
+
+    for span in result.evidence:
+        if span.signal_type.value in SELF_DISCOUNT_SIGNAL_TYPES:
+            found = captured_reading(result.input, span.start, span.end)
+            if found:
+                return found
+    attached = result.asymmetry.user_interpretation if result.asymmetry is not None else None
+    if attached is not None and attached.positive_reading:
+        return attached.positive_reading
+    return ""
+
+
 def render_first_screen(
     result: AnalysisResult, situation: str, basis: bool, language: str, out: Console
 ) -> None:
     """NED's screen: title, observed fact, plain quality, one line, one reality check."""
 
-    screen = first_screen(situation, result.mode, language, basis=basis)
+    screen = first_screen(
+        situation, result.mode, language, basis=basis, reading=captured_reading_of(result)
+    )
     body = Table(show_header=False, box=None, padding=(0, 2))
     body.add_row("Observed evidence", Text(screen_fact(result, situation)))
     quality = screen_quality(situation, result, language)

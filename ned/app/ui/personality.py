@@ -434,6 +434,48 @@ def fact_from_observed(situation: str) -> bool:
     return situation in FACT_FROM_OBSERVED
 
 
+#: The slot a screen uses where the reader's own words are quoted back.
+READING_SLOT = "{reading}"
+
+#: Where a displayed quote stops. The quote is always a verbatim substring of the
+#: input: the engine's span marks where the reading starts, and this list marks the
+#: end of the clause it sits in.
+CLAUSE_SEPARATORS: tuple[str, ...] = ("。", "！", "？", "!", "?", "，", ",", "；", ";", "\n")
+
+
+def captured_reading(text: str, start: int, end: int) -> str:
+    """The reader's words, verbatim, extended to the end of their clause.
+
+    The engine's span ends at the discount reason ("可能只是习惯"), so using the
+    span alone would quote a truncated sentence. Extending to the clause boundary
+    completes it without inventing anything: the result is still a substring of
+    what the reader typed.
+    """
+
+    if start < 0 or end < 0 or start >= end or end > len(text):
+        return ""
+    stop = len(text)
+    for index in range(end, len(text)):
+        if text[index] in CLAUSE_SEPARATORS:
+            stop = index
+            break
+    return text[start:stop].strip()
+
+
+def fill_reading(lines: tuple[str, ...], reading: str) -> tuple[str, ...] | None:
+    """Substitute the reading into a screen's quote slot.
+
+    Returns ``None`` when the screen needs a quote and there is no reliable
+    reading, so the caller can fall back to copy with no quotation.
+    """
+
+    if not any(READING_SLOT in line for line in lines):
+        return lines
+    if not reading:
+        return None
+    return tuple(line.replace(READING_SLOT, reading) for line in lines)
+
+
 def is_boundary_situation(situation: str) -> bool:
     """Whether this screen must stay serious in every mode."""
 
@@ -848,32 +890,51 @@ FIRST_SCREEN: dict[str, dict[str, dict[str, FirstScreen]]] = {
         "scientific": _bi(
             _screen(
                 "REVIEWER COMMENT RECEIVED",
-                ("正向证据已送审。", "审稿意见：可能只是人好。"),
+                ("正向证据已送审。", "审稿意见已提前归档。"),
                 "这份降权说明是一个解释，不是一条新的证据。",
+                with_basis=("正向证据已送审。", "审稿意见：{reading}。"),
             ),
             _screen(
                 "REVIEWER COMMENT RECEIVED",
                 (
                     "Positive evidence submitted for review.",
-                    "Reviewer #1: probably just being nice.",
+                    "Reviewer comment already on file.",
                 ),
                 "That discount is an explanation, not additional evidence.",
+                with_basis=(
+                    "Positive evidence submitted for review.",
+                    "Reviewer #1: {reading}.",
+                ),
             ),
         ),
         "extreme": _bi(
             _screen(
                 "SELF-SERVICE DENIAL",
-                ("证据是真的。", "你：可能只是人好。", "NED：很好，你已经会用了。👍"),
+                (
+                    "这条正向证据很强。",
+                    "降权理由也已经一并提交。",
+                    "NED：很好，你已经会用了。👍",
+                ),
                 "驳回流程由申请人自行完成，NED 只负责盖章。",
+                with_basis=(
+                    "这条正向证据很强。",
+                    "你：{reading}。",
+                    "NED：很好，你已经会用了。👍",
+                ),
             ),
             _screen(
                 "SELF-SERVICE DENIAL",
                 (
-                    "The evidence is real.",
-                    "You: probably just being nice.",
+                    "This positive evidence is strong.",
+                    "The discount was submitted along with it.",
                     "NED: excellent, you already know how to use this. 👍",
                 ),
                 "The rejection was completed by the applicant. NED only stamps it.",
+                with_basis=(
+                    "This positive evidence is strong.",
+                    "You: {reading}.",
+                    "NED: excellent, you already know how to use this. 👍",
+                ),
             ),
         ),
     },
@@ -973,20 +1034,20 @@ FIRST_SCREEN: dict[str, dict[str, dict[str, FirstScreen]]] = {
             _screen(
                 "POSITIVE EVIDENCE DETECTED",
                 ("收到。现在开始寻找七种替代解释。👍",),
-                "证据是真的。样本量 N=1，它不能单独支持更强的结论。",
+                "输入里报告了正向证据。样本量 N=1，它不能单独支持更强的结论。",
             ),
             _screen(
                 "POSITIVE EVIDENCE DETECTED",
                 ("Received. NED will now begin looking for seven alternative explanations. 👍",),
-                "The evidence is real. With a sample size of N=1 it cannot support a stronger "
-                "claim.",
+                "The input reports positive evidence. With a sample size of N=1 it cannot "
+                "support a stronger claim.",
             ),
         ),
         "scientific": _bi(
             _screen(
                 "MANUSCRIPT RECEIVED",
                 ("正向证据已进入同行评审。", "预计评审周期：3–5 个业务年。"),
-                "证据是真的。样本量 N=1，它不能单独支持更强的结论。",
+                "输入里报告了正向证据。样本量 N=1，它不能单独支持更强的结论。",
             ),
             _screen(
                 "MANUSCRIPT RECEIVED",
@@ -994,21 +1055,21 @@ FIRST_SCREEN: dict[str, dict[str, dict[str, FirstScreen]]] = {
                     "Positive evidence has entered peer review.",
                     "Estimated review period: 3–5 business years.",
                 ),
-                "The evidence is real. With a sample size of N=1 it cannot support a stronger "
-                "claim.",
+                "The input reports positive evidence. With a sample size of N=1 it cannot "
+                "support a stronger claim.",
             ),
         ),
         "extreme": _bi(
             _screen(
                 "样本量 n=1",
                 ("样本量 n=1。", "建议再观察十年。👍"),
-                "证据是真的。样本量 N=1，它不能单独支持更强的结论。",
+                "输入里报告了正向证据。样本量 N=1，它不能单独支持更强的结论。",
             ),
             _screen(
                 "SAMPLE SIZE n=1",
                 ("Sample size n=1.", "Recommend ten more years of observation. 👍"),
-                "The evidence is real. With a sample size of N=1 it cannot support a stronger "
-                "claim.",
+                "The input reports positive evidence. With a sample size of N=1 it cannot "
+                "support a stronger claim.",
             ),
         ),
     },
@@ -1125,7 +1186,12 @@ QUALITY_SOURCE: dict[str, str] = {
 
 
 def first_screen(
-    situation: str, mode: str, language: str = "zh", *, basis: bool = False
+    situation: str,
+    mode: str,
+    language: str = "zh",
+    *,
+    basis: bool = False,
+    reading: str = "",
 ) -> FirstScreen:
     """The first screen for one situation, falling back instead of failing."""
 
@@ -1135,11 +1201,12 @@ def first_screen(
     if screen is None:  # pragma: no cover - every situation ships both languages
         screen = by_language.get("zh") or FIRST_SCREEN[SITUATION_NEUTRAL]["normal"]["zh"]
     if basis and screen.lines_with_basis:
-        return FirstScreen(
-            title=screen.title,
-            lines=screen.lines_with_basis,
-            reality=screen.reality,
-        )
+        lines = fill_reading(screen.lines_with_basis, reading)
+        if lines is None:
+            # the screen wants to quote the reader and has nothing reliable to
+            # quote, so it says the same thing without quotation marks
+            return screen
+        return FirstScreen(title=screen.title, lines=lines, reality=screen.reality)
     return screen
 
 
@@ -1230,6 +1297,8 @@ def web_personality_catalog() -> dict[str, object]:
         "comparison_reason_verdicts": list(COMPARISON_REASON_VERDICTS),
         "boundary_situations": list(BOUNDARY_SITUATIONS),
         "reading_signal_types": list(READING_SIGNAL_TYPES),
+        "reading_slot": READING_SLOT,
+        "clause_separators": list(CLAUSE_SEPARATORS),
         "self_discount_signal_types": list(SELF_DISCOUNT_SIGNAL_TYPES),
         "self_discount_promotes": list(SELF_DISCOUNT_PROMOTES),
         "fact_signal_types": {key: list(value) for key, value in FACT_SIGNAL_TYPES.items()},
@@ -1249,6 +1318,7 @@ def web_personality_catalog() -> dict[str, object]:
 __all__ = [
     "ANALYSIS_FEEDBACK",
     "BOUNDARY_SITUATIONS",
+    "CLAUSE_SEPARATORS",
     "COMPARISON_REASON_VERDICTS",
     "DISPLAY_REPAIRS",
     "DURATION_ARTIFACTS",
@@ -1266,6 +1336,7 @@ __all__ = [
     "QUALITY_SOURCE",
     "QUALITY_TOP",
     "READING_SIGNAL_TYPES",
+    "READING_SLOT",
     "READING_STATUS_MESSAGES",
     "SELF_DISCOUNT_PROMOTES",
     "SELF_DISCOUNT_SIGNAL_TYPES",
@@ -1276,10 +1347,12 @@ __all__ = [
     "FirstScreen",
     "PersonalityFeedback",
     "analysis_feedback",
+    "captured_reading",
     "emoji_discipline",
     "explicit_quality_label",
     "fact_from_observed",
     "fact_signal_types",
+    "fill_reading",
     "first_screen",
     "fnbp_feedback",
     "has_missing_duration",

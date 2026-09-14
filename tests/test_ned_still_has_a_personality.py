@@ -765,8 +765,7 @@ def test_b_a_self_discount_is_answered_as_such(analyzer: NedAnalyzer, mode: str)
 
 def test_b_extreme_signs_the_application_off(analyzer: NedAnalyzer) -> None:
     result = analyzer.analyze_text(SELF_DISCOUNT_POSITIVE, mode="extreme")
-    blob = screen_for(result)
-    text = " ".join([blob.title, *blob.lines, blob.reality])
+    _screen, text = screen_text(result, "extreme")
     assert SIGNED_OFF in text
     assert "👍" in text
     assert "你：可能只是人好。" in text
@@ -1417,6 +1416,158 @@ def test_g_the_engine_still_reports_what_it_reports(analyzer: NedAnalyzer) -> No
 def test_h_technical_details_is_still_folded(structure: _Structure) -> None:
     assert structure.by_id["technical-details"]["open"] is False
     assert structure.by_id["asym-technical-details"]["open"] is False
+
+
+# --------------------------------------------------------------------------- #
+# Part A — quote fidelity: the quote is the reader's words, or there is none
+# --------------------------------------------------------------------------- #
+
+QUOTE_CASES = (
+    ("她说喜欢我，可能只是人好", "可能只是人好"),
+    ("她说喜欢我，可能只是出于礼貌", "可能只是出于礼貌"),
+    ("她每天陪我聊天到很晚，我觉得可能只是习惯了", "可能只是习惯了"),
+    ("她说喜欢我，她可能只是心软", "可能只是心软"),
+    ("她说喜欢我，也许只是怕我难过", "也许只是怕我难过"),
+)
+
+REALITY_CLAIMS = ("证据是真的", "The evidence is real", "事实证明", "文本证明对方")
+
+
+def reading_for(result: Any) -> str:
+    """The same derivation the CLI and the web page use."""
+
+    for span in result.evidence:
+        if span.signal_type.value in p.SELF_DISCOUNT_SIGNAL_TYPES:
+            found = p.captured_reading(result.input, span.start, span.end)
+            if found:
+                return found
+    attached = result.asymmetry.user_interpretation if result.asymmetry is not None else None
+    return attached.positive_reading if attached is not None and attached.positive_reading else ""
+
+
+def screen_text(result: Any, mode: str | None = None) -> tuple[Any, str]:
+    situation, basis, language = screen_context(result)
+    resolved = mode or result.mode
+    screen = p.first_screen(situation, resolved, language, basis=basis, reading=reading_for(result))
+    return screen, " ".join([screen.title, *screen.lines, screen.reality])
+
+
+@pytest.mark.parametrize(("text", "expected"), QUOTE_CASES)
+def test_a2_the_quote_is_exactly_what_the_reader_wrote(
+    analyzer: NedAnalyzer, text: str, expected: str
+) -> None:
+    result = analyzer.analyze_text(text, mode="extreme")
+    _screen, blob = screen_text(result, "extreme")
+    assert f"你：{expected}。" in blob, blob
+    assert blob.count("你：") == 1
+
+
+def test_a2_the_old_literal_is_not_quoted_back(analyzer: NedAnalyzer) -> None:
+    """The defect: NED quoting a phrase the reader never wrote."""
+
+    result = analyzer.analyze_text("她说喜欢我，可能只是出于礼貌", mode="extreme")
+    _, blob = screen_text(result, "extreme")
+    assert "你：可能只是出于礼貌。" in blob
+    assert "你：可能只是人好。" not in blob
+
+
+def test_a2_the_readers_own_words_survive_verbatim(analyzer: NedAnalyzer) -> None:
+    """The quote is a substring of the input, not a paraphrase."""
+
+    for text in ("她说喜欢我，可能只是出于礼貌", "她说喜欢我，她可能只是心软"):
+        result = analyzer.analyze_text(text, mode="extreme")
+        reading = reading_for(result)
+        assert reading and reading in text, (text, reading)
+
+
+def test_a2_a_truncated_reason_is_completed(analyzer: NedAnalyzer) -> None:
+    """The engine's span ends at 习惯; the quote must not."""
+
+    result = analyzer.analyze_text("她每天陪我聊天到很晚，我觉得可能只是习惯了", mode="extreme")
+    assert reading_for(result) == "可能只是习惯了"
+
+
+def test_a2_no_reading_means_no_quotation(analyzer: NedAnalyzer) -> None:
+    """A screen that would have to invent a quote says it without one."""
+
+    from ned.app.ui.personality import SITUATION_SELF_DISCOUNT_POSITIVE
+
+    screen = p.first_screen(SITUATION_SELF_DISCOUNT_POSITIVE, "extreme", "zh", basis=True)
+    forced = p.first_screen(
+        SITUATION_SELF_DISCOUNT_POSITIVE, "extreme", "zh", basis=True, reading=""
+    )
+    assert forced.lines == screen.lines
+    blob = " ".join(forced.lines)
+    assert "你：" not in blob
+    assert "降权理由也已经一并提交。" in blob
+    assert "NED：很好，你已经会用了。👍" in blob
+
+
+def test_a2_the_scientific_quote_is_dynamic_too(analyzer: NedAnalyzer) -> None:
+    result = analyzer.analyze_text("她说喜欢我，可能只是出于礼貌", mode="scientific")
+    _, blob = screen_text(result, "scientific")
+    assert "审稿意见：可能只是出于礼貌。" in blob
+    assert "审稿意见：可能只是人好。" not in blob
+
+
+def test_a3_no_second_person_without_a_basis(analyzer: NedAnalyzer) -> None:
+    """§A3: no basis, no user line."""
+
+    for text in ("她说喜欢我", "她每天陪我聊天到很晚", "他主动约我周末看电影"):
+        result = analyzer.analyze_text(text, mode="extreme")
+        _, blob = screen_text(result, "extreme")
+        assert "你：" not in blob, text
+
+
+def test_a3_self_discount_only_needs_no_quote(analyzer: NedAnalyzer) -> None:
+    result = analyzer.analyze_text("可能只是在同情我", mode="extreme")
+    assert situation_of(result) == p.SITUATION_SELF_DISCOUNT_ONLY
+    _, blob = screen_text(result, "extreme")
+    assert "你：" not in blob
+
+
+def test_a3_boundary_and_hostile_still_win_with_a_discount_present(
+    analyzer: NedAnalyzer,
+) -> None:
+    boundary = analyzer.analyze_text("我本来觉得可能只是人好，但她后来让我别再联系", mode="extreme")
+    hostile = analyzer.analyze_text("她怒骂我，但我想也许只是人好", mode="extreme")
+    assert situation_of(boundary) == p.SITUATION_BOUNDARY
+    assert situation_of(hostile) == p.SITUATION_HOSTILE
+    for result in (boundary, hostile):
+        _, blob = screen_text(result, "extreme")
+        assert "你：" not in blob
+        assert "你已经会用了" not in blob
+
+
+def test_a1_ned_never_claims_to_have_verified_reality() -> None:
+    """No display copy may assert that the evidence is real."""
+
+    catalog = p.web_personality_catalog()
+    blob = json.dumps(catalog, ensure_ascii=False)
+    for claim in REALITY_CLAIMS:
+        assert claim not in blob, claim
+    source = (ROOT / "ned" / "app" / "ui" / "personality.py").read_text(encoding="utf-8")
+    for claim in REALITY_CLAIMS:
+        assert claim not in source, claim
+
+
+def test_a1_the_first_line_claims_strength_instead(analyzer: NedAnalyzer) -> None:
+    result = analyzer.analyze_text("她说喜欢我，可能只是人好", mode="extreme")
+    _, blob = screen_text(result, "extreme")
+    assert "这条正向证据很强。" in blob
+
+
+def test_a1_the_generic_positive_screen_reports_rather_than_certifies() -> None:
+    screen = p.first_screen(p.SITUATION_POSITIVE, "normal", "zh")
+    assert "输入里报告了正向证据" in screen.reality
+    assert "证据是真的" not in screen.reality
+
+
+def test_a4_the_bible_documents_the_dynamic_slot() -> None:
+    bible = (ROOT / "docs" / "PERSONALITY_BIBLE.md").read_text(encoding="utf-8")
+    assert "{captured_self_discount_reading}" in bible
+    assert "证据是真的。" not in bible.split("## 5. Canonical Copy")[1].split("### 5.2")[0]
+    assert "动态 quote slot" in bible
 
 
 def test_the_shipped_rule_is_untouched_by_the_attribution_fix() -> None:
