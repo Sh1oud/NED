@@ -17,13 +17,16 @@ How it decides, without a list of people:
 * the prefix is reader-authored when, after any leading hedges and adverbs, it is
   empty, or starts with the reader pronoun, or starts with a pronoun for the person
   being *described*, and everything after that is closed-class vocabulary — a hedge,
-  a function word, or one of the reader's own speech and cognition verbs.
+  a function word, or one of the reader's own speech and cognition verbs. After a
+  described subject the reader may also appear as the object of a preposition, but
+  never as the subject of an un-prepositioned verb.
 
 Anything containing a content word is a frame, and a frame is somebody else's words.
 That is what makes the closure provable rather than sampled: the grammar only accepts
 closed-class vocabulary, so an arbitrary named third party (``老师``, ``小王``,
 ``群里有人``) cannot be admitted by construction, and neither can an arbitrary
-reporting verb (``转述``, ``提了一句``, ``发消息说``). Extending the guard for a new
+reporting predicate (``转述``, ``提了一句``, ``嘀咕``, ``断言``) — the closure never
+asks which verbs are known, only whether the material is closed-class. Extending the guard for a new
 *person* or a new *reporting verb* is therefore never necessary.
 """
 
@@ -71,37 +74,6 @@ READER_VERBS = (
     "\u63d0",
 )
 
-#: Reporting acts. Closed class, and only ever used to *reject* a described-subject
-#: prefix: after "\u5979", a reporting verb means the clause is somebody's words rather
-#: than the reader's assertion about her. It is never used to accept anything.
-REPORT_VERBS = (
-    "\u8bf4",
-    "\u8bb2",
-    "\u544a\u8bc9",
-    "\u8868\u793a",
-    "\u79f0",
-    "\u63d0\u5230",
-    "\u56de\u590d",
-    "\u5199\u9053",
-    "\u95ee",
-    "\u56de",
-    "\u8f6c\u8ff0",
-    "\u8f6c\u544a",
-    "\u8f6c\u8fbe",
-    "\u53d1\u6d88\u606f",
-    "\u53d1\u4fe1\u606f",
-    "\u6253\u7535\u8bdd",
-    "\u8ba9",
-    "\u53eb",
-    "\u529d",
-    "\u5b89\u6170",
-    "\u63d0\u9192",
-    "\u7b11",
-    "\u5efa\u8bae",
-    "\u8981\u6c42",
-    "\u5631\u5490",
-    "\u53ee\u5631",
-)
 
 #: Hedges, adverbs, particles and negation: closed-class words that may stand between
 #: the author and the trigger without changing who wrote the clause. Longest first.
@@ -255,6 +227,21 @@ def _is_closed_class(text: str) -> bool:
     return not _strip_markers(text).strip()
 
 
+def _reader_is_a_prepositional_object(text: str) -> bool:
+    """True when every \u6211 in the text is the object of a preposition.
+
+    Used for a described subject: "\u5979\u5bf9\u6211\u597d" is the reader's own clause about her,
+    while "\u5979\u8ddf\u6211\u8bf4\u6211\u60f3\u592a\u591a\u4e86" has a second, un-prepositioned
+    \u6211 \u2014 which makes it her report. No verb has to be named for that
+    distinction.
+    """
+
+    for index, char in enumerate(text):
+        if char == "\u6211" and (index == 0 or text[index - 1] not in PREPOSITIONS):
+            return False
+    return True
+
+
 def _is_reader_side(text: str) -> bool:
     """True when only reader-side material is left: hedges, reader verbs, pronouns.
 
@@ -303,7 +290,11 @@ def reader_owned(text: str, start: int) -> bool:
     for pronoun in DESCRIBED_PRONOUNS:
         if rest.startswith(pronoun):
             after = rest[len(pronoun) :]
-            return not any(verb in after for verb in REPORT_VERBS)
+            if _is_closed_class(after):
+                return True
+            if after[:1] in PREPOSITIONS and after[1:2] in READER_PRONOUNS:
+                return _reader_is_a_prepositional_object(after)
+            return False
 
     return False
 

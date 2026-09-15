@@ -651,3 +651,72 @@ def test_negation_framing_is_untouched(analyzer: NedAnalyzer, text: str) -> None
 
     result = analyzer.analyze_text(text, mode="normal")
     assert result.signal_type == SignalType.SELF_DISCOUNT, text
+
+
+#: Unknown reporting predicates: never enumerated anywhere, and never admitted.
+#: The closure must not depend on knowing these verbs.
+UNKNOWN_REPORTING_PREDICATES = (
+    "\u5979\u5600\u5495\u6211\u60f3\u591a\u4e86",
+    "\u5979\u5410\u69fd\u6211\u60f3\u592a\u591a\u4e86",
+    "\u5979\u5ff5\u53e8\u6211\u522b\u81ea\u4f5c\u591a\u60c5",
+    "\u5979\u62b1\u6028\u6211\u60f3\u592a\u591a",
+    "\u5979\u56de\u4e86\u53e5\u6211\u60f3\u591a\u4e86",
+    "\u5979\u8bc4\u4ef7\u6211\u60f3\u592a\u591a",
+    "\u5979\u65ad\u8a00\u5979\u4e0d\u559c\u6b22\u6211",
+    "\u5979\u58f0\u79f0\u5979\u4e0d\u559c\u6b22\u6211",
+    "\u5979\u627f\u8ba4\u5979\u8ba8\u538c\u6211",
+    "\u5979\u5f3a\u8c03\u5979\u5bf9\u6211\u6ca1\u5174\u8da3",
+    "\u5979\u8865\u4e86\u4e00\u53e5\u5979\u6839\u672c\u4e0d\u5728\u4e4e\u6211",
+    "\u5979\u5199\u4e86\u4e00\u53e5\u6211\u60f3\u591a\u4e86",
+    "\u5979\u5600\u5495\uff1a\u201c\u4f60\u60f3\u592a\u591a\u4e86\u201d",
+    "\u5979\u8bf4\u4e86\u4e00\u53e5\uff1a\u201c\u4f60\u522b\u81ea\u4f5c\u591a\u60c5\u201d",
+    "\u5979\u56de\u6211\uff1a\u201c\u4f60\u60f3\u591a\u4e86\u201d",
+    "\u5979\u5199\u9053\uff1a\u201c\u5979\u4e0d\u559c\u6b22\u4f60\u201d",
+)
+
+#: Reader-owned shapes that must survive the closure, including the one where the
+#: reader is only the object of a preposition.
+CLOSURE_SURVIVORS = (
+    "\u6211\u8ddf\u5979\u8bf4\u6211\u60f3\u592a\u591a\u4e86",
+    "\u6211\u8ddf\u5979\u5988\u5988\u8bf4\u6211\u60f3\u591a\u4e86",
+    "\u6211\u5bf9\u5ba4\u53cb\u8bf4\u6211\u60f3\u592a\u591a\u4e86",
+    "\u6211\u5411\u8001\u5e08\u8bf4\u6211\u89c9\u5f97\u5979\u4e0d\u559c\u6b22\u6211",
+    "\u6211\u8ddf\u5c0f\u738b\u8bf4\u5979\u8ba8\u538c\u6211",
+    "\u6211\u672c\u6765\u89c9\u5f97\u53ef\u80fd\u53ea\u662f\u4eba\u597d",
+    "\u5979\u5bf9\u6211\u597d\u53ef\u80fd\u53ea\u662f\u51fa\u4e8e\u793c\u8c8c",
+    "\u5979\u53ef\u80fd\u53ea\u662f\u5ba2\u6c14",
+    "\u5979\u53ea\u662f\u628a\u6211\u5f53\u670b\u53cb",
+)
+
+
+@pytest.mark.parametrize("text", UNKNOWN_REPORTING_PREDICATES)
+def test_an_unknown_reporting_predicate_is_still_a_frame(analyzer: NedAnalyzer, text: str) -> None:
+    """嘀咕 / 吐槽 / 断言 / 承认 / 补了一句: no list knows these, and none is needed.
+
+    The earlier firewalls decided a described subject was reader-owned when no *known*
+    reporting verb followed it, so every verb nobody had listed walked through. The
+    branch now accepts only two positive shapes — closed-class material, or the reader
+    as the object of a preposition — which an unknown content word can never satisfy.
+    """
+
+    result = analyzer.analyze_text(text, mode="normal")
+    types = {span.signal_type for span in result.evidence}
+    assert SignalType.SELF_DISCOUNT not in types, text
+    assert SignalType.SELF_NEGATIVE_BELIEF not in types, text
+
+
+@pytest.mark.parametrize("text", CLOSURE_SURVIVORS)
+def test_the_closure_keeps_the_reader_owned_shapes(analyzer: NedAnalyzer, text: str) -> None:
+    result = analyzer.analyze_text(text, mode="normal")
+    types = {span.signal_type for span in result.evidence}
+    assert types & {SignalType.SELF_DISCOUNT, SignalType.SELF_NEGATIVE_BELIEF}, text
+
+
+def test_the_described_subject_branch_names_no_reporting_verb() -> None:
+    """The closure is structural: there is no reporting-verb list left to grow."""
+
+    from ned.app.core import attribution
+
+    assert not hasattr(attribution, "REPORT_VERBS")
+    assert attribution._reader_is_a_prepositional_object("\u5bf9\u6211\u597d") is True
+    assert attribution._reader_is_a_prepositional_object("\u8ddf\u6211\u8bf4\u6211") is False
