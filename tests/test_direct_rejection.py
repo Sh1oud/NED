@@ -824,16 +824,11 @@ def test_a_hedged_or_believed_proposition_is_not_a_stated_boundary(
 
 
 @pytest.mark.parametrize("text", OLD_HEDGE_DEBT)
-def test_the_old_hedge_debt_stays_at_baseline(analyzer: NedAnalyzer, text: str) -> None:
-    """The same hedge around the family's own triggers is registered, not fixed.
-
-    The shipped pack answers "她未必拒绝了我" and "她不一定让我滚" as boundaries.
-    This window may not spread that debt, and it may not silently rewrite it
-    either: the guards carry the new shapes only.
-    """
+def test_the_old_hedge_debt_is_closed(analyzer: NedAnalyzer, text: str) -> None:
+    """BATCH 2 closed this debt: hypothetical wording is not a stated boundary."""
 
     result = analyzer.analyze_text(text, mode="normal")
-    assert result.verdict.code == "ned.direct_rejection", text
+    assert result.verdict.code != "ned.direct_rejection", text
 
 
 @pytest.mark.parametrize("text", DIRECT_QUOTES)
@@ -980,9 +975,17 @@ def test_the_family_carries_one_negation_guard(book: RuleBook) -> None:
     guard = guards[0]
     for phrase in ("不足以证明", "不代表", "不等于", "不能说明", "不足以说明"):
         assert phrase in guard, phrase
-    for phrase in ("不一定", "未必", "不见得", "不确定"):
-        assert phrase in guard, phrase
-    assert "(我|咱)不(相信|认为|觉得|确定)" in guard, guard
+    # BATCH 2 moved the uncertainty vocabulary into the behaviour guard's frame
+    # classes, so the negation guard keeps only the evidence-negation and denial
+    # shapes: uncertainty is closed once, in one place.
+    behaviour = next(
+        pattern
+        for pattern in rejection_excludes(book)
+        if pattern.startswith("(?:可能|也许") and "做朋友" in pattern
+    )
+    for phrase in ("不一定", "未必", "不见得"):
+        assert phrase in behaviour, phrase
+    assert "确定" in behaviour and "确认" in behaviour, behaviour
     assert "没说" not in guard
     assert "没(说|讲|表示|称|提)" in guard, guard
     assert parser.compile_pattern(guard)
@@ -1001,3 +1004,122 @@ def test_the_hedge_guard_covers_the_new_shapes(book: RuleBook) -> None:
     behaviour = next(pattern for pattern in guards if "做朋友" in pattern)
     assert "当(个)?(普通|一般|平常)?朋友" in behaviour, behaviour
     assert "做(个)?(普通|一般|平常)?朋友" in behaviour, behaviour
+
+
+# --------------------------------------------------------------------------- #
+# BATCH 2: uncertainty cannot certify a boundary
+# --------------------------------------------------------------------------- #
+
+#: One representative per semantic class. None of these reports that a boundary
+#: was stated: they are modal, epistemic, belief-negation or question frames, and
+#: a frame about the proposition is not the proposition.
+UNCERTAINTY_FRAMES = (
+    # modal uncertainty
+    "她未必拒绝了我",
+    "她不一定想让我滚",
+    "她不见得想让我别联系她",
+    "她好像想让我别联系她",
+    "她大概不想再和我联系了",
+    # epistemic uncertainty: a negator plus an epistemic predicate
+    "我不确定她不想和我说话",
+    "我不能确定她不想见我",
+    "我无法确定她不想见我",
+    "我没法判断她是不是不想见我",
+    "我不能确认她说我们不合适",
+    "很难说她是不是不想联系我",
+    "不好说她是不是想让我离开",
+    # belief negation
+    "我不相信她不想见我",
+    "我不认为她是不想见我",
+    "我不觉得她真的拒绝我",
+    # question / speculation
+    "她是不是不想联系我",
+    "谁知道她是不是不想联系我",
+    "她会不会是想让我滚",
+    # a trailing modal scopes the clause in front of it
+    "她不想和我说话也说不定",
+    "她拒绝了我也未必",
+    "她说我们不合适也说不定",
+    # she is uncertain herself: her frame does not certify her boundary either
+    "她说她也不确定要不要继续",
+    "她说她暂时不知道想不想见我",
+)
+
+#: A stated boundary, including the arrangements the uncertainty guard must not
+#: reach into: a modal in a *later* clause does not cancel the boundary in front.
+CERTIFIED_BOUNDARIES = (
+    "她拒绝了我",
+    "她让我滚",
+    "她让我别联系她",
+    "她说我们不合适",
+    "她说不想见我",
+    "她说她只想当普通朋友",
+    "她说她不想发展成恋爱关系",
+    "她说：“我不想见你”",
+    "她明确说她不想见我",
+    "她明确拒绝了我，我现在可能很难受",
+    "我表白被拒了",
+    "我觉得我们不合适",
+)
+
+
+@pytest.mark.parametrize("text", UNCERTAINTY_FRAMES)
+def test_uncertainty_cannot_certify_a_boundary(analyzer: NedAnalyzer, text: str) -> None:
+    """不确定 ≠ 明确: a frame about the proposition is not the proposition.
+
+    BATCH 2 closes the debt with semantic classes rather than with the handful of
+    tokens the probe happened to miss: modal adverbs, a negator plus an epistemic
+    predicate, belief negation, question markers, and a trailing modal.
+    """
+
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.signal_type != SignalType.DIRECT_REJECTION, text
+    assert result.verdict.code != "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text) == [], text
+
+
+@pytest.mark.parametrize("text", CERTIFIED_BOUNDARIES)
+def test_a_certified_boundary_stays_certified(analyzer: NedAnalyzer, text: str) -> None:
+    """The guard may not reach a statement, or a modal in another clause."""
+
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code == "ned.direct_rejection", text
+
+
+def test_the_uncertainty_frame_is_classes_not_tokens(book: RuleBook) -> None:
+    """No bespoke token list: both guards share one class vocabulary."""
+
+    patterns = rejection_patterns(book)
+    guards = [pattern for pattern in rejection_excludes(book) if "可能|也许" in pattern]
+    assert len(guards) == 2, guards
+
+    # the shared head: modal adverbs, then a negator class times an epistemic class
+    frame = ""
+    for left, right in zip(*guards, strict=False):
+        if left != right:
+            break
+        frame += left
+    assert "可能|也许|或许|大概|大约|恐怕|似乎|好像" in frame, frame
+    assert "不|没|没有|未|难以|很难|无法|没法|不能|不敢|不会|难" in frame, frame
+    assert "确定|确认|判断|知道|清楚" in frame, frame
+    assert len(frame) > 120, len(frame)
+
+    for guard in guards:
+        assert guard.startswith(frame), guard
+        assert guard[len(frame) :].strip(), guard
+        # the rest of the vocabulary is shared too: question markers and idioms
+        assert "是不是|是否|会不会|算不算" in guard, guard
+        assert "说不准|说不好|难说|不好说" in guard, guard
+
+    # the reader-belief group stays in the behaviour guard alone:
+    # "我觉得我们不合适" is the reader's own judgement,
+    # not a frame about the other person's stance
+    belief = "(?:我|咱)(?:觉得"
+    assert sum(belief in guard for guard in guards) == 1, guards
+
+    # a token list would have named the sentences; a class frame cannot
+    for prose in UNCERTAINTY_FRAMES:
+        assert all(prose not in guard for guard in guards), prose
+
+    # and uncertainty is never a trigger: it only ever guards a real rejection
+    assert all("(?:可能|也许" not in pattern for pattern in patterns), patterns
