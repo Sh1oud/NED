@@ -1123,3 +1123,237 @@ def test_the_uncertainty_frame_is_classes_not_tokens(book: RuleBook) -> None:
 
     # and uncertainty is never a trigger: it only ever guards a real rejection
     assert all("(?:可能|也许" not in pattern for pattern in patterns), patterns
+
+
+# --------------------------------------------------------------------------- #
+# BATCH 3: a stated boundary may carry a receiver
+# --------------------------------------------------------------------------- #
+
+#: The receiver frame, and the part of it that must not be loosened: an adverbial
+#: slot from a closed class, then the reader as the receiver, then the speech verb.
+#: A noun cannot stand in the adverbial slot, so "她妈妈跟我说..." is not read as
+#: her own statement; the receiver slot is exactly 我/咱, so "我跟她说..." cannot
+#: enter through it either.
+RECEIVER_FRAME = (
+    "(?:今天|昨天|昨晚|今早|早上|上午|中午|下午|晚上|前天|那天|刚刚|刚才|直接|明确|"
+    "后来|又|就|才|已经|当面|亲口|突然|最后)?"
+    "(?:(?:(?:跟|和|与|对|给)(?:我|咱)"
+)
+RECEIVER_OBJECT = "(?:告诉|通知|告知)(?:我|咱)"
+
+#: She speaks, the reader receives, the proposition elides its inner subject.
+RECEIVER_BOUNDARIES = (
+    "她跟我说只想当普通朋友",
+    "她对我说只想当普通朋友",
+    "她告诉我只想当普通朋友",
+    "她跟我说不想见我",
+    "她对我说不想见我",
+    "她告诉我不想见我",
+    "她给我发消息说不想见我",
+    "她跟我说不想发展成恋爱关系",
+    "她对我说不想发展成恋爱关系",
+    "她告诉我不想发展成恋爱关系",
+    "她刚刚跟我说只想当普通朋友",
+    "她昨天对我说不想见我",
+    "她又跟我说不想见我",
+    "她明确跟我说不想见我",
+    "她亲口跟我说只想当普通朋友",
+    "她昨天给我发消息说不想见我",
+)
+
+#: The same frame with her words quoted, and with an inner subject spelled out.
+RECEIVER_QUOTES = (
+    "她跟我说：“我不想见你”",
+    "她对我说：“我只想跟你做普通朋友”",
+    "她刚刚跟我说：“我不想见你”",
+    "她跟我说她不想见我",
+    "她对我说她只想当普通朋友",
+    "她告诉我她不想发展成恋爱关系",
+)
+
+#: The reader is the speaker here. The anchor already refuses a pronoun behind a
+#: preposition, and the receiver slot only accepts 我/咱, so none of these may enter.
+READER_IS_THE_SPEAKER = (
+    "我跟她说我只想当普通朋友",
+    "我对她说我不想见她",
+    "我跟她说我不想发展成恋爱关系",
+    "我对她说：“我不想见你”",
+    "我跟她说：“我只想当普通朋友”",
+    "我昨天对她说我不想见她",
+    "我刚刚跟她说只想当普通朋友",
+    "我给她发消息说只想当普通朋友",
+    "我告诉她我不想见她",
+)
+
+#: A relay is not her own statement to the reader.
+RELAY_NOT_HER_STATEMENT = (
+    "她朋友跟我说她只想跟我做普通朋友",
+    "她妈妈跟我说只想当普通朋友",
+    "她姐姐跟我说只想当普通朋友",
+    "她朋友跟我说不想见我",
+    "她妈跟我说不想见我",
+    "她妈妈昨天跟我说不想见我",
+    "她老公跟我说不想发展成恋爱关系",
+    "她妈妈说只想当普通朋友",
+    "她的朋友跟我说只想当普通朋友",
+    "她跟我说朋友不想见我",
+)
+
+#: The question contract is not escaped by the receiver frame: asking about a
+#: boundary is not stating one.
+QUESTIONS_BEHIND_THE_RECEIVER = (
+    "她跟我说只想当普通朋友吗？",
+    "她跟我说不想见我这件事是真的吗",
+    "她跟我说“你是不想见我吗”",
+    "她问我是不是只想当普通朋友",
+    "她对我说“我们是不是不合适”",
+)
+
+#: BATCH 2 stays closed behind the receiver frame.
+UNCERTAINTY_BEHIND_THE_RECEIVER = (
+    "她跟我说可能不想见我",
+    "她跟我说她未必不想见我",
+    "她对我说也许还是做朋友比较好",
+    "她跟我说她也不确定要不要继续",
+    "她告诉我她不知道想不想见我",
+    "她跟我说她可能不想见我",
+    "她跟我说她是不是不想见我",
+    "她跟我说她不想见我的可能性不大",
+    "她跟我说她不确定要不要继续",
+)
+
+#: Saying that she never said it is not saying it.
+NEGATED_SPEECH = (
+    "她没有跟我说不想见我",
+    "她没跟我说只想当普通朋友",
+    "她从没跟我说过不想见我",
+    "她并没有跟我说不想见我",
+)
+
+#: REGISTERED DEBT, measured identically before and after BATCH 3. Two separate
+#: gaps, both older than this batch and both outside the receiver work:
+#:   * the unanchored friendship / distance patterns (1 and 2 in the pack) carry no
+#:     ownership at all, so "我告诉她我们还是做朋友吧" still reads as her boundary;
+#:   * the relay guard is still the enumerative one (kinship role nouns), and the
+#:     subject gap still tolerates a noun, so a named third party and a third-party
+#:     proposition can still be certified.
+#: These are pinned as today's behaviour so that closing them later is a visible,
+#: reviewed change rather than a silent one.
+REGISTERED_OPEN_DEBT = (
+    "我告诉她我们还是做朋友吧",
+    "我给她发消息说我们保持距离吧",
+    "我刚刚告诉她我们还是做朋友吧",
+    "她妈妈跟我说她不想见我",
+    "室友告诉我她不想见我",
+    "小王跟我说她觉得我们不合适",
+    "我妈告诉我她让我别联系她",
+    "她跟我说她姐姐只想当普通朋友",
+    "她告诉我别人觉得我们不合适",
+)
+
+#: A receiver frame does not reach the older two-character gap that owns
+#: "拒绝了我"; the natural forms with an inner subject do work and are pinned above.
+RECEIVER_REJECTION_ASYMMETRY = "她跟我说拒绝了我"
+
+
+@pytest.mark.parametrize("text", RECEIVER_BOUNDARIES)
+def test_a_receiver_frame_is_her_own_statement(analyzer: NedAnalyzer, text: str) -> None:
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code == "ned.direct_rejection", text
+    assert result.signal_type == SignalType.DIRECT_REJECTION, text
+
+
+@pytest.mark.parametrize("text", RECEIVER_QUOTES)
+def test_a_receiver_frame_carries_her_quoted_or_cased_words(
+    analyzer: NedAnalyzer, text: str
+) -> None:
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code == "ned.direct_rejection", text
+
+
+@pytest.mark.parametrize("text", READER_IS_THE_SPEAKER)
+def test_the_reader_as_speaker_is_not_her_boundary(analyzer: NedAnalyzer, text: str) -> None:
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code != "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text) == [], text
+
+
+@pytest.mark.parametrize("text", RELAY_NOT_HER_STATEMENT)
+def test_a_relay_through_a_named_person_is_not_her_statement(
+    analyzer: NedAnalyzer, text: str
+) -> None:
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code != "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text) == [], text
+
+
+@pytest.mark.parametrize("text", QUESTIONS_BEHIND_THE_RECEIVER)
+def test_a_question_behind_the_receiver_frame_stays_a_question(
+    analyzer: NedAnalyzer, text: str
+) -> None:
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code != "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text) == [], text
+
+
+@pytest.mark.parametrize("text", UNCERTAINTY_BEHIND_THE_RECEIVER)
+def test_uncertainty_behind_the_receiver_frame_is_still_uncertainty(
+    analyzer: NedAnalyzer, text: str
+) -> None:
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code != "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text) == [], text
+
+
+@pytest.mark.parametrize("text", NEGATED_SPEECH)
+def test_negated_speech_is_not_a_statement(analyzer: NedAnalyzer, text: str) -> None:
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code != "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text) == [], text
+
+
+@pytest.mark.parametrize("text", REGISTERED_OPEN_DEBT)
+def test_the_open_relay_debt_is_registered(analyzer: NedAnalyzer, text: str) -> None:
+    """Today's behaviour, kept visible: see REGISTERED_OPEN_DEBT for the causes."""
+
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code == "ned.direct_rejection", text
+
+
+def test_the_receiver_rejection_asymmetry_is_registered(analyzer: NedAnalyzer) -> None:
+    """The older two-character gap does not take the receiver frame; natural
+    forms with an inner subject do, and those are pinned above."""
+
+    result = analyzer.analyze_text(RECEIVER_REJECTION_ASYMMETRY, mode="normal")
+    assert result.verdict.code != "ned.direct_rejection", RECEIVER_REJECTION_ASYMMETRY
+
+
+def test_the_receiver_frame_states_the_roles_explicitly(book: RuleBook) -> None:
+    """sender, adverbial, receiver, speech, proposition: five explicit slots."""
+
+    patterns = subject_anchored_patterns(book)
+    assert len(patterns) == 3, patterns
+    for pattern in patterns:
+        # the sender is still the anchored other person, and still may not follow a
+        # preposition: "我跟她说..." cannot become the sender
+        assert pattern.startswith(ANCHOR), pattern[:40]
+        # the subject gap is unchanged and still refuses 我
+        assert pattern.count(SUBJECT_GAP) == 1, pattern
+        # the receiver frame is a separate, explicit alternative
+        assert pattern.count(RECEIVER_FRAME) == 1, pattern
+        assert pattern.count(RECEIVER_OBJECT) == 1, pattern
+    # no generic gap was loosened to let 我 through: the only 我-tolerant slot is the
+    # receiver frame itself
+    for pattern in patterns:
+        head = pattern[: pattern.index(RECEIVER_FRAME)]
+        assert "[^。！？!?，,我]{0,2}(?:跟|和|与|对|给)" not in head, pattern
+
+
+def test_the_question_guard_sees_the_receiver_frame(book: RuleBook) -> None:
+    """The interrogative contract is inherited, not escaped: exclude 28 gets the
+    same frame, so "她跟我说只想当普通朋友吗？" is a question about it."""
+
+    guards = guards_for(book, "为什么|怎么|难道|如何")
+    assert len(guards) == 1, guards
+    assert RECEIVER_FRAME in guards[0], guards[0]
+    assert guards[0].count(RECEIVER_FRAME) == 1, guards[0]
