@@ -36,7 +36,8 @@ EXPANDED: dict[str, list[str]] = {
         "(聊|说|打电话)[^。！？!?，,]{0,3}(一整晚|一晚上|一整夜|一通宵|整晚|整夜)",
     ],
     "zh.self_discount": [
-        "(可能|也许|或许|大概|会不会|是不是|别是)[^。！？!?，,]{0,3}只是"
+        "(可能|也许|或许|大概|会不会|是不是|别是|我觉得|我认为|我感觉)"
+        "[^。！？!?，,]{0,3}只是"
         "[^。！？!?，,]{0,4}(人好|礼貌|客气|朋友|友善|同情|可怜|心软|习惯|顺手|无聊|寂寞|"
         "不好意思|愧疚|亏欠|责任|怕我|难过|为难|对谁都|对每个人|家教|性格|人家|有礼貌|心善)",
         "想(得)?(太|很|好)多(了)?",
@@ -167,10 +168,15 @@ def families(result: Any) -> set[str]:
 
 
 def test_only_the_two_families_gained_patterns(rules: dict[str, dict[str, Any]]) -> None:
+    """This round's two families, unchanged by the later Stage 1 wording patch."""
+
     for rule_id, added in EXPANDED.items():
         patterns = rules[rule_id]["patterns"]
         for construction in added:
             assert construction in patterns, (rule_id, construction)
+    # v0.1.8 Stage 1 added exactly one pattern elsewhere, and only one
+    assert "(想|要|愿意|希望)?和我做男女朋友" in rules["zh.commitment_offer"]["patterns"]
+    assert len(rules["zh.commitment_offer"]["patterns"]) == 8
 
 
 def test_the_rule_pack_did_not_grow(rules: dict[str, dict[str, Any]]) -> None:

@@ -419,6 +419,53 @@
 
   /* --------------------------------------------------------- analyze render */
 
+  // Deterministic first-screen flavour for the audit, by substring of the
+  // reader's own words. Same table the CLI reads; nothing is generated.
+  function auditFlavourLines(reading) {
+    var flavours = catalogueObj("audit_flavours");
+    var keys = Object.keys(flavours);
+    for (var index = 0; index < keys.length; index += 1) {
+      if (String(reading).indexOf(keys[index]) !== -1) { return list(flavours[keys[index]]); }
+    }
+    return catalogueList("audit_default_lines");
+  }
+
+  // The five-part Epistemic Breakdown. Rows come from the audit data plus the
+  // catalogue copy. The card is shown only under the audit screen that promised
+  // it: audit data recorded while another screen decided the outcome stays out of
+  // the interface, and so does a card with nothing to quote.
+  function renderEpistemicBreakdown(d, situation) {
+    var card = $("epistemic-breakdown");
+    var host = $("audit-rows");
+    if (!card || !host) { return; }
+    var audit = obj(obj(d).interpretation_audit);
+    if (String(situation || "") !== "explanation_audit" || !String(audit.reading || "")) {
+      card.hidden = true;
+      clear(host);
+      return;
+    }
+    var copy = catalogueObj("audit_copy");
+    var material = list(audit.material);
+    var materialText = material.length > 0 ? material.join("；") : DASH;
+    var attachment = list(audit.other_material).length > 0
+      ? String(copy.attachment_some || "")
+      : String(copy.attachment_none || "");
+    var pairs = [
+      String(copy.material_label || ""), materialText,
+      String(copy.reading_label || ""), String(audit.reading || ""),
+      String(copy.attachment_label || ""), attachment + String(copy.relation_note || ""),
+      String(copy.unknown_label || ""), String(copy.unknown || ""),
+      String(copy.limit_label || ""),
+      String(copy.limit || "").split("{material}").join(materialText),
+    ];
+    clear(host);
+    for (var index = 0; index < pairs.length; index += 2) {
+      host.appendChild(el("dt", "audit-label", pairs[index]));
+      host.appendChild(el("dd", "audit-text", pairs[index + 1]));
+    }
+    card.hidden = false;
+  }
+
   function renderHypotheses(raw, payload) {
     var host = $("hypotheses-list");
     if (!host) { return; }
@@ -557,7 +604,13 @@
 
   // The reader has supplied their own discount of real positive evidence: NED
   // should answer that instead of running a generic good-news joke.
-  function displaySituation(baseSituation, evidence) {
+  function displaySituation(baseSituation, evidence, payload) {
+    // The reader submitted their own explanation: audit it instead of answering
+    // it with the old self-service-denial screen.
+    if (obj(obj(payload).interpretation_audit).reading) {
+      var audited = catalogueList("self_discount_promotes");
+      if (audited.indexOf(baseSituation) !== -1) { return "explanation_audit"; }
+    }
     var allowed = catalogueList("self_discount_signal_types");
     var discount = false;
     var positive = false;
@@ -696,6 +749,9 @@
         lines_with_basis: [] };
       lines = list(pack.lines);
     }
+    if (situation === "explanation_audit") {
+      lines = auditFlavourLines(capturedReading(d));
+    }
     if (basis && list(copy.lines_with_basis).length > 0) {
       var filled = fillReading(list(copy.lines_with_basis), capturedReading(d));
       lines = filled === null ? list(copy.lines) : filled;
@@ -723,7 +779,7 @@
     var reason = asym ? obj(obj(asym).evidence_profile).comparison_reason : "";
     var baseSituation = situationFor(v.code, reason);
     var attached = asym ? obj(obj(asym).user_interpretation) : null;
-    var situation = displaySituation(baseSituation, d.evidence);
+    var situation = displaySituation(baseSituation, d.evidence, d);
     var basis = basisFromSignals(d.evidence) || Boolean(attached && attached.reading_present);
 
     report.hidden = false;
@@ -760,6 +816,7 @@
     ]);
     setRaw("verdict-emoji", displayVerdictEmoji(v.emoji, situation, shownVerdict));
     renderHypotheses(d.alternative_explanations, d);
+    renderEpistemicBreakdown(d, situation);
     renderReaching(d.ned_reaching_level, d.reaching_label);
     renderPersonality("reaching-personality", "analysis", d.ned_reaching_level);
     renderEvidence(d.evidence);

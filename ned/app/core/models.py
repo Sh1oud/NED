@@ -223,6 +223,34 @@ class UserInterpretation(BaseModel):
     interpretive_score: float | None = None
 
 
+#: What the input does or does not contain for the reader's own explanation.
+InterpretationMaterialStatus = Literal["no_additional_material", "additional_material_present"]
+
+
+class InterpretationAudit(BaseModel):
+    """The audit of an explanation the reader supplied themselves.
+
+    Stage 1 asks one question only: does the input report material for this
+    explanation beyond the material the explanation is about. NED never decides
+    whether the explanation is true, and it never connects material to it:
+    ``material_status`` records existence, and ``relation_assessed`` stays false
+    so the invariant is visible in the payload and testable.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    #: The reader's own words, verbatim.
+    reading: str
+    reading_rule_id: str
+    #: What the input reports, as material labels.
+    material: list[str] = Field(default_factory=list)
+    #: Material the input reports beyond the material the explanation is about.
+    other_material: list[str] = Field(default_factory=list)
+    material_status: InterpretationMaterialStatus = "no_additional_material"
+    #: Stage 1 never assesses the relation between material and explanation.
+    relation_assessed: bool = False
+
+
 class AsymmetryResult(BaseModel):
     """Output of the Evidence Asymmetry Detector."""
 
@@ -422,6 +450,8 @@ class AnalysisResult(BaseModel):
     observed_evidence: str = ""
     irrational_amplification: str = ""
     asymmetry: AsymmetryResult | None = None
+    #: Present only when the reader supplied an explanation of their own.
+    interpretation_audit: InterpretationAudit | None = None
     easter_eggs: list[EasterEggHit] = Field(default_factory=list)
     breakdown: ScoringBreakdown = Field(default_factory=ScoringBreakdown)
     engine: EngineInfo

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from ned.app.core.analyzer import NedAnalyzer
+from ned.app.core.audit import InterpretationAudit as InterpretationAudit
 from ned.app.core.models import (
     AnalysisResult,
     AnalyzeRequest,

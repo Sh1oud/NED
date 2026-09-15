@@ -36,6 +36,7 @@ FROZEN_PATTERNS: dict[str, list[str]] = {
         "她先发",
     ],
     "zh.commitment_offer": [
+        "(想|要|愿意|希望)?和我做男女朋友",
         "做我(男|女)?朋友",
         "当我的?(男|女)朋友",
         "我们在一起(吧)?",
@@ -172,7 +173,10 @@ def test_the_guards_are_regions_not_bare_words(rules: dict[str, dict[str, Any]])
 
     for rule_id in ("zh.initiation", "zh.commitment_offer"):
         for pattern in rules[rule_id]["exclude"]:
-            assert "主动" in pattern or "在一起" in pattern, (rule_id, pattern)
+            assert "主动" in pattern or "在一起" in pattern or "和我做男女朋友" in pattern, (
+                rule_id,
+                pattern,
+            )
     for rule_id in ("zh.care", "zh.gift", "zh.daily_goodnight"):
         guards = rules[rule_id]["exclude"]
         assert any(

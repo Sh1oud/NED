@@ -36,8 +36,10 @@ from ned.app.ui.personality import (
     QUALITY_SOURCE,
     ROUTINE_CLAIM,
     SELF_DISCOUNT_SIGNAL_TYPES,
+    SITUATION_EXPLANATION_AUDIT,
     PersonalityFeedback,
     analysis_feedback,
+    audit_breakdown_rows,
     captured_reading,
     comedy_hypotheses,
     emoji_discipline,
@@ -153,7 +155,10 @@ def screen_context(result: AnalysisResult) -> tuple[str, bool, str]:
     self_discount = any(item in SELF_DISCOUNT_SIGNAL_TYPES for item in signal_types)
     positive_evidence = any(span.polarity == "positive" for span in result.evidence)
     situation = screen_situation(
-        base, self_discount=self_discount, positive_evidence=positive_evidence
+        base,
+        self_discount=self_discount,
+        positive_evidence=positive_evidence,
+        audit=result.interpretation_audit is not None,
     )
     return situation, basis, language
 
@@ -312,11 +317,43 @@ def verdict_text(emoji: str, text: str) -> str:
     return f"{emoji} {text}"
 
 
+def render_epistemic_breakdown(result: AnalysisResult, situation: str, out: Console) -> None:
+    """The expanded audit, and only under the screen that promised it.
+
+    Stage 1 shows this card when the result actually reached the Alternative
+    Explanation Audit. An audit recorded while a different screen decided the
+    outcome — a boundary, a latency verdict, hostile input — stays out of the
+    interface: relating those materials to the explanation is Stage 2's subject.
+    """
+
+    audit = result.interpretation_audit
+    if audit is None or situation != SITUATION_EXPLANATION_AUDIT:
+        return
+    body = Table(show_header=False, box=None, padding=(0, 2))
+    rows = audit_breakdown_rows(audit)
+    for label, text in rows:
+        body.add_row(label, Text(text))
+    out.print(
+        Panel(
+            Group(
+                body,
+                Text(
+                    "材料是输入报告的材料，不是本机构核实过的事实。",
+                    style="dim italic",
+                ),
+            ),
+            title="Epistemic Breakdown",
+            border_style="cyan",
+        )
+    )
+
+
 def render_analysis(result: AnalysisResult, out: Console) -> None:
     """Render an analysis result: NED's screen first, the evidence after it."""
 
     situation, basis, language = screen_context(result)
     render_first_screen(result, situation, basis, language, out)
+    render_epistemic_breakdown(result, situation, out)
     out.print()
     out.print(Text("Technical Details " + "\u2500" * 44, style="dim"))
     out.print(

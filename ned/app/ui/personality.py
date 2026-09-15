@@ -17,6 +17,8 @@ import re
 from collections.abc import Callable, Iterable
 from dataclasses import asdict, dataclass
 
+from ned.app.core.audit import CLAUSE_SEPARATORS
+
 MODES: tuple[str, ...] = ("normal", "scientific", "extreme")
 
 DASH = "\u2014"
@@ -230,6 +232,8 @@ SITUATION_SELF_DISCOUNT_ONLY = "self_discount_only"
 SITUATION_STARTED_AGAIN = "started_again"
 SITUATION_POSITIVE = "positive"
 SITUATION_NO_SIGNAL = "no_signal"
+#: The reader submitted their own explanation of material the input reports.
+SITUATION_EXPLANATION_AUDIT = "explanation_audit"
 SITUATION_NEUTRAL = "neutral"
 
 #: The priority ladder, as data. The engine's own verdict ordering already
@@ -294,7 +298,11 @@ SELF_DISCOUNT_PROMOTES: tuple[str, ...] = (SITUATION_POSITIVE,)
 
 
 def screen_situation(
-    base_situation: str, *, self_discount: bool = False, positive_evidence: bool = False
+    base_situation: str,
+    *,
+    self_discount: bool = False,
+    positive_evidence: bool = False,
+    audit: bool = False,
 ) -> str:
     """The screen to show, given what the engine already found.
 
@@ -302,6 +310,11 @@ def screen_situation(
     NED should answer that discount instead of running a generic good-news joke.
     Everything else is untouched, and nothing here can change a verdict.
     """
+
+    if audit and base_situation in SELF_DISCOUNT_PROMOTES:
+        # the reader supplied their own explanation: audit it instead of
+        # answering it with the old self-service-denial screen
+        return SITUATION_EXPLANATION_AUDIT
 
     if self_discount and positive_evidence:
         if base_situation in SELF_DISCOUNT_PROMOTES:
@@ -645,10 +658,9 @@ def fact_override(rule_id: str, text: str, language: str = "zh") -> str:
 
 READING_SLOT = "{reading}"
 
-#: Where a displayed quote stops. The quote is always a verbatim substring of the
-#: input: the engine's span marks where the reading starts, and this list marks the
-#: end of the clause it sits in.
-CLAUSE_SEPARATORS: tuple[str, ...] = ("。", "！", "？", "!", "?", "，", ",", "；", ";", "\n")
+#: Where a displayed quote stops. The rule and the list live in the core audit
+#: module, which applies them to the audit data itself; this layer re-exports the
+#: name so screens and payloads cannot disagree about where a clause ends.
 
 
 def captured_reading(text: str, start: int, end: int) -> str:
@@ -741,6 +753,109 @@ def _fixed(screens: dict[str, FirstScreen]) -> dict[str, dict[str, FirstScreen]]
     """One screen for every mode. Boundary decisions do not get funnier."""
 
     return dict.fromkeys(MODES, screens)
+
+
+# --------------------------------------------------------------------------- #
+# Alternative Explanation Audit (Stage 1)
+# --------------------------------------------------------------------------- #
+
+#: One flavour per reason the reader can submit. Deterministic lookup by
+#: substring of the reader's own words; nothing is generated, nothing is random.
+AUDIT_FLAVOURS: dict[str, tuple[str, str]] = {
+    "礼貌": (
+        "「礼貌」已受理，附件：0。",
+        "能解释一切的解释，本机构先放进观察名单。👍",
+    ),
+    "人好": (
+        "「人好」已入档。",
+        "该理由本机构一天要用四十次，今天按规定回避，转第二科审查附件。👍",
+    ),
+    "无聊": (
+        "「无聊」已入档，附件：0。",
+        "补「可能」两个字，不算补材料。👍",
+    ),
+    "顺手": (
+        "「顺手」已入档，附件：0。",
+        "那件东西已经进卷；「顺手」是另一份说明。👍",
+    ),
+    "习惯": (
+        "「习惯」已入档，附件：0。",
+        "习惯是另一份结论，不是已经交上来的材料。👍",
+    ),
+    "可怜": (
+        "「可怜」已入档，附件：0。",
+        "悲观解释不享受免检通道。（该通道由本机构自行开设，现已关闭。）👍",
+    ),
+    "同情": (
+        "「同情」已入档，附件：0。",
+        "悲观解释不享受免检通道。（该通道由本机构自行开设，现已关闭。）👍",
+    ),
+}
+
+AUDIT_DEFAULT_LINES: tuple[str, str] = (
+    "你的解释已受理，附件：0。",
+    "本机构不判断它对不对，只登记它有没有带材料。👍",
+)
+
+AUDIT_DEFAULT_LINES_EN: tuple[str, str] = (
+    "Your explanation has been accepted for filing. Attachments: 0.",
+    "This agency does not judge whether it is right; it records whether it came with material. 👍",
+)
+
+AUDIT_REALITY: dict[str, str] = {
+    "zh": "输入报告的是材料，不是本机构核实过的事实。解释有没有带附件，与它对不对，是两件事。",
+    "en": "The input reports material; this agency has verified nothing. Whether an "
+    "explanation came with attachments is a separate question from whether it is right.",
+}
+
+#: The five parts of the expanded breakdown: labels first, then the sentences.
+AUDIT_COPY: dict[str, str] = {
+    "material_label": "输入报告的材料",
+    "reading_label": "你提交的解释",
+    "attachment_label": "解释提交的材料",
+    "unknown_label": "仍然未知",
+    "limit_label": "目前最多能说到这里",
+    "attachment_none": "当前输入没有为该解释另外提交材料。",
+    "attachment_some": "输入还有其他材料；这些材料与该解释之间的关系，当前 NED 不作判断。",
+    "relation_note": "把材料与解释连起来，需要一份本机构没有做的判断：本机构只登记材料是否存在。",
+    "unknown": "这条解释涉及的原因与动机，输入没有报告。",
+    "limit": "输入报告了：{material}。再往上加，材料就接不住了。",
+    "disclaimer": "材料是输入报告的材料，不是本机构核实过的事实。",
+}
+
+
+def audit_lines(reading: str) -> tuple[str, ...]:
+    """The first-screen lines for one explanation, by deterministic lookup."""
+
+    for key, lines in AUDIT_FLAVOURS.items():
+        if key in reading:
+            return lines
+    return AUDIT_DEFAULT_LINES
+
+
+def audit_breakdown_rows(audit: object) -> tuple[tuple[str, str], ...]:
+    """The five-part Epistemic Breakdown for one audit. Display only.
+
+    Every row reads the audit itself, the quote included. The reader's words are
+    stored complete at the source, so no display layer completes, corrects or
+    re-derives them: this card cannot disagree with the payload it came from.
+    """
+
+    shown = str(getattr(audit, "reading", ""))
+    material = [str(item) for item in (getattr(audit, "material", None) or [])]
+    other = [str(item) for item in (getattr(audit, "other_material", None) or [])]
+    joined = "；".join(material) or "—"
+    return (
+        (AUDIT_COPY["material_label"], joined),
+        (AUDIT_COPY["reading_label"], shown),
+        (
+            AUDIT_COPY["attachment_label"],
+            AUDIT_COPY["attachment_some" if other else "attachment_none"]
+            + AUDIT_COPY["relation_note"],
+        ),
+        (AUDIT_COPY["unknown_label"], AUDIT_COPY["unknown"]),
+        (AUDIT_COPY["limit_label"], AUDIT_COPY["limit"].replace("{material}", joined)),
+    )
 
 
 #: situation -> mode -> language -> FirstScreen
@@ -1281,6 +1396,20 @@ FIRST_SCREEN: dict[str, dict[str, dict[str, FirstScreen]]] = {
             ),
         ),
     },
+    SITUATION_EXPLANATION_AUDIT: _fixed(
+        _bi(
+            _screen(
+                "ALTERNATIVE EXPLANATION AUDIT",
+                AUDIT_DEFAULT_LINES,
+                AUDIT_REALITY["zh"],
+            ),
+            _screen(
+                "ALTERNATIVE EXPLANATION AUDIT",
+                AUDIT_DEFAULT_LINES_EN,
+                AUDIT_REALITY["en"],
+            ),
+        )
+    ),
     SITUATION_SELF_DISCOUNT_ONLY: {
         "normal": _bi(
             _screen(
@@ -1385,6 +1514,7 @@ QUALITY_SOURCE: dict[str, str] = {
     SITUATION_MISMATCH: "none",
     SITUATION_TIMELINE_BOUNDARY: "none",
     SITUATION_TIMELINE: "none",
+    SITUATION_EXPLANATION_AUDIT: "strength",
     SITUATION_NO_SIGNAL: "none",
     SITUATION_SELF_DISCOUNT_ONLY: "none",
     SITUATION_NEUTRAL: "none",
@@ -1414,6 +1544,14 @@ def first_screen(
     screen = by_language.get("en" if language == "en" else "zh")
     if screen is None:  # pragma: no cover - every situation ships both languages
         screen = by_language.get("zh") or FIRST_SCREEN[SITUATION_NEUTRAL]["normal"]["zh"]
+
+    if situation == SITUATION_EXPLANATION_AUDIT:
+        # the flavour follows the reader's own words, in every mode
+        return FirstScreen(
+            title=screen.title,
+            lines=audit_lines(reading),
+            reality=screen.reality,
+        )
 
     if situation == SITUATION_POSITIVE and mode == "normal" and language != "en":
         pack = comedy_pack(rule)
@@ -1548,11 +1686,19 @@ def web_personality_catalog() -> dict[str, object]:
         "greeting_rule": GREETING_RULE,
         "routine_claim": ROUTINE_CLAIM,
         "greeting_one_off_fact": ONE_OFF_GREETING_FACT,
+        "explanation_audit_situation": SITUATION_EXPLANATION_AUDIT,
+        "audit_flavours": {key: list(lines) for key, lines in AUDIT_FLAVOURS.items()},
+        "audit_default_lines": list(AUDIT_DEFAULT_LINES),
+        "audit_copy": AUDIT_COPY,
     }
 
 
 __all__ = [
     "ANALYSIS_FEEDBACK",
+    "AUDIT_COPY",
+    "AUDIT_DEFAULT_LINES",
+    "AUDIT_FLAVOURS",
+    "AUDIT_REALITY",
     "BOUNDARY_SITUATIONS",
     "CLAUSE_SEPARATORS",
     "COMEDY_PACKS",
@@ -1584,12 +1730,15 @@ __all__ = [
     "SELF_DISCOUNT_SIGNAL_TYPES",
     "SITUATION_BY_COMPARISON_REASON",
     "SITUATION_BY_VERDICT",
+    "SITUATION_EXPLANATION_AUDIT",
     "TECHNICAL_REACHING",
     "VERDICT_DISPLAY_OVERRIDES",
     "ComedyPack",
     "FirstScreen",
     "PersonalityFeedback",
     "analysis_feedback",
+    "audit_breakdown_rows",
+    "audit_lines",
     "captured_reading",
     "comedy_hypotheses",
     "comedy_pack",

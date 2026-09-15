@@ -98,6 +98,7 @@ def situation_of(result: Any) -> str:
         p.resolve_situation(result.verdict.code),
         self_discount=any(item in p.SELF_DISCOUNT_SIGNAL_TYPES for item in signal_types),
         positive_evidence=any(span.polarity == "positive" for span in result.evidence),
+        audit=result.interpretation_audit is not None,
     )
 
 
@@ -758,17 +759,21 @@ def test_b_a_self_discount_is_answered_as_such(analyzer: NedAnalyzer, mode: str)
 
     result = analyzer.analyze_text(SELF_DISCOUNT_POSITIVE, mode=mode)  # type: ignore[arg-type]
     assert basis_of(result) is True
-    assert situation_of(result) == p.SITUATION_SELF_DISCOUNT_POSITIVE
+    # Stage 1: the reader's explanation is audited instead of answered generically
+    assert situation_of(result) == p.SITUATION_EXPLANATION_AUDIT
     screen = screen_for(result)
+    assert screen.title == "ALTERNATIVE EXPLANATION AUDIT"
     assert screen.title != p.first_screen(p.SITUATION_POSITIVE, mode, "zh").title
 
 
-def test_b_extreme_signs_the_application_off(analyzer: NedAnalyzer) -> None:
+def test_b_extreme_answers_the_audit(analyzer: NedAnalyzer) -> None:
+    """The audit speaks in every register; it signs nothing off."""
+
     result = analyzer.analyze_text(SELF_DISCOUNT_POSITIVE, mode="extreme")
     _screen, text = screen_text(result, "extreme")
-    assert SIGNED_OFF in text
-    assert "👍" in text
-    assert "你：可能只是人好。" in text
+    assert "ALTERNATIVE EXPLANATION AUDIT" in text
+    assert p.AUDIT_FLAVOURS["人好"][1] in text
+    assert SIGNED_OFF not in text
 
 
 def test_c_the_evidence_reading_does_not_move(analyzer: NedAnalyzer) -> None:
@@ -867,23 +872,27 @@ def test_g_the_three_modes_say_different_things(analyzer: NedAnalyzer) -> None:
 
     screens = {}
     for mode in p.MODES:
-        result = analyzer.analyze_text(SELF_DISCOUNT_POSITIVE, mode=mode)  # type: ignore[arg-type]
+        result = analyzer.analyze_text(GENERIC_POSITIVE, mode=mode)  # type: ignore[arg-type]
         screen = screen_for(result)
         screens[mode] = (screen.title, *screen.lines)
     assert len(set(screens.values())) == 3, screens
-    assert screens["normal"][0] == "SELF-DISCOUNT RECEIVED"
-    assert screens["scientific"][0] == "REVIEWER COMMENT RECEIVED"
-    assert screens["extreme"][0] == "SELF-SERVICE DENIAL"
+    assert screens["normal"][0] == "POSITIVE EVIDENCE DETECTED"
+    assert screens["scientific"][0] == "MANUSCRIPT RECEIVED"
+    assert screens["extreme"][0] == "样本量 n=1"
 
 
 def test_g_the_long_input_gets_the_same_screen(analyzer: NedAnalyzer) -> None:
     """The reported case: strong declaration plus the reader's own discount."""
 
     result = analyzer.analyze_text(SELF_DISCOUNT_LONG, mode="extreme")
-    assert situation_of(result) == p.SITUATION_SELF_DISCOUNT_POSITIVE
-    screen = screen_for(result)
-    assert SIGNED_OFF in " ".join(screen.lines)
-    assert len(screen.lines) == 3
+    assert situation_of(result) == p.SITUATION_EXPLANATION_AUDIT
+    _screen, blob = screen_text(result, "extreme")
+    assert p.AUDIT_FLAVOURS["人好"][1] in blob
+    audit = result.interpretation_audit
+    assert audit is not None
+    assert audit.reading in SELF_DISCOUNT_LONG
+    rows = dict(p.audit_breakdown_rows(audit))
+    assert rows[p.AUDIT_COPY["reading_label"]] == audit.reading
 
 
 def test_h_the_web_and_the_cli_read_one_source(client: TestClient) -> None:
@@ -924,8 +933,9 @@ def test_h_the_cli_context_agrees_with_the_shared_rule(analyzer: NedAnalyzer) ->
 def test_h_the_cli_prints_the_promoted_screen(analyzer: NedAnalyzer) -> None:
     result = runner.invoke(cli_app, ["analyze", SELF_DISCOUNT_POSITIVE, "--mode", "extreme"])
     assert result.exit_code == 0
-    assert "SELF-SERVICE DENIAL" in result.stdout
-    assert SIGNED_OFF in result.stdout
+    assert "ALTERNATIVE EXPLANATION AUDIT" in result.stdout
+    assert p.AUDIT_FLAVOURS["人好"][1] in result.stdout
+    assert "Epistemic Breakdown" in result.stdout
 
 
 def test_i_the_first_screen_never_shows_a_basis_field_name(analyzer: NedAnalyzer) -> None:
@@ -1053,7 +1063,8 @@ def test_b_a_discount_with_evidence_is_not_stolen_by_the_lone_discount(
     """B. positive evidence present, so it is the other screen."""
 
     result = analyzer.analyze_text(SELF_DISCOUNT_POSITIVE, mode="normal")
-    assert situation_of(result) == p.SITUATION_SELF_DISCOUNT_POSITIVE
+    # Stage 1: material plus a reader explanation is audited, not answered alone
+    assert situation_of(result) == p.SITUATION_EXPLANATION_AUDIT
     assert situation_of(result) != p.SITUATION_SELF_DISCOUNT_ONLY
     blob = " ".join([screen_for(result).title, *screen_for(result).lines])
     assert "正向证据尚未提交" not in blob
@@ -1425,7 +1436,7 @@ def test_h_technical_details_is_still_folded(structure: _Structure) -> None:
 QUOTE_CASES = (
     ("她说喜欢我，可能只是人好", "可能只是人好"),
     ("她说喜欢我，可能只是出于礼貌", "可能只是出于礼貌"),
-    ("她每天陪我聊天到很晚，我觉得可能只是习惯了", "可能只是习惯了"),
+    ("她每天陪我聊天到很晚，我觉得可能只是习惯了", "我觉得可能只是习惯了"),
     ("她说喜欢我，她可能只是心软", "可能只是心软"),
     ("她说喜欢我，也许只是怕我难过", "也许只是怕我难过"),
 )
@@ -1456,19 +1467,32 @@ def screen_text(result: Any, mode: str | None = None) -> tuple[Any, str]:
 def test_a2_the_quote_is_exactly_what_the_reader_wrote(
     analyzer: NedAnalyzer, text: str, expected: str
 ) -> None:
+    """Stage 1: the verbatim quote lives in the breakdown, never invented."""
+
     result = analyzer.analyze_text(text, mode="extreme")
+    audit = result.interpretation_audit
+    assert audit is not None, text
+    assert audit.reading in text, (audit.reading, text)
+    # what the screen shows is the reader's clause, complete
+    # one quote, at the source: the card shows what the audit holds
+    rows = dict(p.audit_breakdown_rows(audit))
+    assert rows[p.AUDIT_COPY["reading_label"]] == expected, rows
+    assert audit.reading == expected, (audit.reading, expected)
     _screen, blob = screen_text(result, "extreme")
-    assert f"你：{expected}。" in blob, blob
-    assert blob.count("你：") == 1
+    assert "你：" not in blob
 
 
 def test_a2_the_old_literal_is_not_quoted_back(analyzer: NedAnalyzer) -> None:
     """The defect: NED quoting a phrase the reader never wrote."""
 
-    result = analyzer.analyze_text("她说喜欢我，可能只是出于礼貌", mode="extreme")
+    text = "她说喜欢我，可能只是出于礼貌"
+    result = analyzer.analyze_text(text, mode="extreme")
+    audit = result.interpretation_audit
+    assert audit is not None
+    assert audit.reading == "可能只是出于礼貌"
     _, blob = screen_text(result, "extreme")
-    assert "你：可能只是出于礼貌。" in blob
-    assert "你：可能只是人好。" not in blob
+    shown = blob + " ".join(dict(p.audit_breakdown_rows(audit)).values())
+    assert "可能只是人好" not in shown
 
 
 def test_a2_the_readers_own_words_survive_verbatim(analyzer: NedAnalyzer) -> None:
@@ -1483,8 +1507,11 @@ def test_a2_the_readers_own_words_survive_verbatim(analyzer: NedAnalyzer) -> Non
 def test_a2_a_truncated_reason_is_completed(analyzer: NedAnalyzer) -> None:
     """The engine's span ends at 习惯; the quote must not."""
 
-    result = analyzer.analyze_text("她每天陪我聊天到很晚，我觉得可能只是习惯了", mode="extreme")
-    assert reading_for(result) == "可能只是习惯了"
+    text = "她每天陪我聊天到很晚，我觉得可能只是习惯了"
+    result = analyzer.analyze_text(text, mode="extreme")
+    # R2 widened the attribution frame, so the captured reading now includes it
+    assert reading_for(result) == "我觉得可能只是习惯了"
+    assert reading_for(result) in text
 
 
 def test_a2_no_reading_means_no_quotation(analyzer: NedAnalyzer) -> None:
@@ -1504,10 +1531,23 @@ def test_a2_no_reading_means_no_quotation(analyzer: NedAnalyzer) -> None:
 
 
 def test_a2_the_scientific_quote_is_dynamic_too(analyzer: NedAnalyzer) -> None:
+    """The scientific slot still fills dynamically, and the audit follows mode too."""
+
+    from ned.app.ui.personality import SITUATION_SELF_DISCOUNT_POSITIVE
+
+    filled = p.first_screen(
+        SITUATION_SELF_DISCOUNT_POSITIVE,
+        "scientific",
+        "zh",
+        basis=True,
+        reading="可能只是出于礼貌",
+    )
+    assert "审稿意见：可能只是出于礼貌。" in " ".join(filled.lines)
+
     result = analyzer.analyze_text("她说喜欢我，可能只是出于礼貌", mode="scientific")
     _, blob = screen_text(result, "scientific")
-    assert "审稿意见：可能只是出于礼貌。" in blob
-    assert "审稿意见：可能只是人好。" not in blob
+    assert "ALTERNATIVE EXPLANATION AUDIT" in blob
+    assert "可能只是出于礼貌" in dict(p.audit_breakdown_rows(result.interpretation_audit)).values()
 
 
 def test_a3_no_second_person_without_a_basis(analyzer: NedAnalyzer) -> None:
@@ -1552,9 +1592,24 @@ def test_a1_ned_never_claims_to_have_verified_reality() -> None:
 
 
 def test_a1_the_first_line_claims_strength_instead(analyzer: NedAnalyzer) -> None:
+    from ned.app.ui.personality import SITUATION_SELF_DISCOUNT_POSITIVE
+
+    assert "这条正向证据很强。" in " ".join(
+        p.first_screen(
+            SITUATION_SELF_DISCOUNT_POSITIVE,
+            "extreme",
+            "zh",
+            basis=True,
+            reading="可能只是人好",
+        ).lines
+    )
+    # and the audit screen claims nothing about reality either
     result = analyzer.analyze_text("她说喜欢我，可能只是人好", mode="extreme")
     _, blob = screen_text(result, "extreme")
-    assert "这条正向证据很强。" in blob
+    assert "证据是真的" not in blob
+    assert "不是本机构核实过的事实" in blob or "不是本机构核实过的事实" in str(
+        p.audit_breakdown_rows(result.interpretation_audit)
+    )
 
 
 def test_a1_the_generic_positive_screen_reports_rather_than_certifies() -> None:

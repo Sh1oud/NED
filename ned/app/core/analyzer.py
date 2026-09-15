@@ -12,6 +12,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
+from ned.app.core import audit as explanation_audit
 from ned.app.core import parser as text_parser
 from ned.app.core.asymmetry import EvidenceAsymmetryDetector
 from ned.app.core.fnbp import NotificationBranchPredictor
@@ -212,6 +213,7 @@ class NedAnalyzer:
             observed_evidence=amplified.observed_evidence if amplified else "",
             irrational_amplification=(amplified.irrational_interpretation if amplified else ""),
             asymmetry=asymmetry,
+            interpretation_audit=explanation_audit.build(spans, text=text),
             easter_eggs=eggs,
             breakdown=ScoringBreakdown(
                 positive_mass=round(pos_mass, 4),
