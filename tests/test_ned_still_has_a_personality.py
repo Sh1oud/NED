@@ -1641,3 +1641,42 @@ def test_the_shipped_rule_is_untouched_by_the_attribution_fix() -> None:
     override = p.VERDICT_DISPLAY_OVERRIDES["nea.you_started_again"]["without_basis"]
     assert override["zh"] != rule["texts"]["zh"]
     assert "你又开始了" not in override["zh"]
+
+
+# --------------------------------------------------------------------------- #
+# E2. CG-3: a stated boundary is not bought off by positive material
+# --------------------------------------------------------------------------- #
+
+#: A gift, and a stated boundary, in one input. Before CG-3 the refusal was not
+#: recognised at all, so the first screen was the logged-transfer joke with the
+#: boundary invisible.
+BOUNDARY_AFTER_POSITIVE = "他给我买了早餐，但她说不想见我"
+BOUNDARY_AFTER_SESSION = "她记得我爱吃什么，但她说她只想当普通朋友"
+
+
+@pytest.mark.parametrize("text", (BOUNDARY_AFTER_POSITIVE, BOUNDARY_AFTER_SESSION))
+def test_e2_positive_material_does_not_buy_the_boundary_a_screen(
+    analyzer: NedAnalyzer, text: str
+) -> None:
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code == "ned.direct_rejection"
+    assert situation_of(result) == p.SITUATION_BOUNDARY
+    screen = screen_for(result)
+    assert screen.title == "EXPLICIT BOUNDARY 🚧"
+    shown = " ".join([screen.title, *screen.lines, screen.reality])
+    assert "NED 停止狡辩" in shown
+    assert SIGNED_OFF not in shown
+    for banned in ("👍", "🤠", "申请人", "MATERIAL TRANSFER LOGGED", "LONG SESSION LOGGED"):
+        assert banned not in shown, banned
+
+
+@pytest.mark.parametrize("text", (BOUNDARY_AFTER_POSITIVE, BOUNDARY_AFTER_SESSION))
+def test_e2_the_other_page_stays_on_file(analyzer: NedAnalyzer, text: str) -> None:
+    """Stage 2's approved card keeps the material; the boundary screen is not reworded."""
+
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.material_aspects is not None
+    assert situation_of(result) in p.ASPECT_CARD_SITUATIONS
+    blob = screen_blob(result)
+    for word in ("也许", "未必", "还有可能", "还有戏"):
+        assert word not in blob, word

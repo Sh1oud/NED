@@ -513,3 +513,491 @@ def test_the_judgement_wording_keeps_its_framing(analyzer: NedAnalyzer, text: st
 
     result = analyzer.analyze_text(text, mode="normal")
     assert result.verdict.code == "ned.direct_rejection", text
+
+
+# --------------------------------------------------------------------------- #
+# CG-3: a stated boundary survives the frame it is reported in
+# --------------------------------------------------------------------------- #
+
+#: The three shapes the review opened with, plus the frames the same intent
+#: arrives in. Each of these reports that a boundary was stated, so NED may not
+#: file it behind a gift, a memory or an invitation.
+STATED_BOUNDARIES = (
+    "她说不想见我",
+    "她说她只想当普通朋友",
+    "她说她不想发展成恋爱关系",
+    "她不想见我",
+    "她只想当普通朋友",
+    "她不想发展成恋爱关系",
+    "她明确表示她不想见我",
+    "她说她不想再见到我",
+    "她说她不想谈恋爱",
+    "她说她不想和我发展感情",
+    "她不想和我发展感情",
+    "她不想跟我发展关系",
+    "她不想与我开始恋爱关系",
+    "他说他只想做朋友",
+    "对方说不想见我",
+    "她和朋友说她只想当普通朋友",
+    "她向家人表示她不想发展成恋爱关系",
+    "她昨天告诉我她不想见我",
+    "她哭着说她不想见我",
+    "她说“不想见我”",
+    "她不想见你",
+)
+
+#: Positive material first, stated boundary second. The boundary names the
+#: screen and the material stays on file; the material does not buy the joke a
+#: screen of its own. This is the shape the review opened with: the input used
+#: to read as a logged gift with the refusal invisible.
+COMPOSITE_BOUNDARIES = (
+    "他给我买了早餐，但她说不想见我",
+    "她记得我爱吃什么，但她说她只想当普通朋友",
+    "他约我出去，但她说她不想发展成恋爱关系",
+    "他给我买了早餐，但她说她不想发展成恋爱关系",
+    "她记得我爱吃什么，但她说不想见我",
+    "他给我买了早餐，但她只想当普通朋友",
+)
+
+#: The stance belongs to a third party, so it is not hers. "她朋友说她不想见我"
+#: is the friend's report: the guard is anchored on who owns the stance, never on
+#: whether a third-party noun appears in the sentence.
+ATTRIBUTION_NEGATIVES = (
+    "她朋友说她不想见我",
+    "她说她朋友不想见我",
+    "她说“我朋友只想和你做普通朋友”",
+    "她闺蜜说她只想跟我做普通朋友",
+    "她最好的朋友不想见我",
+    "她那个同事说不想见我",
+    "她妈妈说不想让她见我",
+    "她的闺蜜告诉她不想见我",
+    "她朋友说“不想见我”",
+    "他朋友不想见我",
+    "她同事说她不想发展成恋爱关系",
+    "她家人说她只想当普通朋友",
+)
+
+#: A relay or a third party's report: the boundary exists in the input, but the
+#: input does not say that she herself stated it. 转述 / 复述 / 转达 and
+#: 我妈说 / 我爸说 / 我朋友说 are the sources, not her.
+RELAY_ATTRIBUTION_NEGATIVES = (
+    "她转述说不想见我",
+    "她复述说不想见我",
+    "她转达说不想见我",
+    "她转述说她不想见我",
+    "我妈说她不想见我",
+    "我爸说她不想见我",
+    "我朋友说她不想见我",
+    "我妈说她只想和我做普通朋友",
+    "我朋友说她不想发展成恋爱关系",
+)
+
+#: The sentence denies that the material proves the conclusion. NED may not
+#: register the conclusion the sentence explicitly refuses as a stated boundary.
+EPISTEMIC_NEGATION_NEGATIVES = (
+    "不能证明她不想见我",
+    "这不足以证明她不想见我",
+    "不代表她不想见我",
+    "不等于她不想见我",
+    "不能说明她只想当普通朋友",
+    "不足以说明她不想发展成恋爱关系",
+    "无法证明她不想发展成恋爱关系",
+    "这不能证明她只想当普通朋友",
+    "这不是她不想发展成恋爱关系",
+    "不是她不想见我",
+    "她没说不想见我",
+    "她没有说她不想见我",
+    "检测到计划取消或改期，但一次计划变化不足以证明对方根本不想见你。",
+)
+
+#: The proposition is hedged (不一定 / 未必 / 不见得 / 不确定) or it sits inside the
+#: reader's own belief (我不相信 / 我不认为 / 我不觉得). Either way the input does
+#: not report that she stated a boundary, so NED may not show 明确拒绝 for it.
+UNCERTAINTY_AND_BELIEF = (
+    "她不一定不想见我",
+    "她未必不想见我",
+    "她不见得不想见我",
+    "她不一定只想当普通朋友",
+    "她未必只想和我做普通朋友",
+    "她不见得不想发展成恋爱关系",
+    "我不相信她不想见我",
+    "我不认为她不想见我",
+    "我不觉得她只想当普通朋友",
+    "我不相信她不想发展成恋爱关系",
+    "我不确定她不想见我",
+    "我不能确定她不想见我",
+    "我无法确定她不想见我",
+    "我不确定她只想当普通朋友",
+)
+
+#: Registered debt, not this window's business: the shipped family answers the
+#: same hedge around its own triggers. These keep the baseline answer.
+OLD_HEDGE_DEBT = (
+    "她未必拒绝了我",
+    "她不一定让我滚",
+    "她不见得想让我别联系她",
+    "她不一定不想和我说话",
+    "我不确定她不想和我说话",
+)
+
+#: Her own words, quoted. Inside the quote 我 is the person speaking, which is
+#: why the subject gap admits a quoted 我 and nothing else.
+DIRECT_QUOTES = (
+    "她说“不想见我”",
+    "她说“我只想和你做普通朋友”",
+    "她说“我不想和你发展成恋爱关系”",
+    "她说“我不想见你”",
+    "她回复说“我不想发展成恋爱关系”",
+)
+
+#: Here the third party is only whoever she said it to, so she still owns the
+#: boundary. The rejected design suppressed any sentence containing 朋友 / 闺蜜 /
+#: 家人 and would have killed every one of these.
+RECEIVER_OF_SPEECH_BOUNDARIES = (
+    "她跟朋友说她不想见我",
+    "她告诉闺蜜她只想和我做普通朋友",
+    "她对家人说她不想发展成恋爱关系",
+    "她跟她妈妈说不想见我",
+    "她和她朋友说她只想当普通朋友",
+    "她跟她妈妈说她不想见我",
+)
+
+#: The reader's own stance. NED's subject is the other person's boundary, and
+#: "我只想当普通朋友" does not report one. This window changes nothing here.
+READER_OWNED_STANCES = (
+    "我不想见她",
+    "我只想当普通朋友",
+    "我不想发展成恋爱关系",
+    "我跟她说我只想当普通朋友",
+    "我跟她说我不想发展成恋爱关系",
+    "我告诉她我不想见她",
+    "她说我不想见她",
+    "她说我不想发展成恋爱关系",
+    "她逼我说我只想当普通朋友",
+    "她让我说我不想见她",
+    "她建议我只想当普通朋友",
+    "她要求我不想发展成恋爱关系",
+    "她暗示我只想当普通朋友",
+    "我跟她说“我只想当普通朋友”",
+    "我告诉她“我不想见她”",
+)
+
+#: A question asks about a boundary; it does not state one.
+INTERROGATIVE_FORMS = (
+    "她为什么不想见我？",
+    "她不想见我吗？",
+    "她不想见我？",
+    "她不想见我吗",
+    "她不想见我了？",
+    "她怎么不想见我",
+    "她为什么不想发展成恋爱关系？",
+    "她不想发展成恋爱关系？",
+    "她为什么只想当普通朋友？",
+    "她只想当普通朋友吗？",
+    "她是不是不想见我？",
+    "他问我为什么她不想见我",
+)
+
+#: 见 takes an object, and here it is not the reader.
+OTHER_OBJECTS = (
+    "她不想见我朋友",
+    "她不想见我妈",
+    "她不想见我家人",
+    "她不想见我的朋友",
+    "她不想见我们",
+)
+
+#: The guards are scoped to the new shapes. The family's older triggers keep the
+#: behaviour the shipped pack gave them, questions and denials included, so this
+#: window is not a rewrite of the old negation or attribution behaviour.
+OLD_TRIGGER_SCOPE = (
+    "她朋友说她不想和我说话",
+    "她为什么不想和我说话了？",
+    "这不能证明她说我们还是做朋友吧",
+    "不代表她拒绝了我",
+    "不等于她不想和我说话",
+    "她让我滚出去别烦他了",
+)
+
+#: The gap between the boundary owner and the stance. It may not contain 我:
+#: that single structural rule is what keeps the reader's own stance out, so it
+#: is pinned as data rather than left to a pile of exclusions.
+SUBJECT_GAP = "[^。！？!?，,我]{0,5}"
+#: ... with one exception, and only one: a quotation, where 我 is the person
+#: speaking. The quote branch needs a speech verb, so it cannot reach
+#: "我跟她说我只想当普通朋友", and the anchor may not follow a conjunction.
+QUOTE_BRANCH = (
+    "(?:[^。！？!?，,我]{0,2}(?:说|讲|表示|称|回复|答))[^。！？!?，,]{0,1}[“\"'](?:我|咱)"
+)
+
+ANCHOR = "(?<![和跟与对向给])(她|他|对方)"
+
+
+def rejection_patterns(book: RuleBook) -> list[str]:
+    rule = next(item for item in book.signals if item.id == "zh.direct_rejection")
+    return list(rule.patterns)
+
+
+def rejection_excludes(book: RuleBook) -> list[str]:
+    rule = next(item for item in book.signals if item.id == "zh.direct_rejection")
+    return list(rule.exclude)
+
+
+def subject_anchored_patterns(book: RuleBook) -> list[str]:
+    """The three siblings: the other person is the subject of the stance."""
+
+    return [pattern for pattern in rejection_patterns(book) if SUBJECT_GAP in pattern]
+
+
+def guards_for(book: RuleBook, token: str) -> list[str]:
+    return [pattern for pattern in rejection_excludes(book) if token in pattern]
+
+
+@pytest.mark.parametrize("text", STATED_BOUNDARIES)
+def test_a_stated_boundary_survives_the_frame_it_is_reported_in(
+    analyzer: NedAnalyzer, text: str
+) -> None:
+    """The defect: a stated refusal NED never recognised.
+
+    The family knew 只想做朋友 and 不想和我说话, but not 不想见我, 只想当普通朋友 or
+    不想发展成恋爱关系. The input then fell through to whichever positive rule it
+    also matched, and the stated boundary vanished from the screen.
+    """
+
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code == "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text), text
+    assert "不对这条证据降权" in result.reality_check, text
+
+
+@pytest.mark.parametrize("text", COMPOSITE_BOUNDARIES)
+def test_positive_material_does_not_buy_the_stated_boundary_a_screen(
+    analyzer: NedAnalyzer, text: str
+) -> None:
+    """The material stays in the file; it does not decide the first screen."""
+
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code == "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text), text
+    assert any(span.polarity == "positive" for span in result.evidence), text
+    assert "不对这条证据降权" in result.reality_check, text
+
+
+@pytest.mark.parametrize("text", ATTRIBUTION_NEGATIVES)
+def test_a_third_partys_stance_is_not_lent_to_her(analyzer: NedAnalyzer, text: str) -> None:
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code != "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text) == [], text
+
+
+@pytest.mark.parametrize("text", RELAY_ATTRIBUTION_NEGATIVES)
+def test_a_relay_is_not_her_own_stated_boundary(analyzer: NedAnalyzer, text: str) -> None:
+    """转述 / 复述 / 转达 / 我妈说: the boundary reaches the input second hand."""
+
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code != "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text) == [], text
+
+
+@pytest.mark.parametrize("text", EPISTEMIC_NEGATION_NEGATIVES)
+def test_a_denied_conclusion_is_not_a_stated_boundary(analyzer: NedAnalyzer, text: str) -> None:
+    """The sentence says the material does not prove the conclusion.
+
+    NED may not turn the conclusion the sentence refuses into an explicit
+    boundary: 不足以证明对方根本不想见你 is a statement about the evidence.
+    """
+
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code != "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text) == [], text
+
+
+@pytest.mark.parametrize("text", UNCERTAINTY_AND_BELIEF)
+def test_a_hedged_or_believed_proposition_is_not_a_stated_boundary(
+    analyzer: NedAnalyzer, text: str
+) -> None:
+    """削弱确定性的说法与 belief operator 内部的说法都不是说出口的边界."""
+
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code != "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text) == [], text
+
+
+@pytest.mark.parametrize("text", OLD_HEDGE_DEBT)
+def test_the_old_hedge_debt_stays_at_baseline(analyzer: NedAnalyzer, text: str) -> None:
+    """The same hedge around the family's own triggers is registered, not fixed.
+
+    The shipped pack answers "她未必拒绝了我" and "她不一定让我滚" as boundaries.
+    This window may not spread that debt, and it may not silently rewrite it
+    either: the guards carry the new shapes only.
+    """
+
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code == "ned.direct_rejection", text
+
+
+@pytest.mark.parametrize("text", DIRECT_QUOTES)
+def test_her_own_quoted_words_are_still_a_boundary(analyzer: NedAnalyzer, text: str) -> None:
+    """Inside direct speech 我 is the speaker, and the speaker is her."""
+
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code == "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text), text
+
+
+@pytest.mark.parametrize("text", RECEIVER_OF_SPEECH_BOUNDARIES)
+def test_the_receiver_of_her_words_is_not_the_owner_of_them(
+    analyzer: NedAnalyzer, text: str
+) -> None:
+    """朋友 / 闺蜜 / 家人 as the person she said it to, not the person who said it."""
+
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code == "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text), text
+
+
+@pytest.mark.parametrize("text", READER_OWNED_STANCES)
+def test_the_readers_own_stance_is_not_read_as_hers(analyzer: NedAnalyzer, text: str) -> None:
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code != "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text) == [], text
+
+
+@pytest.mark.parametrize("text", INTERROGATIVE_FORMS)
+def test_a_question_about_a_boundary_is_not_a_stated_boundary(
+    analyzer: NedAnalyzer, text: str
+) -> None:
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code != "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text) == [], text
+
+
+@pytest.mark.parametrize("text", OTHER_OBJECTS)
+def test_a_boundary_about_somebody_else_is_not_about_the_reader(
+    analyzer: NedAnalyzer, text: str
+) -> None:
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code != "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text) == [], text
+
+
+@pytest.mark.parametrize("text", OLD_TRIGGER_SCOPE)
+def test_the_guards_are_scoped_to_the_new_shapes(analyzer: NedAnalyzer, text: str) -> None:
+    """The older triggers keep the behaviour the shipped pack gave them.
+
+    Precision guards whose stance list is the whole family would have moved
+    "她朋友说她不想和我说话" and "她为什么不想和我说话了？" out of the boundary
+    screen. These are the shipped answers, unchanged.
+    """
+
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code == "ned.direct_rejection", text
+
+
+def test_the_new_shapes_are_anchored_on_the_other_person(book: RuleBook) -> None:
+    """Three siblings, one subject anchor each, no rewrite of the old patterns."""
+
+    patterns = subject_anchored_patterns(book)
+    assert len(patterns) == 3, patterns
+    for pattern in patterns:
+        assert pattern.startswith(ANCHOR), pattern
+        assert parser.compile_pattern(pattern)
+    joined = "|".join(patterns)
+    for shape in (
+        "((和|跟|与)(我|你|您))?(当|做)",
+        "(不|别)(想|要|愿|愿意)(再)?见",
+        "(发展|谈|开始)",
+    ):
+        assert shape in joined, shape
+
+
+def test_the_subject_gap_is_what_keeps_the_reader_out(book: RuleBook) -> None:
+    """One structural rule carries the reader's own stance, not many excludes.
+
+    "我跟她说我只想当普通朋友", "她说我不想见她", "她逼我说我只想当普通朋友" and
+    "她建议我只想当普通朋友" are all kept out of her boundary by this gap alone.
+    """
+
+    for pattern in subject_anchored_patterns(book):
+        start = pattern.index(SUBJECT_GAP)
+        assert pattern[start : start + len(SUBJECT_GAP)] == SUBJECT_GAP, pattern
+        assert pattern.startswith(ANCHOR), pattern
+
+
+def test_only_a_quote_may_put_the_readers_pronoun_after_the_subject(book: RuleBook) -> None:
+    """The one exception is gated three ways: speech verb, quote mark, speaking 我.
+
+    The anchor may not follow 和 / 跟 / 与 / 对 / 向 / 给, which is what keeps
+    "我跟她说“我只想当普通朋友”" out.
+    """
+
+    for pattern in subject_anchored_patterns(book):
+        assert pattern.startswith("(?<![和跟与对向给])"), pattern
+        if "我" in pattern.split(SUBJECT_GAP)[1]:
+            assert QUOTE_BRANCH in pattern, pattern
+
+
+def test_the_family_carries_one_attribution_guard(book: RuleBook) -> None:
+    """One guard, three shapes, all keyed on who owns the stance.
+
+    The rejected design suppressed any sentence containing 朋友 / 闺蜜 / 家人,
+    which would have killed "她跟朋友说她不想见我" — there the friend is only
+    whoever she said it to.
+    """
+
+    guards = [pattern for pattern in rejection_excludes(book) if "闺蜜" in pattern]
+    assert len(guards) == 1, guards
+    guard = guards[0]
+    assert guard.startswith("(?<![和跟与])("), guard
+    assert "(她|他|对方)" in guard, guard
+    for receiver in ("跟", "和", "与", "对", "向", "给", "告", "诉"):
+        assert receiver in guard, receiver
+    for relay in ("转述", "复述", "转达"):
+        assert relay in guard, relay
+    assert "(我|你|他|她)" in guard, guard
+    assert parser.compile_pattern(guard)
+
+
+def test_no_guard_keys_on_a_third_party_noun_alone(book: RuleBook) -> None:
+    """The rejected design: suppress whatever mentions 朋友 / 闺蜜 / 家人."""
+
+    for pattern in rejection_excludes(book):
+        if "闺蜜" in pattern:
+            assert "(她|他|对方)" in pattern, pattern
+
+
+def test_the_family_carries_one_interrogative_guard(book: RuleBook) -> None:
+    guards = guards_for(book, "为什么|怎么|难道|如何")
+    assert len(guards) == 1, guards
+    guard = guards[0]
+    assert "[？?]|吗|呢" in guard, guard
+    assert parser.compile_pattern(guard)
+
+
+def test_the_family_carries_one_negation_guard(book: RuleBook) -> None:
+    guards = guards_for(book, "不能证明")
+    assert len(guards) == 1, guards
+    guard = guards[0]
+    for phrase in ("不足以证明", "不代表", "不等于", "不能说明", "不足以说明"):
+        assert phrase in guard, phrase
+    for phrase in ("不一定", "未必", "不见得", "不确定"):
+        assert phrase in guard, phrase
+    assert "(我|咱)不(相信|认为|觉得|确定)" in guard, guard
+    assert "没说" not in guard
+    assert "没(说|讲|表示|称|提)" in guard, guard
+    assert parser.compile_pattern(guard)
+
+
+def test_the_hedge_guard_covers_the_new_shapes(book: RuleBook) -> None:
+    """The previous window's closure, extended instead of duplicated.
+
+    A hedged claim about the new shapes — "她可能只想当普通朋友" — is still an
+    inference, so the shape joined the existing behaviour guard rather than
+    bringing a third copy of the modal vocabulary with it.
+    """
+
+    guards = modal_guards(book)
+    assert len(guards) == 2, guards
+    behaviour = next(pattern for pattern in guards if "做朋友" in pattern)
+    assert "当(个)?(普通|一般|平常)?朋友" in behaviour, behaviour
+    assert "做(个)?(普通|一般|平常)?朋友" in behaviour, behaviour
