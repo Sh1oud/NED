@@ -151,3 +151,33 @@ it is the evidence for this particular version.
 | First screen | representative screens verified in `normal` mode through the real CLI and web assets |
 
 Release name: **NED v0.1.7 — Comedy Recovery**
+
+---
+
+## 11. v0.1.8 Release Closing
+
+Documentation closing only. Nothing in this section re-opens behaviour: v0.1.8 is at
+functional freeze, and the items below are recorded facts from the Final Integration
+Review.
+
+| Check | Result |
+| --- | --- |
+| Stage 1 commit | `2c13b84` — `feat: add alternative explanation audit` |
+| Stage 2 commit | `fc3356c` — `feat: add multiple aspects presentation` |
+| Final Integration Review | passed (mission review, personality review, Stage 1 x Stage 2 mixed matrix) |
+| Tests | 1054 passed, 0 failed |
+| Lint / types | `ruff check` clean, `ruff format --check` 67 files, `mypy ned` 30 files |
+| Render parity | 114/114 personality, 64/64 NEA, 20/20 layers |
+| Copy safety scan | 571 strings, 0 hits |
+| Hard lines | 3 original + 2 v0.1.8 lines verified on real inputs |
+| Behaviour delta vs v0.1.7 | 4 R1/R2 recognition inputs, 2 Explanation Audit, 4 Multiple Aspects; 0 unclassified; 0 verdict changes |
+| Boundary safety | 16 boundary inputs, first screen unchanged; second material recorded underneath only |
+| Documentation closing | performed: README (declaration, stale examples, v0.1.8 section, features, architecture, API), CHANGELOG, PERSONALITY_BIBLE, this record |
+
+Not part of this closing (left for the Release Candidate / Release phase):
+
+- `version.py` bump (currently still `0.1.7`)
+- `main` update
+- tag creation
+- artifact build
+- release publication

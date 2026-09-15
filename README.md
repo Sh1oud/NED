@@ -3,7 +3,7 @@
 > When reality becomes suspiciously positive, NED restores uncertainty.
 
 **“NED 不相信好得可疑的现实。”**\
-**“它的职责，是让世界重新变得不确定。”**
+**“它的职责，是在结论跑到证据前面时，把不确定性还回去。”**
 
 ---
 
@@ -55,32 +55,55 @@ reach, and prints a verdict.
 ```
 $ ned analyze "我想你了"
 
-  signal     : missing_you — 表达的想念（我想你了）
-  raw reading: 对方表达了想念。
+┌───────────────────────────────── MATERIALS RECEIVED ─────────────────────────────────┐
+│   Observed evidence    输入中没有检测到可分类的情感信号。NED                         │
+│                        无法在不存在的证据上工作。                                    │
+│                                                                                      │
+│ 材料已收悉。                                                                         │
+│ 本机构暂时不知道该送哪个窗口。👍                                                     │
+│                                                                                      │
+│ 本次输入没有命中 NED                                                                 │
+│ 当前支持的信号类型。这不代表输入本身没有意义，只表示当前规则没有给出可解释的分类。   │
+└──────────────────────────────────────────────────────────────────────────────────────┘
 
-  Evidence strength        ███████████████░░░░░░░░░░░░░   55.0%
-  Positive discount        ███████████░░░░░░░░░░░░░░░░░   40.8%
-  NED Reaching Level       █████████████░░░░░░░░░░░░░░░   47.7%
-                           Advanced overthinking
+Final Verdict (ned.no_signal)
+  未检测到明显情感证据。NED 无事可做。👍
 
-  Alternative Hypotheses
-    1  可能只是怀旧，而不是当下的情感。      nostalgia     51%
-    2  可能只是无聊，当时想找个人说话。      boredom       51%
-    3  可能只是当时心情不错，情绪具有情境依赖性。  mood     51%
-
-  Reality Check
-    存在真实的正向互动：表达的想念（我想你了）。但样本量 N=1。要支持更强的结论，
-    需要更多相互独立的事件，而不是对同一个事件做更深的解读。
-
-  Final Verdict (ped.ren_hao)
-    可能只是人好。👍
+engine ned-local-rules v0.1.7 (provider=local-rule, offline=True)
 ```
+
+`我想你了` is the reader's own longing, so NED never reads it as the other
+person's evidence: the input reports no classifiable signal at all, and NED says so
+instead of inventing one. The transcript above is abbreviated — the real command also
+prints Technical Details, Scoring, NED Reaching Level, the Reality Check panel, Mode
+Notes and the disclaimer footer.
 
 NED v0.1 runs **entirely offline**. There is no database, no account system, no
 telemetry, no analytics and no paid API. Your text is analysed in-process and
 discarded.
 
 ---
+
+## What's new in 0.1.8 — Evidence Standards, Both Ways
+
+Two new capabilities, one subject: **the same window for every conclusion, and no
+conclusion NED was not given.** 👍
+
+- **Alternative Explanation Audit.** When the reader adds their own explanation —
+  `她说喜欢我，但我觉得她只是人好。` — NED audits that explanation the way it audits
+  everything else: *解释也是结论。结论也要交材料。* The explanation is filed with its
+  attachments counted (usually zero), the material it is about is quoted back
+  verbatim, and what is still unknown is listed instead of filled in. A pessimistic
+  explanation gets no exemption: `我觉得她只是可怜我。` passes through exactly the
+  same window, because 悲观解释不享受免检通道。
+- **Multiple Aspects.** When the input itself reports more than one material that can
+  stand on its own page — `她夸我可爱，但她三天没回我消息。` — NED files both pages:
+  *同一份卷宗可以有很多页。NED 不替它们合成答案。* Each page keeps its own grade, the
+  card says 未比较。未合并。未排名。, and there is no total, average or ranking anywhere
+  in the data.
+- **Boundaries stay boundaries.** A stated boundary keeps its screen word for word
+  (`明确边界。NED 停止狡辩。🚧`). A second material is recorded underneath it in a sober
+  register, and it never weakens the boundary.
 
 ## What's new in 0.1.7 — Comedy Recovery
 
@@ -151,6 +174,13 @@ from calm cyan to "Industrial-grade denial" magenta.
   boundary signal with a high information content, and NED neither de-weights them
   nor invents an escape for them. Uncertainty is not the same as denying clear
   evidence.
+- **Alternative Explanation Audit.** When you supply your own discount of real
+  positive evidence, NED audits *that* explanation too: it is filed with its
+  attachments counted, the material it is about is quoted back verbatim, and the
+  unknowns stay unknown. No explanation gets a free pass for being pessimistic.
+- **Multiple Aspects.** When the input reports several materials that can each stand
+  on their own page, NED keeps every page with its own grade and refuses to add them
+  up: no average, no merge, no ranking, no overall relationship score.
 - **FNBP — Fuyuki Notification Branch Predictor.** A Lab easter egg that simulates
   mispredicting every notification as being from one specific person, complete with
   pipeline flushes and wasted cycles.
@@ -293,37 +323,35 @@ curl -s -X POST http://127.0.0.1:8000/api/analyze \
   "input": "我想你了",
   "mode": "extreme",
   "language": "zh",
-  "signal_type": "missing_you",
-  "signal_label": "表达的想念（我想你了）",
-  "signal_strength": 55.0,
-  "raw_interpretation": "对方表达了想念。",
-  "alternative_explanations": [
-    {
-      "hypothesis": "可能只是怀旧，而不是当下的情感。",
-      "category": "nostalgia",
-      "plausibility": 38.4,
-      "source": "local-rule",
-      "rule_id": "tier.situational",
-      "note": "Alternative hypothesis, not a finding."
-    }
-  ],
-  "positive_evidence_discount": 67.4,
+  "signal_type": "none",
+  "signal_label": "没有检测到情感证据",
+  "signal_strength": 0.0,
+  "raw_interpretation": "输入中没有检测到可分类的情感信号。NED 无法在不存在的证据上工作。",
+  "alternative_explanations": [],
+  "positive_evidence_discount": 60.0,
   "negative_evidence_amplification": 0.0,
-  "ned_reaching_level": 51.3,
-  "reaching_label": "Advanced overthinking",
-  "reality_check": "存在真实的正向互动：表达的想念（我想你了）。但样本量 N=1。…",
+  "ned_reaching_level": 0.0,
+  "reaching_label": "Reasonable skepticism",
+  "reality_check": "输入中没有可分类的情感证据，因此没有可降权的对象。这不是坏消息，只是没有消息。",
   "verdict": {
-    "code": "ped.friendly_unexcluded",
-    "text": "检测到积极信号，但无法排除友好行为。",
+    "code": "ned.no_signal",
+    "text": "未检测到明显情感证据。NED 无事可做。👍",
     "severity": "info",
-    "emoji": "❔",
-    "rule_id": "ped.friendly_unexcluded"
+    "emoji": "👍",
+    "rule_id": "ned.no_signal"
   },
-  "breakdown": { "positive_mass": 55.0, "escape_pressure": 0.42, "escape_capacity": 0.33 },
-  "engine": { "name": "ned-local-rules", "version": "0.1.7", "provider": "local-rule", "offline": true },
-  "disclaimer": "NED cannot determine whether someone likes you. Humans are not APIs. …"
+  "evidence": [],
+  "interpretation_audit": null,
+  "material_aspects": null,
+  "engine": { "name": "ned-local-rules", "version": "0.1.7", "provider": "local-rule", "offline": true, "escapes_used": 0 }
 }
 ```
+
+Trimmed for readability (`breakdown`, `mode_notes`, `easter_eggs` and `disclaimer` are
+omitted). Every value shown is what the current build returns — including
+`engine.version`, which stays `0.1.7` until the next version bump. `interpretation_audit`
+and `material_aspects` are `null` here; they carry data when the reader supplies their own
+explanation, or when the input reports several material pages.
 
 The full response model is in `ned/app/core/models.py`; the response is always
 structured JSON, never a paragraph of prose.
@@ -407,11 +435,11 @@ Inputs and their classic outcomes (all available as `ned examples`):
 
 | Input | Mode | Outcome |
 | --- | --- | --- |
-| `我想你了` | normal | `可能只是人好。👍` |
-| `我想你了` | extreme | `检测到积极信号，但无法排除友好行为。` |
+| `我想你了` | normal | `未检测到明显情感证据。NED 无事可做。👍` (screen: MATERIALS RECEIVED) |
+| `我想你了` | extreme | `未检测到明显情感证据。NED 无事可做。👍` (screen: MATERIALS RECEIVED) |
 | `她说喜欢我` | extreme | reaching 76.7 (Industrial-grade denial) → `证据不足，建议扩大样本量。👍` |
 | `我们已经结婚了` | extreme | `婚姻属于法律关系，不能单独证明爱情。👍` |
-| `她主动找我聊了两个小时，但五分钟没回复` | normal | `检测到证据标准不对称。` (score ≈ 82/100) |
+| `她主动找我聊了两个小时，但五分钟没回复` | normal | MULTIPLE ASPECTS DETECTED — `「她主动找我聊了两个小时」、「五分钟没回复」已分别入档。` 然后 `两项各自成页。本机构拒绝把它们相加。👍` |
 | `消息发出去五分钟没回复` | normal | `Reject. 5 分钟未回复不构成证据。👍` |
 | `今天开会开了三个小时` | normal | `未检测到明显情感证据。NED 无事可做。👍` |
 | `I love you` | scientific | `Current sample size is insufficient to reject the general-friendliness hypothesis (N=1).` |
@@ -437,6 +465,9 @@ ned/                          Python package
 │   │   ├── parser.py         Language detection, duration parsing, rule matching
 │   │   ├── scoring.py        The transparent scoring formulas
 │   │   ├── theories.py       PED, NEA and the Semantic Escape Module
+│   │   ├── audit.py          Files the reader's own explanation and its material status
+│   │   ├── aspects.py        Selects existing evidence spans to present page by page
+│   │   │                     (no aggregation, no relation inference)
 │   │   ├── asymmetry.py      Evidence Asymmetry Detector
 │   │   ├── verdict.py        Declarative verdict engine
 │   │   ├── fnbp.py           Fuyuki Notification Branch Predictor (easter egg)

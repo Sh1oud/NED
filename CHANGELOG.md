@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**NED v0.1.8 — Alternative Explanation Audit & Multiple Aspects (release candidate)**
+
+NED now audits the reader's own explanation with the same window it uses for
+everything else, and files several materials as several pages instead of merging
+them into one answer. 👍
+
+### Added
+
+- **Alternative Explanation Audit.** When the reader supplies their own explanation
+  (`她说喜欢我，但我觉得她只是人好。`), that explanation is filed
+  with its attachments counted, the material it is about is quoted back verbatim, and
+  the unknowns are listed instead of filled in. A card shows the material, the
+  explanation, whether the input reports material for it, what is still unknown and how
+  far the material reaches.
+- **Multiple Aspects presentation.** When the input itself reports more than one
+  material that can stand on its own page (`她夸我可爱，但她三天没回我消息。`),
+  NED keeps every page with its own grade and refuses to add them up. A stated boundary
+  keeps its screen word for word, with the second page recorded underneath it.
+
+### Changed
+
+- R1 recognition patch: the ordinary offer (`想/要/愿意/希望 + 和我做男女朋友`)
+  is recognised, with a guard for its negations.
+- R2 recognition patch: the self-discount frame accepts explicit first-person wording
+  (`我觉得 / 我认为 / 我感觉`) and no longer accepts a bare `感觉`.
+- Chinese project declaration updated.
+
+### Safety and behaviour
+
+- Pessimistic alternative explanations no longer receive a special exemption: the same
+  window applies to every explanation.
+- Multiple materials are preserved without aggregation: no average, no merge, no
+  ranking, no overall relationship score, no probability.
+- Explicit boundaries remain authoritative under any combination of materials, and
+  hostile input gets no combined view at all.
+
+### Known limitation
+
+- Stage 1 English Audit presentation remains partially Chinese (NED's first-screen lines
+  and the Epistemic Breakdown card). Stage 2 English coverage is more complete. Runtime
+  correctness is unaffected.
+
 ### Planned
 
 - LLM provider implementation behind an opt-in flag.
