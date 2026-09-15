@@ -389,3 +389,127 @@ def test_reality_check_keeps_respecting_the_boundary(analyzer: NedAnalyzer) -> N
     assert "不足以推断" in check
     assert "不好" in check
     assert result.verdict.code == "ned.direct_rejection"
+
+
+# --------------------------------------------------------------------------- #
+# CG-7: a hedged claim is an inference, not a stated boundary
+# --------------------------------------------------------------------------- #
+
+#: The reader's own hedged reading. The modal (可能/也许/…/我觉得) marks an
+#: inference, so the input does not report that a boundary was stated. NED may
+#: restore uncertainty here; it may not report an explicit refusal or an explicit
+#: "let's be friends".
+MODAL_CLAIMS = (
+    # the rejection wording the review opened with
+    "我可能被拒绝了",
+    "我也许被拒绝了",
+    "我或许被拒绝了",
+    "我大概被拒绝了",
+    "我好像被拒绝了",
+    "我应该被拒绝了吧",
+    "我觉得我可能被拒绝了",
+    "她可能拒绝了我",
+    "他大概拒绝了我",
+    "我觉得她可能拒绝了我",
+    # the same structure in the rest of the family (closure audit)
+    "她可能想说我们还是做朋友吧",
+    "他好像是想说做朋友吧",
+    "他大概是只想做朋友",
+    "她也许想保持点距离",
+    "她可能想让我别再找她了",
+    "他大概说过别再给我发消息",
+    "她可能不想和我说话了",
+    "她可能说过以后不要再联系我了",
+    "他可能说过不要再出现在我面前",
+    "他大概是想离我远点",
+    "她可能不再和我联系了",
+    "他可能想让我滚",
+    "他可能是想滚了",
+    "我觉得她想做朋友吧",
+    "我感觉他不想和我说话了",
+)
+
+#: The same wording without the modal reports something that happened. Every one
+#: of these must stay a boundary, including the ones whose modal sits in another
+#: clause and the ones where the modal belongs to a different predicate.
+FACTUAL_BOUNDARIES = (
+    "我表白被拒了",
+    "我表白被拒绝了",
+    "她直接拒绝了我",
+    "他明确拒绝了我",
+    "她昨天拒绝了我",
+    "她说我们还是做朋友吧",
+    "她说我们不合适",
+    "她说以后别联系了",
+    "我可能想多了，但我表白被拒了",
+    "他可能生气了但让我滚了",
+    "她可能不喜欢我但也让我做朋友吧",
+    "我可能想多了，但她明确让我别联系她",
+)
+
+#: The family's judgement wording keeps its judgement framing: "我觉得我们不合适"
+#: is a boundary, so the judgement guard carries the uncertainty markers only.
+JUDGEMENT_BOUNDARIES = (
+    "我觉得我们不合适",
+    "我感觉我们不合适",
+    "她说我们不合适",
+    "他明确说我们不合适",
+)
+
+
+def modal_guards(book: RuleBook) -> list[str]:
+    rule = next(item for item in book.signals if item.id == "zh.direct_rejection")
+    return [pattern for pattern in rule.exclude if "可能|也许" in pattern]
+
+
+def test_the_family_carries_exactly_two_modal_guards(book: RuleBook) -> None:
+    """Closure: one behaviour guard and one judgement guard, no third copy.
+
+    The narrow guard the review started with was absorbed into the behaviour
+    guard, so the same modal vocabulary is not maintained in several excludes.
+    """
+
+    guards = modal_guards(book)
+    assert len(guards) == 2, guards
+    behaviour = next(pattern for pattern in guards if "做朋友" in pattern)
+    judgement = next(pattern for pattern in guards if "不合(适|来)" in pattern)
+    for token in ("被拒", "被绝", "拒绝了我"):
+        assert token in behaviour, token
+    assert "我觉得|我感觉|我认为" not in judgement
+    for pattern in guards:
+        assert parser.compile_pattern(pattern)
+
+
+@pytest.mark.parametrize("text", MODAL_CLAIMS)
+def test_a_modal_claim_is_not_a_boundary(analyzer: NedAnalyzer, text: str) -> None:
+    """An uncertain inference may not be shown as an explicit boundary.
+
+    The defect: "我可能被拒绝了" reached the boundary screen, whose evidence line
+    read 明确拒绝 / 边界表达 and whose quality read 明确. The closure audit found the
+    same structure across the rest of the family.
+    """
+
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.signal_type != SignalType.DIRECT_REJECTION, text
+    assert result.verdict.code != "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text) == [], text
+    assert "明确拒绝" not in result.reality_check, text
+    assert "说出口的边界" not in result.reality_check, text
+
+
+@pytest.mark.parametrize("text", FACTUAL_BOUNDARIES)
+def test_a_factual_boundary_is_still_a_boundary(analyzer: NedAnalyzer, text: str) -> None:
+    """The guards may not cost a real refusal, in any clause arrangement."""
+
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.signal_type == SignalType.DIRECT_REJECTION, text
+    assert result.verdict.code == "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text), text
+
+
+@pytest.mark.parametrize("text", JUDGEMENT_BOUNDARIES)
+def test_the_judgement_wording_keeps_its_framing(analyzer: NedAnalyzer, text: str) -> None:
+    """ "我觉得我们不合适" is a boundary; only a hedge around it is not."""
+
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code == "ned.direct_rejection", text
