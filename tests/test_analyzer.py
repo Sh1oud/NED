@@ -8,8 +8,10 @@ to know what anyone feels).
 from __future__ import annotations
 
 import pytest
+from ned.app.core import parser
 from ned.app.core.analyzer import NedAnalyzer
 from ned.app.core.models import AnalyzeRequest, SignalType
+from ned.app.core.rules import RuleBook
 
 
 def test_ordinary_positive_text(analyzer: NedAnalyzer) -> None:
@@ -387,3 +389,162 @@ def test_no_signal_ships_bilingual_copy(analyzer: NedAnalyzer) -> None:
 
     assert chinese.verdict.text == "未检测到明显情感证据。NED 无事可做。👍"
     assert english.verdict.text == "No clear emotional evidence detected. NED stands down. 👍"
+
+
+# --------------------------------------------------------------------------- #
+# BATCH 1: ownership — somebody else's words are not the reader's stance
+# --------------------------------------------------------------------------- #
+
+#: The reader's own discount. These are the reason the family exists, and none of
+#: them may be lost while closing the attribution frames below.
+READER_DISCOUNTS = (
+    "我想太多了",
+    "我是不是想太多了",
+    "我觉得我想太多了",
+    "可能只是人好",
+    "我觉得可能只是人好",
+    "别自作多情",
+    "她只是把我当朋友",
+    "她可能只是客气",
+    "我随口一说",
+    # she is the receiver of the reader's words here, not the author of the discount
+    "我跟她说我想太多了",
+)
+
+#: The reader's own negative conclusion, including the reader's own report of it.
+READER_CONCLUSIONS = (
+    "她不喜欢我",
+    "我觉得她不喜欢我",
+    "我总觉得她不喜欢我",
+    "她讨厌我",
+    "她不想理我",
+    "她嫌我烦",
+    "她对我没兴趣",
+    "她根本不在乎我",
+    "我说她不喜欢我",
+    "我和她说她不喜欢我",
+)
+
+#: Somebody else's words, advice or report. Each of these was filed as the reader's
+#: own stance before this batch: the guard knew only the 说/讲/告诉/表示 frame, with
+#: no requirement about who the subject was, so every advice and third-party frame
+#: fell through.
+NON_READER_FRAMES = (
+    # advice and comfort, addressed to the reader
+    "她让我别想太多",
+    "她叫我别想太多",
+    "她劝我别想太多",
+    "她安慰我别想太多",
+    "她提醒我别想太多",
+    "她笑我想太多了",
+    "她让我别自作多情",
+    # third-party subjects
+    "她妈妈让我别想太多",
+    "我妈让我别想太多",
+    "朋友都让我别想太多",
+    "她闺蜜让我别想太多",
+    # reported speech, direct and indirect
+    "她说我想太多了",
+    "她告诉我别想太多",
+    "她说可能只是人好",
+    "她说“我想太多了”",
+    "她说她只是把我当朋友",
+    "她说她不喜欢我",
+    "她说她讨厌我",
+    "她说她嫌我烦",
+    "她说她不想理我",
+    "她说她对我没兴趣",
+    "她说她根本不在乎我",
+    "她朋友说她不喜欢我",
+    "他说她讨厌我",
+    "她说“她不喜欢我”",
+    "她让我别觉得她不喜欢我",
+)
+
+#: Registered residual for a later batch: the discount lexicon does not cover
+#: 善良 / 就是 / 被动形式, and "她说讨厌我" needs a family that does not exist yet.
+#: This batch must leave them exactly as they were.
+UNTOUCHED_RESIDUALS = (
+    "她只是善良",
+    "她就是不喜欢我",
+    "我肯定被讨厌了",
+    "她说讨厌我",
+)
+
+#: Registered residual: negation is a different frame from attribution.
+NEGATION_RESIDUALS = ("我没想太多", "我没有想太多")
+
+
+def ownership_guards(book: RuleBook, rule_id: str) -> list[str]:
+    rule = next(item for item in book.signals if item.id == rule_id)
+    return list(rule.exclude)
+
+
+@pytest.mark.parametrize("text", READER_DISCOUNTS)
+def test_the_readers_own_discount_stays_the_readers(analyzer: NedAnalyzer, text: str) -> None:
+    """自我降权的含义不变：读者自己主动降权的那句话。"""
+
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.signal_type == SignalType.SELF_DISCOUNT, text
+    assert result.verdict.code == "ned.self_discount_noted", text
+
+
+@pytest.mark.parametrize("text", READER_CONCLUSIONS)
+def test_the_readers_own_conclusion_stays_the_readers(analyzer: NedAnalyzer, text: str) -> None:
+    """读者自己得出的结论仍然是读者的结论，不是对方已核实的事实。"""
+
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.signal_type == SignalType.SELF_NEGATIVE_BELIEF, text
+    assert result.verdict.code == "nea.negative_conclusion", text
+
+
+@pytest.mark.parametrize("text", NON_READER_FRAMES)
+def test_somebody_elses_words_are_not_the_readers_stance(analyzer: NedAnalyzer, text: str) -> None:
+    """别人说的、劝的、转述的话，不能改写成读者自己的立场。
+
+    The defect: both families read a bare phrase or a bare attitude predicate, so
+    "她让我别想太多" was reported as the reader's own discount and "她说她不喜欢我"
+    as the reader's own conclusion. The result here is silence, not another verdict:
+    this batch removes an attribution, it does not add a reading.
+    """
+
+    result = analyzer.analyze_text(text, mode="normal")
+    types = {span.signal_type for span in result.evidence}
+    assert SignalType.SELF_DISCOUNT not in types, text
+    assert SignalType.SELF_NEGATIVE_BELIEF not in types, text
+    assert result.verdict.code not in {"ned.self_discount_noted", "nea.negative_conclusion"}, text
+
+
+@pytest.mark.parametrize("rule_id", ["zh.self_discount", "zh.self_negative_belief"])
+def test_each_family_carries_one_ownership_guard(book: RuleBook, rule_id: str) -> None:
+    """归属守卫看的是谁写了这个子句，不是句子里有没有某个动词。
+
+    Chinese has no morphology for "who authored this clause", so the frame has to be
+    lexical. It is closed by class — a non-reader subject plus a reporting or
+    directive verb — instead of an open-ended verb list with no subject requirement.
+    """
+
+    guards = ownership_guards(book, rule_id)
+    assert len(guards) == 1, guards
+    guard = guards[0]
+    assert guard.startswith("(?<![\u8ddf\u548c\u4e0e\u5bf9\u5411\u7ed9])"), guard
+    assert "\u5979|\u4ed6|\u5bf9\u65b9" in guard, guard
+    for frame in ("\u8bf4", "\u8bb2", "\u544a\u8bc9", "\u8868\u793a", "\u8ba9", "\u53eb", "\u529d"):
+        assert frame in guard, frame
+    assert parser.compile_pattern(guard)
+
+
+@pytest.mark.parametrize("text", UNTOUCHED_RESIDUALS)
+def test_registered_residuals_are_untouched(analyzer: NedAnalyzer, text: str) -> None:
+    """这些属于后续批次：本批不碰，也不得顺手改。"""
+
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code == "ned.no_signal", text
+
+
+@pytest.mark.parametrize("text", NEGATION_RESIDUALS)
+def test_negation_framing_is_untouched(analyzer: NedAnalyzer, text: str) -> None:
+    """否定与归属是两个框架：本批只管归属，否定留给后续批次。"""
+
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.signal_type == SignalType.SELF_DISCOUNT, text
