@@ -14,9 +14,10 @@ The governing document is ``docs/PERSONALITY_BIBLE.md``.
 from __future__ import annotations
 
 import re
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import asdict, dataclass
 
+from ned.app.core import aspects as aspect_pages
 from ned.app.core.audit import CLAUSE_SEPARATORS
 
 MODES: tuple[str, ...] = ("normal", "scientific", "extreme")
@@ -234,6 +235,8 @@ SITUATION_POSITIVE = "positive"
 SITUATION_NO_SIGNAL = "no_signal"
 #: The reader submitted their own explanation of material the input reports.
 SITUATION_EXPLANATION_AUDIT = "explanation_audit"
+#: Stage 2: the input reports several materials, each kept on its own page.
+SITUATION_MULTIPLE_ASPECTS = "multiple_aspects"
 SITUATION_NEUTRAL = "neutral"
 
 #: The priority ladder, as data. The engine's own verdict ordering already
@@ -296,6 +299,11 @@ SELF_DISCOUNT_SIGNAL_TYPES: tuple[str, ...] = ("self_discount",)
 #: promoted: the reader's discount does not outrank reality.
 SELF_DISCOUNT_PROMOTES: tuple[str, ...] = (SITUATION_POSITIVE,)
 
+#: Only these screens may be promoted to ``multiple_aspects``. A boundary, a
+#: hostile expression or any other verdict keeps its own screen: keeping a second
+#: page must never become an appeal against a stated boundary.
+MULTIPLE_ASPECTS_PROMOTES: tuple[str, ...] = (SITUATION_STARTED_AGAIN,)
+
 
 def screen_situation(
     base_situation: str,
@@ -303,18 +311,34 @@ def screen_situation(
     self_discount: bool = False,
     positive_evidence: bool = False,
     audit: bool = False,
+    aspects: bool = False,
+    reader_conclusion: bool = False,
 ) -> str:
     """The screen to show, given what the engine already found.
 
     When the reader has supplied their own discount of real positive evidence,
     NED should answer that discount instead of running a generic good-news joke.
-    Everything else is untouched, and nothing here can change a verdict.
+    When the input itself reports several material pages, the amplification
+    screen becomes the filing screen instead — but only there, and only when the
+    reader supplied no conclusion of their own. Everything else is untouched, and
+    nothing here can change a verdict.
     """
 
     if audit and base_situation in SELF_DISCOUNT_PROMOTES:
         # the reader supplied their own explanation: audit it instead of
         # answering it with the old self-service-denial screen
         return SITUATION_EXPLANATION_AUDIT
+
+    # The input reports two pages and the reader supplied no conclusion of their
+    # own. The amplification screen would answer with a subject the reader never
+    # raised; the filing screen keeps both pages instead.
+    if (
+        aspects
+        and base_situation in MULTIPLE_ASPECTS_PROMOTES
+        and not audit
+        and not reader_conclusion
+    ):
+        return SITUATION_MULTIPLE_ASPECTS
 
     if self_discount and positive_evidence:
         if base_situation in SELF_DISCOUNT_PROMOTES:
@@ -858,6 +882,245 @@ def audit_breakdown_rows(audit: object) -> tuple[tuple[str, str], ...]:
     )
 
 
+# --------------------------------------------------------------------------- #
+# Multiple Aspects (Stage 2)
+# --------------------------------------------------------------------------- #
+
+#: The slot a screen uses to name the pages it filed. Like the reading slot, it
+#: is filled from data the engine already produced, never invented.
+MATERIALS_SLOT = "{materials}"
+
+#: What the slot says when the screen has no material names to show. It never
+#: invents a material: it says how many pages there are, and no more.
+MATERIALS_FALLBACK: dict[str, str] = {
+    "zh": "两项材料",
+    "en": "Two kinds of material",
+}
+
+MULTIPLE_ASPECTS_REALITY: dict[str, str] = {
+    "zh": "两种材料不是一个单位，也不是同一把尺子上的格子。它们之间的关系、"
+    "以及对方的总体态度，输入都没有报告。卷宗可以有两页，现实不必合成一章。",
+    "en": "Two kinds of material are not one unit, and not two squares on the same ruler. "
+    "The input reports neither the relation between them nor the other person's overall "
+    "attitude. A file can have more than one page; reality does not have to be merged "
+    "into one chapter.",
+}
+
+#: The observed-fact line for screens whose subject is the shape of the input
+#: rather than one material inside it.
+FACT_FIXED: dict[str, dict[str, str]] = {
+    SITUATION_MULTIPLE_ASPECTS: {
+        "zh": "输入报告了两个方向的材料，而不是一个结论。",
+        "en": "The input reports material on two sides, not a conclusion.",
+    },
+}
+
+
+def fact_fixed(situation: str, language: str = "zh") -> str:
+    """A fixed observed-fact line, when the situation has one."""
+
+    table = FACT_FIXED.get(situation)
+    if not table:
+        return ""
+    return table.get("en" if language == "en" else "zh", "")
+
+
+#: How a page is named in the filing card. Position is the input's order, never a
+#: strength order: the card is a file, not a ranking.
+ASPECT_PAGE_LABELS: dict[str, tuple[str, ...]] = {
+    "zh": ("材料一", "材料二", "材料三", "材料四", "材料五"),
+    "en": ("Material one", "Material two", "Material three", "Material four", "Material five"),
+}
+
+#: The ordinary register: two pages, kept, never added up.
+ASPECT_COPY: dict[str, dict[str, str]] = {
+    "zh": {
+        "extra_label": "材料{n}",
+        "material_row": "「{text}」（该材料自身的等级：{grade}）",
+        "between_label": "两项之间",
+        "between": "未比较。未合并。未排名。",
+        "unknown_label": "仍然未知",
+        "unknown": "这两项之间的关系；对方的总体态度。输入都没有报告。",
+        "not_done_label": "本机构没有做",
+        "not_done": "相加、平均、排名、总分、概率。",
+        "disclaimer": "材料是输入报告的材料，不是本机构核实过的事实。",
+    },
+    "en": {
+        "extra_label": "Material {n}",
+        "material_row": "\u201c{text}\u201d (this material's own grade: {grade})",
+        "between_label": "Between the two",
+        "between": "Not compared. Not merged. Not ranked.",
+        "unknown_label": "Still unknown",
+        "unknown": "The relation between them, and the other person's overall attitude. "
+        "The input reports neither.",
+        "not_done_label": "This agency did not",
+        "not_done": "add them up, average them, rank them, score them or put a "
+        "probability on them.",
+        "disclaimer": "Material is what the input reports; this agency has verified nothing.",
+    },
+}
+
+#: The serious register, used under a stated boundary. No joke emoji, no也许, no
+#: reopening: the other page is kept and the boundary is not re-read.
+ASPECT_BOUNDARY_COPY: dict[str, dict[str, str]] = {
+    "zh": {
+        "extra_label": "材料{n}",
+        "other_label": "已入档的另一份材料",
+        "other_row": "「{text}」（该材料自身的等级：{grade}）",
+        "boundary_label": "边界",
+        "boundary_row": "「{text}」——明确表达的行为，等级：{grade}。",
+        "relation_label": "它与边界的关系",
+        "relation": "这份材料不会削弱边界。",
+        "between_label": "两项之间",
+        "between": "未比较。未合并。未排名。",
+        "unknown_label": "仍然未知",
+        "unknown": "两项材料为什么同时出现；对方未表达的其他心理动机。",
+        "settled_label": "已经明确",
+        "settled": "输入报告了明确边界；本机构不用另一份材料重新解释边界。",
+        "not_done_label": "本机构没有做",
+        "not_done": "用另一份材料重新解释边界；把边界算成模糊信号；替读者补一个结论。",
+        "disclaimer": "材料是输入报告的材料，不是本机构核实过的事实。",
+    },
+    "en": {
+        "extra_label": "Material {n}",
+        "other_label": "The other material on file",
+        "other_row": "\u201c{text}\u201d (this material's own grade: {grade})",
+        "boundary_label": "The boundary",
+        "boundary_row": "\u201c{text}\u201d — a plainly stated act; grade: {grade}.",
+        "relation_label": "How it relates to the boundary",
+        "relation": "This material does not weaken the boundary.",
+        "between_label": "Between the two",
+        "between": "Not compared. Not merged. Not ranked.",
+        "unknown_label": "Still unknown",
+        "unknown": "Why both materials appear together; any motive the other person did not state.",
+        "settled_label": "Already settled",
+        "settled": "The input states an explicit boundary; this agency does not re-read "
+        "it through the other material.",
+        "not_done_label": "This agency did not",
+        "not_done": "re-read the boundary through the other material, treat the boundary "
+        "as a fuzzy signal, or hand the reader a conclusion.",
+        "disclaimer": "Material is what the input reports; this agency has verified nothing.",
+    },
+}
+
+
+def aspect_copy(situation: str, language: str = "zh") -> dict[str, str]:
+    """Which register the filing card speaks in, and in which language."""
+
+    table = ASPECT_BOUNDARY_COPY if situation == SITUATION_BOUNDARY else ASPECT_COPY
+    return table.get("en" if language == "en" else "zh") or table["zh"]
+
+
+def page_grade(span: object, language: str = "zh") -> str:
+    """The grade a page's own screen would print for it. Same ruler, same source.
+
+    A positive page is graded by its strength, an observation page by its
+    information content and a stated boundary by the explicit band — exactly the
+    ``QUALITY_SOURCE`` rule each of those screens already uses.
+    """
+
+    if span is None:
+        return DASH
+    polarity = str(getattr(span, "polarity", ""))
+    signal_type = str(getattr(getattr(span, "signal_type", None), "value", ""))
+    if signal_type in aspect_pages.BOUNDARY_TYPES:
+        return explicit_quality_label(language)
+    if polarity == "positive":
+        return quality_label(float(getattr(span, "base_strength", 0.0)), language)
+    return quality_label(float(getattr(span, "information_content", 0.0)), language)
+
+
+def page_label(copy: dict[str, str], position: int, language: str = "zh") -> str:
+    """The name of the page at this position, in the input's own order."""
+
+    labels = ASPECT_PAGE_LABELS.get("en" if language == "en" else "zh", ())
+    if position < len(labels):
+        return labels[position]
+    return copy["extra_label"].replace("{n}", str(position + 1))
+
+
+def fill_materials(
+    lines: tuple[str, ...], materials: tuple[str, ...] = (), language: str = "zh"
+) -> tuple[str, ...]:
+    """Name the pages this screen filed, verbatim and in input order."""
+
+    if not any(MATERIALS_SLOT in line for line in lines):
+        return lines
+    shown = "、".join(f"「{item}」" for item in materials if item)
+    if not shown:
+        shown = MATERIALS_FALLBACK.get("en" if language == "en" else "zh", "")
+    return tuple(line.replace(MATERIALS_SLOT, shown) for line in lines)
+
+
+def _is_boundary_page(span: object) -> bool:
+    signal_type = str(getattr(getattr(span, "signal_type", None), "value", ""))
+    return signal_type in aspect_pages.BOUNDARY_TYPES
+
+
+def _row(template: str, text: str, grade: str) -> str:
+    return template.replace("{text}", text).replace("{grade}", grade)
+
+
+def aspect_breakdown_rows(
+    aspects: object,
+    evidence: Sequence[object],
+    *,
+    situation: str = "",
+    language: str = "zh",
+) -> tuple[tuple[str, str], ...]:
+    """The page-by-page filing card for one set of aspects. Display only.
+
+    Every row reads what the screens read: the pages point into the evidence, and
+    each grade is the one that page's own screen would print. Nothing here
+    compares, merges, ranks or scores the pages, and there is no aggregate number
+    in the data to print.
+    """
+
+    copy = aspect_copy(situation, language)
+    pages: list[tuple[object | None, str]] = []
+    for item in list(getattr(aspects, "materials", None) or []):
+        index = int(getattr(item, "evidence_index", -1))
+        span = evidence[index] if 0 <= index < len(evidence) else None
+        pages.append((span, str(getattr(item, "text", ""))))
+
+    if situation == SITUATION_BOUNDARY:
+        others = [(span, text) for span, text in pages if not _is_boundary_page(span)]
+        boundary = [(span, text) for span, text in pages if _is_boundary_page(span)]
+        rows: list[tuple[str, str]] = []
+        for position, (span, text) in enumerate(others):
+            label = (
+                copy["other_label"] if len(others) == 1 else page_label(copy, position, language)
+            )
+            rows.append((label, _row(copy["other_row"], text, page_grade(span, language))))
+        for span, text in boundary:
+            rows.append(
+                (
+                    copy["boundary_label"],
+                    _row(copy["boundary_row"], text, page_grade(span, language)),
+                )
+            )
+        rows.append((copy["relation_label"], copy["relation"]))
+        rows.append((copy["between_label"], copy["between"]))
+        rows.append((copy["unknown_label"], copy["unknown"]))
+        rows.append((copy["settled_label"], copy["settled"]))
+        rows.append((copy["not_done_label"], copy["not_done"]))
+        return tuple(rows)
+
+    rows = []
+    for position, (span, text) in enumerate(pages):
+        label = page_label(copy, position, language)
+        rows.append((label, _row(copy["material_row"], text, page_grade(span, language))))
+    rows.append((copy["between_label"], copy["between"]))
+    rows.append((copy["unknown_label"], copy["unknown"]))
+    rows.append((copy["not_done_label"], copy["not_done"]))
+    return tuple(rows)
+
+
+#: Where the filing card is displayed: under its own screen, and — in the serious
+#: register — under a stated boundary. Never under hostility.
+ASPECT_CARD_SITUATIONS: tuple[str, ...] = (SITUATION_MULTIPLE_ASPECTS, SITUATION_BOUNDARY)
+
+
 #: situation -> mode -> language -> FirstScreen
 FIRST_SCREEN: dict[str, dict[str, dict[str, FirstScreen]]] = {
     SITUATION_BOUNDARY: _fixed(
@@ -1396,6 +1659,56 @@ FIRST_SCREEN: dict[str, dict[str, dict[str, FirstScreen]]] = {
             ),
         ),
     },
+    SITUATION_MULTIPLE_ASPECTS: {
+        "normal": _bi(
+            _screen(
+                "MULTIPLE ASPECTS DETECTED",
+                (MATERIALS_SLOT + "已分别入档。", "两项各自成页。本机构拒绝把它们相加。👍"),
+                MULTIPLE_ASPECTS_REALITY["zh"],
+            ),
+            _screen(
+                "MULTIPLE ASPECTS DETECTED",
+                (
+                    MATERIALS_SLOT + " filed separately.",
+                    "Each one stands as its own page. This agency refuses to add them up. 👍",
+                ),
+                MULTIPLE_ASPECTS_REALITY["en"],
+            ),
+        ),
+        "scientific": _bi(
+            _screen(
+                "TWO DATASETS, ONE FILE",
+                (
+                    MATERIALS_SLOT + "：已分别登记。",
+                    "两组材料量纲不同：本机构不加权、不合并、不排序。",
+                ),
+                MULTIPLE_ASPECTS_REALITY["zh"],
+            ),
+            _screen(
+                "TWO DATASETS, ONE FILE",
+                (
+                    MATERIALS_SLOT + ": filed separately.",
+                    "The two datasets are not commensurable: no weighting, no pooling, no ranking.",
+                ),
+                MULTIPLE_ASPECTS_REALITY["en"],
+            ),
+        ),
+        "extreme": _bi(
+            _screen(
+                "BOTH PAGES KEPT",
+                (MATERIALS_SLOT + "：两页都在卷里。", "销毁任意一页，本机构都不同意。👍"),
+                MULTIPLE_ASPECTS_REALITY["zh"],
+            ),
+            _screen(
+                "BOTH PAGES KEPT",
+                (
+                    MATERIALS_SLOT + ": both pages stay in the file.",
+                    "This agency will not destroy either page. 👍",
+                ),
+                MULTIPLE_ASPECTS_REALITY["en"],
+            ),
+        ),
+    },
     SITUATION_EXPLANATION_AUDIT: _fixed(
         _bi(
             _screen(
@@ -1515,6 +1828,9 @@ QUALITY_SOURCE: dict[str, str] = {
     SITUATION_TIMELINE_BOUNDARY: "none",
     SITUATION_TIMELINE: "none",
     SITUATION_EXPLANATION_AUDIT: "strength",
+    #: This screen must not become a scoreboard: it prints no quality number at
+    #: all, because each page's grade belongs to that page, not to a total.
+    SITUATION_MULTIPLE_ASPECTS: "none",
     SITUATION_NO_SIGNAL: "none",
     SITUATION_SELF_DISCOUNT_ONLY: "none",
     SITUATION_NEUTRAL: "none",
@@ -1531,6 +1847,7 @@ def first_screen(
     basis: bool = False,
     reading: str = "",
     rule: str = "",
+    materials: tuple[str, ...] = (),
 ) -> FirstScreen:
     """The first screen for one situation, falling back instead of failing.
 
@@ -1550,6 +1867,14 @@ def first_screen(
         return FirstScreen(
             title=screen.title,
             lines=audit_lines(reading),
+            reality=screen.reality,
+        )
+
+    if situation == SITUATION_MULTIPLE_ASPECTS:
+        # the pages are named in the input's own words, in the input's own order
+        return FirstScreen(
+            title=screen.title,
+            lines=fill_materials(screen.lines, materials, language),
             reality=screen.reality,
         )
 
@@ -1686,6 +2011,16 @@ def web_personality_catalog() -> dict[str, object]:
         "greeting_rule": GREETING_RULE,
         "routine_claim": ROUTINE_CLAIM,
         "greeting_one_off_fact": ONE_OFF_GREETING_FACT,
+        "multiple_aspects_situation": SITUATION_MULTIPLE_ASPECTS,
+        "multiple_aspects_promotes": list(MULTIPLE_ASPECTS_PROMOTES),
+        "aspect_card_situations": list(ASPECT_CARD_SITUATIONS),
+        "materials_slot": MATERIALS_SLOT,
+        "boundary_page_types": list(aspect_pages.BOUNDARY_TYPES),
+        "materials_fallback": MATERIALS_FALLBACK,
+        "aspect_page_labels": {key: list(value) for key, value in ASPECT_PAGE_LABELS.items()},
+        "aspect_copy": {key: dict(value) for key, value in ASPECT_COPY.items()},
+        "aspect_boundary_copy": {key: dict(value) for key, value in ASPECT_BOUNDARY_COPY.items()},
+        "fact_fixed": {key: dict(value) for key, value in FACT_FIXED.items()},
         "explanation_audit_situation": SITUATION_EXPLANATION_AUDIT,
         "audit_flavours": {key: list(lines) for key, lines in AUDIT_FLAVOURS.items()},
         "audit_default_lines": list(AUDIT_DEFAULT_LINES),
@@ -1695,6 +2030,10 @@ def web_personality_catalog() -> dict[str, object]:
 
 __all__ = [
     "ANALYSIS_FEEDBACK",
+    "ASPECT_BOUNDARY_COPY",
+    "ASPECT_CARD_SITUATIONS",
+    "ASPECT_COPY",
+    "ASPECT_PAGE_LABELS",
     "AUDIT_COPY",
     "AUDIT_DEFAULT_LINES",
     "AUDIT_FLAVOURS",
@@ -1707,6 +2046,7 @@ __all__ = [
     "DISPLAY_REPAIRS",
     "DURATION_ARTIFACTS",
     "EXPLICIT_QUALITY",
+    "FACT_FIXED",
     "FACT_FROM_OBSERVED",
     "FACT_SIGNAL_TYPES",
     "FIRST_SCREEN",
@@ -1714,7 +2054,11 @@ __all__ = [
     "FNBP_MISS_FEEDBACK",
     "FORBIDDEN_EMOJI",
     "GREETING_RULE",
+    "MATERIALS_FALLBACK",
+    "MATERIALS_SLOT",
     "MODES",
+    "MULTIPLE_ASPECTS_PROMOTES",
+    "MULTIPLE_ASPECTS_REALITY",
     "NEA_FRAMING",
     "ONE_OFF_GREETING_FACT",
     "PAIR_QUALITY_LABELS",
@@ -1731,12 +2075,15 @@ __all__ = [
     "SITUATION_BY_COMPARISON_REASON",
     "SITUATION_BY_VERDICT",
     "SITUATION_EXPLANATION_AUDIT",
+    "SITUATION_MULTIPLE_ASPECTS",
     "TECHNICAL_REACHING",
     "VERDICT_DISPLAY_OVERRIDES",
     "ComedyPack",
     "FirstScreen",
     "PersonalityFeedback",
     "analysis_feedback",
+    "aspect_breakdown_rows",
+    "aspect_copy",
     "audit_breakdown_rows",
     "audit_lines",
     "captured_reading",
@@ -1745,9 +2092,11 @@ __all__ = [
     "comedy_pack_key",
     "emoji_discipline",
     "explicit_quality_label",
+    "fact_fixed",
     "fact_from_observed",
     "fact_override",
     "fact_signal_types",
+    "fill_materials",
     "fill_reading",
     "first_screen",
     "fnbp_feedback",
@@ -1755,6 +2104,8 @@ __all__ = [
     "has_missing_duration",
     "is_boundary_situation",
     "nea_framing",
+    "page_grade",
+    "page_label",
     "pair_quality_label",
     "primary_positive_rule",
     "quality_label",

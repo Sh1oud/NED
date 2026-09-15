@@ -89,8 +89,10 @@ def situation_of(result: Any) -> str:
     """The screen a result gets, promotion included.
 
     This mirrors the shared contract in ``personality.screen_situation``: the
-    verdict names the base screen, and the reader's own discount of real positive
-    evidence promotes the generic positive screen to its own.
+    verdict names the base screen, the reader's own discount of real positive
+    evidence promotes the generic positive screen to its own, and material the
+    input itself reported as several pages promotes the amplification screen to
+    the filing screen.
     """
 
     signal_types = [span.signal_type.value for span in result.evidence]
@@ -99,6 +101,8 @@ def situation_of(result: Any) -> str:
         self_discount=any(item in p.SELF_DISCOUNT_SIGNAL_TYPES for item in signal_types),
         positive_evidence=any(span.polarity == "positive" for span in result.evidence),
         audit=result.interpretation_audit is not None,
+        aspects=result.material_aspects is not None,
+        reader_conclusion=any(item in p.READING_SIGNAL_TYPES for item in signal_types),
     )
 
 

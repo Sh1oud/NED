@@ -11,6 +11,8 @@ from ned.app.core.models import (
     AsymmetryResult,
     FnbpRequest,
     FnbpResult,
+    MaterialAspect,
+    MaterialAspects,
     SignalType,
 )
 
@@ -21,6 +23,8 @@ __all__ = [
     "AsymmetryResult",
     "FnbpRequest",
     "FnbpResult",
+    "MaterialAspect",
+    "MaterialAspects",
     "NedAnalyzer",
     "SignalType",
 ]

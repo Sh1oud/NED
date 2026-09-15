@@ -251,6 +251,36 @@ class InterpretationAudit(BaseModel):
     relation_assessed: bool = False
 
 
+class MaterialAspect(BaseModel):
+    """One page an input reports: a pointer to evidence, and its own words.
+
+    Nothing about the material is copied here. Polarity, strength, information
+    content and the displayed quality label are all read from
+    ``AnalysisResult.evidence[evidence_index]``, so the evidence stays the single
+    source of truth: this is a selector, not a second evidence model.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    evidence_index: int = Field(ge=0)
+    #: The clause-complete, verbatim fragment this page shows.
+    text: str
+
+
+class MaterialAspects(BaseModel):
+    """The pages an input reports, kept side by side. Stage 2 never relates them.
+
+    ``relation_assessed`` is always ``False``. It exists so that "no relation was
+    judged" is part of the data, exactly as it is for the Stage 1 audit; there is
+    no score, no aggregate and no ranking anywhere in this object.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    materials: list[MaterialAspect] = Field(default_factory=list)
+    relation_assessed: bool = False
+
+
 class AsymmetryResult(BaseModel):
     """Output of the Evidence Asymmetry Detector."""
 
@@ -452,6 +482,8 @@ class AnalysisResult(BaseModel):
     asymmetry: AsymmetryResult | None = None
     #: Present only when the reader supplied an explanation of their own.
     interpretation_audit: InterpretationAudit | None = None
+    #: Stage 2: the material pages this input reports, kept and never merged.
+    material_aspects: MaterialAspects | None = None
     easter_eggs: list[EasterEggHit] = Field(default_factory=list)
     breakdown: ScoringBreakdown = Field(default_factory=ScoringBreakdown)
     engine: EngineInfo

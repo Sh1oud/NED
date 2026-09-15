@@ -31,19 +31,24 @@ from ned.app.core.models import (
     Verdict,
 )
 from ned.app.ui.personality import (
+    ASPECT_CARD_SITUATIONS,
     FORBIDDEN_EMOJI,
     GREETING_RULE,
     QUALITY_SOURCE,
+    READING_SIGNAL_TYPES,
     ROUTINE_CLAIM,
     SELF_DISCOUNT_SIGNAL_TYPES,
     SITUATION_EXPLANATION_AUDIT,
     PersonalityFeedback,
     analysis_feedback,
+    aspect_breakdown_rows,
+    aspect_copy,
     audit_breakdown_rows,
     captured_reading,
     comedy_hypotheses,
     emoji_discipline,
     explicit_quality_label,
+    fact_fixed,
     fact_from_observed,
     fact_override,
     fact_signal_types,
@@ -159,8 +164,19 @@ def screen_context(result: AnalysisResult) -> tuple[str, bool, str]:
         self_discount=self_discount,
         positive_evidence=positive_evidence,
         audit=result.interpretation_audit is not None,
+        aspects=result.material_aspects is not None,
+        reader_conclusion=any(item in READING_SIGNAL_TYPES for item in signal_types),
     )
     return situation, basis, language
+
+
+def material_pages_of(result: AnalysisResult) -> tuple[str, ...]:
+    """The pages this result filed, in the order the input reported them."""
+
+    aspects = result.material_aspects
+    if aspects is None:
+        return ()
+    return tuple(item.text for item in aspects.materials)
 
 
 def screen_fact(result: AnalysisResult, situation: str, language: str = "zh") -> str:
@@ -173,6 +189,9 @@ def screen_fact(result: AnalysisResult, situation: str, language: str = "zh") ->
     Details still lists every span.
     """
 
+    fixed = fact_fixed(situation, language)
+    if fixed:
+        return fixed
     if fact_from_observed(situation):
         return (
             repair_display_text(result.observed_evidence)
@@ -267,6 +286,7 @@ def render_first_screen(
         basis=basis,
         reading=captured_reading_of(result),
         rule=primary_positive_rule(result.evidence),
+        materials=material_pages_of(result),
     )
     body = Table(show_header=False, box=None, padding=(0, 2))
     body.add_row("Observed evidence", Text(screen_fact(result, situation)))
@@ -348,12 +368,43 @@ def render_epistemic_breakdown(result: AnalysisResult, situation: str, out: Cons
     )
 
 
+def render_aspect_breakdown(result: AnalysisResult, situation: str, out: Console) -> None:
+    """The page-by-page filing card, and only where Stage 2 promised one.
+
+    Shown under the multiple-aspects screen, and — in the serious register —
+    under a stated boundary, where it records that the other material is still
+    on file and does not weaken the boundary. Never under hostility: a hostile
+    input gets no "two sides" framing at all.
+    """
+
+    aspects = result.material_aspects
+    if aspects is None or situation not in ASPECT_CARD_SITUATIONS:
+        return
+    language = "en" if result.language == "en" else "zh"
+    body = Table(show_header=False, box=None, padding=(0, 2))
+    for label, text in aspect_breakdown_rows(
+        aspects, result.evidence, situation=situation, language=language
+    ):
+        body.add_row(label, Text(text))
+    out.print(
+        Panel(
+            Group(
+                body,
+                Text(aspect_copy(situation, language)["disclaimer"], style="dim italic"),
+            ),
+            title="Multiple Aspects Breakdown",
+            border_style="cyan",
+        )
+    )
+
+
 def render_analysis(result: AnalysisResult, out: Console) -> None:
     """Render an analysis result: NED's screen first, the evidence after it."""
 
     situation, basis, language = screen_context(result)
     render_first_screen(result, situation, basis, language, out)
     render_epistemic_breakdown(result, situation, out)
+    render_aspect_breakdown(result, situation, out)
     out.print()
     out.print(Text("Technical Details " + "\u2500" * 44, style="dim"))
     out.print(

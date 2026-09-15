@@ -466,6 +466,142 @@
     card.hidden = false;
   }
 
+  // The pages the engine filed for this input, in the input's own order.
+  function aspectPages(payload) {
+    return list(obj(obj(payload).material_aspects).materials);
+  }
+
+  function materialTexts(payload) {
+    return aspectPages(payload).map(function (item) {
+      return String(obj(item).text || "");
+    }).filter(function (text) { return text !== ""; });
+  }
+
+  // Material the reader supplied themselves is not material the input reports.
+  function readerConclusion(evidence) {
+    var allowed = catalogueList("reading_signal_types");
+    return list(evidence).some(function (rawRow) {
+      return allowed.indexOf(String(obj(rawRow).signal_type || "")) !== -1;
+    });
+  }
+
+  // Name the pages a screen filed, verbatim and in the input's order.
+  function fillMaterials(lines, materials, language) {
+    var slot = String(CATALOG.materials_slot || "{materials}");
+    var rows = list(lines);
+    if (!rows.some(function (line) { return String(line).indexOf(slot) !== -1; })) {
+      return rows;
+    }
+    var shown = list(materials).filter(function (text) { return text !== ""; })
+      .map(function (text) { return "\u300c" + text + "\u300d"; }).join("\u3001");
+    if (!shown) {
+      var fallback = catalogueObj("materials_fallback");
+      shown = txt(fallback[language === "en" ? "en" : "zh"]);
+    }
+    return rows.map(function (line) {
+      return String(line).split(slot).join(shown);
+    });
+  }
+
+  function aspectCopy(situation, language) {
+    var table = String(situation || "") === "boundary"
+      ? catalogueObj("aspect_boundary_copy")
+      : catalogueObj("aspect_copy");
+    var chosen = obj(table[language]);
+    return keys(chosen).length > 0 ? chosen : obj(table.zh);
+  }
+
+  // The grade a page's own screen would print for it: same ruler, same source.
+  function pageGrade(span, language) {
+    var row = obj(span);
+    if (catalogueList("boundary_page_types").indexOf(String(row.signal_type || "")) !== -1) {
+      return explicitQuality(language);
+    }
+    if (String(row.polarity || "") === "positive") {
+      return qualityFromValue(row.base_strength, language);
+    }
+    return qualityFromValue(row.information_content, language);
+  }
+
+  function pageLabel(copy, position, language) {
+    var labels = list(catalogueObj("aspect_page_labels")[language]);
+    if (position < labels.length) { return String(labels[position]); }
+    return String(copy.extra_label || "").split("{n}").join(String(position + 1));
+  }
+
+  function fillRow(template, text, grade) {
+    return String(template || "").split("{text}").join(text)
+      .split("{grade}").join(grade);
+  }
+
+  // The page-by-page filing card. Rows mirror the CLI exactly: same copy table,
+  // same order, no comparison, no total.
+  function aspectRows(pages, evidence, copy, situation, language) {
+    var boundary = catalogueList("boundary_page_types");
+    function spanOf(item) {
+      var index = Number(obj(item).evidence_index);
+      return isFinite(index) && index >= 0 && index < evidence.length
+        ? evidence[index] : null;
+    }
+    function isBoundary(item) {
+      var span = spanOf(item);
+      return span !== null && boundary.indexOf(String(obj(span).signal_type || "")) !== -1;
+    }
+    var rows = [];
+    if (String(situation || "") === "boundary") {
+      var others = pages.filter(function (item) { return !isBoundary(item); });
+      var edges = pages.filter(isBoundary);
+      others.forEach(function (item, position) {
+        var label = others.length === 1
+          ? String(copy.other_label || "") : pageLabel(copy, position, language);
+        rows.push([label, fillRow(copy.other_row, String(obj(item).text || ""),
+          pageGrade(spanOf(item), language))]);
+      });
+      edges.forEach(function (item) {
+        rows.push([String(copy.boundary_label || ""),
+          fillRow(copy.boundary_row, String(obj(item).text || ""),
+            pageGrade(spanOf(item), language))]);
+      });
+      rows.push([String(copy.relation_label || ""), String(copy.relation || "")]);
+      rows.push([String(copy.between_label || ""), String(copy.between || "")]);
+      rows.push([String(copy.unknown_label || ""), String(copy.unknown || "")]);
+      rows.push([String(copy.settled_label || ""), String(copy.settled || "")]);
+      rows.push([String(copy.not_done_label || ""), String(copy.not_done || "")]);
+      return rows;
+    }
+    pages.forEach(function (item, position) {
+      rows.push([pageLabel(copy, position, language),
+        fillRow(copy.material_row, String(obj(item).text || ""),
+          pageGrade(spanOf(item), language))]);
+    });
+    rows.push([String(copy.between_label || ""), String(copy.between || "")]);
+    rows.push([String(copy.unknown_label || ""), String(copy.unknown || "")]);
+    rows.push([String(copy.not_done_label || ""), String(copy.not_done || "")]);
+    return rows;
+  }
+
+  function renderAspectBreakdown(d, situation) {
+    var card = $("aspect-breakdown");
+    var host = $("aspect-rows");
+    if (!card || !host) { return; }
+    var pages = aspectPages(d);
+    if (pages.length <= 1
+        || catalogueList("aspect_card_situations").indexOf(String(situation || "")) === -1) {
+      card.hidden = true;
+      clear(host);
+      return;
+    }
+    var language = languageOf(d);
+    var rows = aspectRows(pages, list(obj(d).evidence), aspectCopy(situation, language),
+      situation, language);
+    clear(host);
+    rows.forEach(function (pair) {
+      host.appendChild(el("dt", "audit-label", pair[0]));
+      host.appendChild(el("dd", "audit-text", pair[1]));
+    });
+    card.hidden = false;
+  }
+
   function renderHypotheses(raw, payload) {
     var host = $("hypotheses-list");
     if (!host) { return; }
@@ -611,6 +747,16 @@
       var audited = catalogueList("self_discount_promotes");
       if (audited.indexOf(baseSituation) !== -1) { return "explanation_audit"; }
     }
+    // The input reports more than one page and the reader supplied no conclusion
+    // of their own: file both pages instead of answering with the amplification
+    // screen. A boundary, a hostile expression or any other verdict is never
+    // promoted this way.
+    if (aspectPages(payload).length > 1
+        && catalogueList("multiple_aspects_promotes").indexOf(baseSituation) !== -1
+        && !obj(obj(payload).interpretation_audit).reading
+        && !readerConclusion(evidence)) {
+      return String(CATALOG.multiple_aspects_situation || "multiple_aspects");
+    }
     var allowed = catalogueList("self_discount_signal_types");
     var discount = false;
     var positive = false;
@@ -650,6 +796,10 @@
   }
 
   function screenFact(d, situation) {
+    var fixed = obj(catalogueObj("fact_fixed")[situation]);
+    if (keys(fixed).length > 0) {
+      return txt(languageOf(d) === "en" ? fixed.en : fixed.zh);
+    }
     if (catalogueList("fact_from_observed").indexOf(situation) !== -1) {
       return first(d.observed_evidence, d.signal_label, d.raw_interpretation);
     }
@@ -752,6 +902,9 @@
     if (situation === "explanation_audit") {
       lines = auditFlavourLines(capturedReading(d));
     }
+    if (situation === String(CATALOG.multiple_aspects_situation || "")) {
+      lines = fillMaterials(list(copy.lines), materialTexts(d), language);
+    }
     if (basis && list(copy.lines_with_basis).length > 0) {
       var filled = fillReading(list(copy.lines_with_basis), capturedReading(d));
       lines = filled === null ? list(copy.lines) : filled;
@@ -817,6 +970,7 @@
     setRaw("verdict-emoji", displayVerdictEmoji(v.emoji, situation, shownVerdict));
     renderHypotheses(d.alternative_explanations, d);
     renderEpistemicBreakdown(d, situation);
+    renderAspectBreakdown(d, situation);
     renderReaching(d.ned_reaching_level, d.reaching_label);
     renderPersonality("reaching-personality", "analysis", d.ned_reaching_level);
     renderEvidence(d.evidence);
@@ -1231,6 +1385,7 @@
       escapeHtml: escapeHtml,
       situationFor: situationFor,
       displaySituation: displaySituation,
+      renderAspectBreakdown: renderAspectBreakdown,
       firstScreenCopy: firstScreenCopy,
       screenFact: screenFact,
       capturedReading: capturedReading,
