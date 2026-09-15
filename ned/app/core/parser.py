@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from functools import lru_cache
 
-from ned.app.core import attribution
+from ned.app.core import attribution, boundary
 from ned.app.core.models import Duration, EvidenceSpan, Language, Polarity, SignalType
 from ned.app.core.rules import RuleBook
 
@@ -316,6 +316,15 @@ def detect(text: str, book: RuleBook) -> list[EvidenceSpan]:
             # Reader-owned families: the phrase has to belong to the reader. The
             # firewall only ever removes spans, and it answers "no" when unsure.
             matches = [item for item in matches if attribution.reader_owned(text, item[0])]
+            if not matches:
+                continue
+
+        if rule.id.startswith("zh.") and rule.signal_type.value == "direct_rejection":
+            # A boundary is hers: the reader's own stance and a third party's
+            # report reach the boundary screen otherwise. Same shape as the
+            # reader firewall above - it only removes spans, answers "no" when
+            # the author cannot be established, and only reads Chinese.
+            matches = [item for item in matches if boundary.hers(text, item[0], item[1])]
             if not matches:
                 continue
 

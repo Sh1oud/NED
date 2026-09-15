@@ -10,12 +10,18 @@ stated outright.
 
 from __future__ import annotations
 
+import ast
+import pathlib
+
 import pytest
 from fastapi.testclient import TestClient
 from ned.app.core import parser
 from ned.app.core.analyzer import NedAnalyzer
 from ned.app.core.models import SignalType
 from ned.app.core.rules import RuleBook
+
+#: The repository root, for the two pins that read the shipped source.
+REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 REPORTED_REFUSAL = "他让我滚出去别烦他了"
 NEUTRAL = "今天开会开了三个小时，回来路上买了瓶水"
@@ -447,13 +453,14 @@ FACTUAL_BOUNDARIES = (
     "我可能想多了，但她明确让我别联系她",
 )
 
-#: The family's judgement wording keeps its judgement framing: "我觉得我们不合适"
-#: is a boundary, so the judgement guard carries the uncertainty markers only.
+#: The judgement wording keeps its framing when *she* is the author. The
+#: reader's own judgement ("我觉得我们不合适") is not her boundary: BATCH 4's
+#: ownership contract closes it, and it is pinned in that section below.
 JUDGEMENT_BOUNDARIES = (
-    "我觉得我们不合适",
-    "我感觉我们不合适",
     "她说我们不合适",
     "他明确说我们不合适",
+    "她觉得我们不合适",
+    "她跟我说我们不合适",
 )
 
 
@@ -707,16 +714,22 @@ OTHER_OBJECTS = (
     "她不想见我们",
 )
 
-#: The guards are scoped to the new shapes. The family's older triggers keep the
-#: behaviour the shipped pack gave them, questions and denials included, so this
-#: window is not a rewrite of the old negation or attribution behaviour.
+#: The guards are scoped to the new shapes. These older triggers keep the
+#: behaviour the shipped pack gave them.
 OLD_TRIGGER_SCOPE = (
-    "她朋友说她不想和我说话",
     "她为什么不想和我说话了？",
+    "她让我滚出去别烦他了",
+)
+
+#: Older triggers whose shipped answer was a mis-attribution, and which BATCH 4's
+#: ownership contract closes: a relay (the boundary reaches the input second hand)
+#: and three denials (the sentence refuses the conclusion, exactly like the
+#: epistemic-negation family next door).
+CLOSED_BY_OWNERSHIP = (
+    "她朋友说她不想和我说话",
     "这不能证明她说我们还是做朋友吧",
     "不代表她拒绝了我",
     "不等于她不想和我说话",
-    "她让我滚出去别烦他了",
 )
 
 #: The gap between the boundary owner and the stance. It may not contain 我:
@@ -1059,7 +1072,6 @@ CERTIFIED_BOUNDARIES = (
     "她明确说她不想见我",
     "她明确拒绝了我，我现在可能很难受",
     "我表白被拒了",
-    "我觉得我们不合适",
 )
 
 
@@ -1230,16 +1242,12 @@ NEGATED_SPEECH = (
     "她并没有跟我说不想见我",
 )
 
-#: REGISTERED DEBT, measured identically before and after BATCH 3. Two separate
-#: gaps, both older than this batch and both outside the receiver work:
-#:   * the unanchored friendship / distance patterns (1 and 2 in the pack) carry no
-#:     ownership at all, so "我告诉她我们还是做朋友吧" still reads as her boundary;
-#:   * the relay guard is still the enumerative one (kinship role nouns), and the
-#:     subject gap still tolerates a noun, so a named third party and a third-party
-#:     proposition can still be certified.
-#: These are pinned as today's behaviour so that closing them later is a visible,
-#: reviewed change rather than a silent one.
-REGISTERED_OPEN_DEBT = (
+#: The debt BATCH 3 registered and BATCH 4 closed. Three separate authors used to
+#: reach the boundary screen through the unanchored patterns (the reader speaking),
+#: the enumerative relay guard's blind spots (a named third party), and the subject
+#: gap's tolerance of a noun (a third-party proposition). The ownership helper
+#: closes all three structurally, and these assert the corrected behaviour.
+CLOSED_DEBT = (
     "我告诉她我们还是做朋友吧",
     "我给她发消息说我们保持距离吧",
     "我刚刚告诉她我们还是做朋友吧",
@@ -1312,12 +1320,13 @@ def test_negated_speech_is_not_a_statement(analyzer: NedAnalyzer, text: str) -> 
     assert boundary_spans(analyzer, text) == [], text
 
 
-@pytest.mark.parametrize("text", REGISTERED_OPEN_DEBT)
-def test_the_open_relay_debt_is_registered(analyzer: NedAnalyzer, text: str) -> None:
-    """Today's behaviour, kept visible: see REGISTERED_OPEN_DEBT for the causes."""
+@pytest.mark.parametrize("text", CLOSED_DEBT)
+def test_the_registered_debt_is_closed(analyzer: NedAnalyzer, text: str) -> None:
+    """The three other authors no longer reach her boundary screen."""
 
     result = analyzer.analyze_text(text, mode="normal")
-    assert result.verdict.code == "ned.direct_rejection", text
+    assert result.verdict.code != "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text) == [], text
 
 
 def test_the_receiver_rejection_asymmetry_is_registered(analyzer: NedAnalyzer) -> None:
@@ -1357,3 +1366,237 @@ def test_the_question_guard_sees_the_receiver_frame(book: RuleBook) -> None:
     assert len(guards) == 1, guards
     assert RECEIVER_FRAME in guards[0], guards[0]
     assert guards[0].count(RECEIVER_FRAME) == 1, guards[0]
+
+
+# --------------------------------------------------------------------------- #
+# BATCH 4: a boundary is hers - author, receiver, proposition owner
+# --------------------------------------------------------------------------- #
+
+#: The reader is the author of the stance: it is the reader's sentence, not her
+#: boundary. Nothing here may reach the boundary screen.
+READER_AUTHORS_THE_STANCE = (
+    "我跟她说我只想当普通朋友",
+    "我对她说我不想见她",
+    "我告诉她我们还是做朋友吧",
+    "我给她发消息说我们保持距离吧",
+    "我刚刚告诉她我们还是做朋友吧",
+    "我说我们不合适",
+    "我觉得我们不合适",
+    "我感觉我们不合适",
+    "我认为我们不合适",
+    "我告诉她我们不合适",
+    "我跟她说我们不合适",
+    "我对她说我们不合适",
+    "我对她说：“我们还是做朋友吧”",
+    "我告诉她“我不想见她”",
+)
+
+#: A relay: the boundary reaches the input second hand. The speaker is a noun
+#: phrase, and no list of names is involved - only that a content word stands
+#: where the speaker must be, and that the receiver is the reader.
+RELAY_IS_NOT_HER_STATEMENT = (
+    "她妈妈跟我说她不想见我",
+    "她朋友跟我说她只想跟我做普通朋友",
+    "室友告诉我她不想见我",
+    "小王跟我说她觉得我们不合适",
+    "我妈告诉我她让我别联系她",
+    "她妈妈跟我说只想当普通朋友",
+    "她姐姐跟我说只想当普通朋友",
+    "她朋友跟我说不想见我",
+    "她妈跟我说不想见我",
+    "她妈妈昨天跟我说不想见我",
+    "她老公跟我说不想发展成恋爱关系",
+    "她的朋友跟我说只想当普通朋友",
+    "她妈妈说只想当普通朋友",
+    "她朋友说她不想和我说话",
+    "她朋友说她不想见我",
+    "她转述说不想见我",
+    "我妈说她不想见我",
+)
+
+#: The proposition belongs to somebody else: the speech frame is hers, but the
+#: subject of the proposition is a noun phrase, so the stance is not her own.
+PROPOSITION_OWNER_IS_SOMEBODY_ELSE = (
+    "她跟我说她姐姐只想当普通朋友",
+    "她跟我说朋友不想见我",
+    "她告诉我别人觉得我们不合适",
+    "她说：“我妈觉得我们不合适”",
+)
+
+#: Denials: the sentence refuses the conclusion, exactly like the epistemic
+#: negation family.
+DENIED_BY_THE_SENTENCE = (
+    "这不能证明她说我们还是做朋友吧",
+    "不代表她拒绝了我",
+    "不等于她不想和我说话",
+)
+
+#: The quote perspective. Inside direct speech 我 is the speaker; the quote does
+#: not change who owns the sentence that introduces it.
+QUOTE_PERSPECTIVE_BOUNDARIES = (
+    "她说：“我不想见你”",
+    "她说：“我们不合适”",
+    "她跟我说：“我不想见你”",
+    "她对我说：“我不想见你”",
+    "她对我说：“我只想跟你做普通朋友”",
+)
+QUOTE_PERSPECTIVE_NOT_BOUNDARIES = (
+    "她妈妈对我说：“她不想见你”",
+    "我对她说：“我们还是做朋友吧”",
+    "她对我说：“我姐姐不想见你”",
+    "她说：“我妈觉得我们不合适”",
+)
+
+#: Her own act or stance, including the passive shape where the reader narrates
+#: what she did to the reader.
+HER_OWN_ACT_OR_STANCE = (
+    "她拒绝了我",
+    "她让我滚",
+    "她让我别联系她",
+    "她说我们不合适",
+    "她觉得我们不合适",
+    "她认为我们不合适",
+    "她告诉我们不合适",
+    "她跟我说我们不合适",
+    "她说不想见我",
+    "她说她只想当普通朋友",
+    "她和朋友说她只想当普通朋友",
+    "她昨天告诉我她不想见我",
+    "她哭着说她不想见我",
+    "她跟我说她不想见我",
+    "她对我说她只想当普通朋友",
+    "她告诉闺蜜她只想和我做普通朋友",
+    "我表白被拒了",
+    "我被拒绝了",
+    "他让我滚",
+)
+
+#: The shipped reading of a bare stock line: no author is named, so the family
+#: keeps reading it as her line, and the reader's own 你-object stance keeps its
+#: shipped answer too.
+BARE_STOCK_LINES = (
+    "我不想和你说话",
+    "对方明确说不想再和我说话",
+    "她只想当普通朋友",
+    "他给我买了早餐，但她只想当普通朋友",
+    "我们还是做朋友吧",
+    "保持距离",
+    "让我滚",
+    "离我远点",
+)
+
+
+@pytest.mark.parametrize("text", READER_AUTHORS_THE_STANCE)
+def test_the_reader_as_author_is_not_her_boundary(analyzer: NedAnalyzer, text: str) -> None:
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code != "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text) == [], text
+
+
+@pytest.mark.parametrize("text", RELAY_IS_NOT_HER_STATEMENT)
+def test_a_relay_is_not_her_own_statement(analyzer: NedAnalyzer, text: str) -> None:
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code != "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text) == [], text
+
+
+@pytest.mark.parametrize("text", PROPOSITION_OWNER_IS_SOMEBODY_ELSE)
+def test_a_third_party_proposition_is_not_her_stance(analyzer: NedAnalyzer, text: str) -> None:
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code != "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text) == [], text
+
+
+@pytest.mark.parametrize("text", DENIED_BY_THE_SENTENCE)
+def test_a_denied_conclusion_is_not_certified(analyzer: NedAnalyzer, text: str) -> None:
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code != "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text) == [], text
+
+
+@pytest.mark.parametrize("text", CLOSED_BY_OWNERSHIP)
+def test_the_older_triggers_the_ownership_helper_closed(analyzer: NedAnalyzer, text: str) -> None:
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code != "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text) == [], text
+
+
+@pytest.mark.parametrize("text", QUOTE_PERSPECTIVE_BOUNDARIES)
+def test_a_quote_keeps_the_speaker_perspective(analyzer: NedAnalyzer, text: str) -> None:
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code == "ned.direct_rejection", text
+
+
+@pytest.mark.parametrize("text", QUOTE_PERSPECTIVE_NOT_BOUNDARIES)
+def test_a_quote_from_another_author_is_not_her_boundary(analyzer: NedAnalyzer, text: str) -> None:
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code != "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text) == [], text
+
+
+@pytest.mark.parametrize("text", HER_OWN_ACT_OR_STANCE)
+def test_her_own_act_or_stance_is_still_a_boundary(analyzer: NedAnalyzer, text: str) -> None:
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code == "ned.direct_rejection", text
+
+
+@pytest.mark.parametrize("text", BARE_STOCK_LINES)
+def test_a_bare_stock_line_keeps_its_shipped_reading(analyzer: NedAnalyzer, text: str) -> None:
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code == "ned.direct_rejection", text
+
+
+def test_the_ownership_helper_reads_roles_not_people() -> None:
+    """The closure is structural: no person list and no reporting-verb list.
+
+    The check reads the module's own vocabulary literals, so the example sentences
+    in its docstring cannot satisfy it by accident.
+    """
+
+    module = REPO_ROOT / "ned" / "app" / "core" / "boundary.py"
+    tree = ast.parse(module.read_text(encoding="utf-8"))
+    vocabulary = {
+        element.value
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.List, ast.Tuple, ast.Set))
+        for element in node.elts
+        if isinstance(element, ast.Constant) and isinstance(element.value, str)
+    }
+    names = (
+        "妈妈",
+        "妈妈".replace("妈", "爸"),
+        "姐姐",
+        "妹妹",
+        "哥哥",
+        "室友",
+        "小王",
+        "闺蜜",
+        "老师",
+        "同学",
+        "朋友",
+        "家人",
+        "亲戚",
+        "父母",
+        "同事",
+        "表哥",
+        "网友",
+    )
+    for name in names:
+        assert name not in vocabulary, name
+    for verb in ("转述", "复述", "转达", "嘀咕", "断言", "念叨", "私下说", "提了一句"):
+        assert verb not in vocabulary, verb
+    # the receiver slot is marked by grammar instead: a preposition or a
+    # receiver-object verb, and the reader's own pronoun
+    for token in ("跟", "和", "与", "对", "向", "给", "告诉", "通知", "告知"):
+        assert token in vocabulary, token
+    functions = {node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)}
+    assert "hers" in functions, functions
+    assert "_walk" in functions, functions
+
+
+def test_the_helper_is_only_wired_for_the_chinese_boundary_family() -> None:
+    """The ownership check reads Chinese roles, so it is not applied to the en pack."""
+
+    parser = (REPO_ROOT / "ned" / "app" / "core" / "parser.py").read_text(encoding="utf-8")
+    assert 'rule.id.startswith("zh.") and rule.signal_type.value == "direct_rejection"' in parser
+    assert "boundary.hers(text, item[0], item[1])" in parser
