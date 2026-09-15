@@ -183,3 +183,21 @@ Not part of this closing (left for the Release Candidate / Release phase):
 - release publication
 
 Release name: **NED v0.1.8 — Alternative Explanation Audit & Multiple Aspects**
+
+## 12. v0.1.9 Release Preparation
+
+Hard-line maintenance release. Two fixes only: a hedged or hypothetical rejection
+claim is an inference rather than a stated boundary, and a stated relationship
+boundary is recognised so that a positive or comedic screen cannot cover it.
+
+| Check | Result |
+| --- | --- |
+| Version identity | `__version__ = "0.1.9"`, bumped in this preparation; `/api/health` and `/api/version` report it |
+| CG-7 commit | `4dc9f9b` — `fix: keep uncertain rejection claims out of explicit boundaries` |
+| CG-3 commit | `8b30b55` — `fix: recognize explicit relationship boundaries` |
+| Production surface | `ned/app/rules/signals.json` only, rule `zh.direct_rejection`: patterns 15 -> 18, exclude 27 -> 30; the other 37 rules byte-identical |
+| Measured change set | 36 boundary gains over the audit inputs, 0 losses; 306-input sweep, 50-input playtest and 551-input pool all unchanged |
+| Full gates | pytest, ruff check, ruff format --check, mypy, personality/nea/layers render, copy-safety scan all clean |
+| Not part of this preparation | commit, push, tag creation, artifact upload, release publication |
+
+Release name: **NED v0.1.9 — Hard-line Maintenance**

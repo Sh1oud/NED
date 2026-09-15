@@ -15,6 +15,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Web UI i18n.
 - Saved report export.
 
+## [0.1.9] - 2026-09-15
+
+**NED v0.1.9 — Hard-line Maintenance**
+
+Maintenance release. Two fixes, both about the same hard line: an uncertain claim
+may not be presented as a stated boundary, and a stated boundary may not be
+covered by anything else. No new verdict, no new signal family, no new score, no
+new UI, no new schema, and no feature expansion beyond these two.
+
+### Fixed
+
+- Uncertain or hypothetical rejection claims are no longer presented as explicit
+  relationship boundaries. `我可能被拒绝了` no longer reaches the boundary screen,
+  along with the related modal forms covered by this patch.
+- Additional explicit relationship-boundary forms are recognised, so the covered
+  forms can no longer be hidden behind a positive or comedic screen.
+  `她说不想见我`, `她说她只想当普通朋友` and `她说她不想发展成恋爱关系` now take
+  the existing boundary path; material the input also reports stays on file
+  underneath that screen instead of deciding it.
+
+### Known limitation
+
+- Hypothetical wording around the family's older triggers keeps its shipped
+  answer (`她未必拒绝了我` still reaches the boundary screen). Registered, not
+  changed in this release.
+- A boundary whose subject is elided behind a receiver that contains the reader
+  (`她跟我说只想当普通朋友`) is still not recognised. Registered.
+
 ## [0.1.8] - 2026-09-15
 
 **NED v0.1.8 — Alternative Explanation Audit & Multiple Aspects**
@@ -358,7 +386,8 @@ emotional evidence de-weighting engine.
   no database, no accounts, no paid APIs. v0.1 never calls an external LLM; the
   `LLMProvider` interface exists as a stub for future work.
 
-[Unreleased]: https://github.com/Sh1oud/NED/compare/v0.1.8...HEAD
+[Unreleased]: https://github.com/Sh1oud/NED/compare/v0.1.9...HEAD
+[0.1.9]: https://github.com/Sh1oud/NED/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/Sh1oud/NED/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/Sh1oud/NED/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/Sh1oud/NED/compare/v0.1.5...v0.1.6

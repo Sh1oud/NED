@@ -69,7 +69,7 @@ $ ned analyze "我想你了"
 Final Verdict (ned.no_signal)
   未检测到明显情感证据。NED 无事可做。👍
 
-engine ned-local-rules v0.1.8 (provider=local-rule, offline=True)
+engine ned-local-rules v0.1.9 (provider=local-rule, offline=True)
 ```
 
 `我想你了` is the reader's own longing, so NED never reads it as the other
@@ -309,7 +309,7 @@ ned fnbp --expected Fuyuki --actual 张三 --actual 李四 --count 5
 
 ```bash
 curl -s http://127.0.0.1:8000/api/health
-# {"status":"ok","version":"0.1.8","uptime_seconds":12.3,"local_only":true,"engine":"ned-local-rules"}
+# {"status":"ok","version":"0.1.9","uptime_seconds":12.3,"local_only":true,"engine":"ned-local-rules"}
 ```
 
 ```bash
@@ -343,13 +343,13 @@ curl -s -X POST http://127.0.0.1:8000/api/analyze \
   "evidence": [],
   "interpretation_audit": null,
   "material_aspects": null,
-  "engine": { "name": "ned-local-rules", "version": "0.1.8", "provider": "local-rule", "offline": true, "escapes_used": 0 }
+  "engine": { "name": "ned-local-rules", "version": "0.1.9", "provider": "local-rule", "offline": true, "escapes_used": 0 }
 }
 ```
 
 Trimmed for readability (`breakdown`, `mode_notes`, `easter_eggs` and `disclaimer` are
 omitted). Every value shown is what the current build returns — including
-`engine.version`, which stays `0.1.8` until the next version bump. `interpretation_audit`
+`engine.version`, which stays `0.1.9` until the next version bump. `interpretation_audit`
 and `material_aspects` are `null` here; they carry data when the reader supplies their own
 explanation, or when the input reports several material pages.
 
