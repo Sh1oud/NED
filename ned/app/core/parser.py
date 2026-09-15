@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 from functools import lru_cache
 
+from ned.app.core import attribution
 from ned.app.core.models import Duration, EvidenceSpan, Language, Polarity, SignalType
 from ned.app.core.rules import RuleBook
 
@@ -310,6 +311,13 @@ def detect(text: str, book: RuleBook) -> list[EvidenceSpan]:
                 matches.append((match.start(), match.end(), matched_text))
         if not matches:
             continue
+
+        if rule.signal_type.value in attribution.READER_OWNED_TYPES:
+            # Reader-owned families: the phrase has to belong to the reader. The
+            # firewall only ever removes spans, and it answers "no" when unsure.
+            matches = [item for item in matches if attribution.reader_owned(text, item[0])]
+            if not matches:
+                continue
 
         if rule.exclude:
             exclusions: list[tuple[int, int]] = []

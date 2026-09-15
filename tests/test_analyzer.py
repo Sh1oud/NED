@@ -8,7 +8,6 @@ to know what anyone feels).
 from __future__ import annotations
 
 import pytest
-from ned.app.core import parser
 from ned.app.core.analyzer import NedAnalyzer
 from ned.app.core.models import AnalyzeRequest, SignalType
 from ned.app.core.rules import RuleBook
@@ -515,23 +514,127 @@ def test_somebody_elses_words_are_not_the_readers_stance(analyzer: NedAnalyzer, 
     assert result.verdict.code not in {"ned.self_discount_noted", "nea.negative_conclusion"}, text
 
 
-@pytest.mark.parametrize("rule_id", ["zh.self_discount", "zh.self_negative_belief"])
-def test_each_family_carries_one_ownership_guard(book: RuleBook, rule_id: str) -> None:
-    """归属守卫看的是谁写了这个子句，不是句子里有没有某个动词。
+#: The firewall's own contract: only closed-class material may precede a
+#: reader-owned trigger, so an arbitrary named third party or an arbitrary
+#: reporting verb cannot be admitted by construction.
+FIREWALL_FRAMES = (
+    "\u8001\u5e08\u8ba9",
+    "\u5c0f\u738b\u8bf4",
+    "\u6211\u5988\u8ba9",
+    "\u5979\u8f6c\u8ff0\u8bf4",
+    "\u7fa4\u91cc\u6709\u4eba\u8bf4",
+    "\u7f51\u53cb\u8bf4",
+)
+FIREWALL_READERS = (
+    "\u6211",
+    "\u6211\u89c9\u5f97",
+    "\u6211\u662f\u4e0d\u662f",
+    "\u6211\u4e0d\u4e00\u5b9a",
+    "\u53ef\u80fd",
+    "\u522b",
+    "\u4f46\u6211\u89c9\u5f97",
+    "\u6211\u672c\u6765\u89c9\u5f97",
+    "\u6211\u8ddf\u5979\u5988\u5988\u8bf4",
+)
 
-    Chinese has no morphology for "who authored this clause", so the frame has to be
-    lexical. It is closed by class — a non-reader subject plus a reporting or
-    directive verb — instead of an open-ended verb list with no subject requirement.
+
+@pytest.mark.parametrize("rule_id", ["zh.self_discount", "zh.self_negative_belief"])
+def test_reader_owned_families_decide_ownership_outside_the_rule_pack(
+    book: RuleBook, rule_id: str
+) -> None:
+    """Ownership is the firewall's job, so the families carry no exclude list.
+
+    A regex guard has to name either the people ("\u5979|\u4ed6|\u670b\u53cb") or the
+    reporting verbs it knows, and both are open classes: "\u8001\u5e08\u8ba9\u6211\u522b\u60f3\u592a\u591a" and
+    "\u5c0f\u738b\u63d0\u4e86\u4e00\u53e5\u5979\u4e0d\u559c\u6b22\u6211" walk straight through. The closure now lives in
+    one place that answers a single question about the clause, not in a word list.
     """
 
-    guards = ownership_guards(book, rule_id)
-    assert len(guards) == 1, guards
-    guard = guards[0]
-    assert guard.startswith("(?<![\u8ddf\u548c\u4e0e\u5bf9\u5411\u7ed9])"), guard
-    assert "\u5979|\u4ed6|\u5bf9\u65b9" in guard, guard
-    for frame in ("\u8bf4", "\u8bb2", "\u544a\u8bc9", "\u8868\u793a", "\u8ba9", "\u53eb", "\u529d"):
-        assert frame in guard, frame
-    assert parser.compile_pattern(guard)
+    assert ownership_guards(book, rule_id) == [], rule_id
+
+
+def test_the_firewall_admits_only_closed_class_prefixes() -> None:
+    """Anyone's name and any reporting verb are frames by construction."""
+
+    from ned.app.core import attribution
+
+    assert frozenset({"self_discount", "self_negative_belief"}) == attribution.READER_OWNED_TYPES
+    tail = "\u60f3\u592a\u591a\u4e86"
+    for frame in FIREWALL_FRAMES:
+        assert not attribution.reader_owned(frame + tail, len(frame)), frame
+    for reader in FIREWALL_READERS:
+        assert attribution.reader_owned(reader + tail, len(reader)), reader
+
+
+#: An arbitrary named third party: never enumerated anywhere in the codebase.
+ARBITRARY_THIRD_PARTIES = (
+    "\u8001\u5e08\u8ba9\u6211\u522b\u60f3\u592a\u591a",
+    "\u5ba4\u53cb\u53eb\u6211\u522b\u60f3\u592a\u591a",
+    "\u8001\u677f\u529d\u6211\u522b\u60f3\u592a\u591a",
+    "\u533b\u751f\u63d0\u9192\u6211\u522b\u60f3\u592a\u591a",
+    "\u5c0f\u738b\u8bf4\u6211\u60f3\u591a\u4e86",
+    "\u963f\u6770\u7b11\u6211\u60f3\u592a\u591a\u4e86",
+    "\u5976\u5976\u8bf4\u6211\u60f3\u592a\u591a\u4e86",
+    "\u7fa4\u4e3b\u8bf4\u6211\u60f3\u591a\u4e86",
+    "\u8001\u5e08\u8bf4\u5979\u4e0d\u559c\u6b22\u6211",
+    "\u5ba4\u53cb\u8bf4\u5979\u8ba8\u538c\u6211",
+    "\u5c0f\u738b\u544a\u8bc9\u6211\u5979\u5acc\u6211\u70e6",
+    "\u5979\u59d0\u59d0\u8bf4\u5979\u4e0d\u60f3\u7406\u6211",
+    "\u7fa4\u91cc\u6709\u4eba\u8bf4\u5979\u5bf9\u6211\u6ca1\u5174\u8da3",
+    "\u7f51\u53cb\u8bf4\u5979\u6839\u672c\u4e0d\u5728\u4e4e\u6211",
+    "\u90bb\u5c45\u8bf4\u5979\u4e0d\u559c\u6b22\u6211",
+)
+
+#: The reader speaking to somebody: the receiver may be anybody at all.
+COMPOUND_RECEIVERS = (
+    "\u6211\u8ddf\u5979\u5988\u5988\u8bf4\u6211\u60f3\u592a\u591a\u4e86",
+    "\u6211\u8ddf\u5979\u670b\u53cb\u8bf4\u6211\u60f3\u591a\u4e86",
+    "\u6211\u548c\u5979\u59d0\u59d0\u8bf4\u6211\u522b\u81ea\u4f5c\u591a\u60c5\u4e86",
+    "\u6211\u5bf9\u5ba4\u53cb\u8bf4\u6211\u60f3\u592a\u591a\u4e86",
+    "\u6211\u5411\u8001\u5e08\u8bf4\u6211\u89c9\u5f97\u5979\u4e0d\u559c\u6b22\u6211",
+    "\u6211\u8ddf\u5c0f\u738b\u8bf4\u5979\u8ba8\u538c\u6211",
+    "\u6211\u548c\u670b\u53cb\u8bf4\u5979\u4e0d\u559c\u6b22\u6211",
+)
+
+#: Natural reporting verbs that no list in the rule pack mentions.
+REPORTING_FRAMES = (
+    "\u5979\u8f6c\u8ff0\u8bf4\u6211\u60f3\u592a\u591a\u4e86",
+    "\u5979\u8f6c\u544a\u6211\u522b\u60f3\u592a\u591a",
+    "\u5c0f\u738b\u63d0\u4e86\u4e00\u53e5\u5979\u4e0d\u559c\u6b22\u6211",
+    "\u5979\u53d1\u6d88\u606f\u8bf4\u6211\u60f3\u591a\u4e86",
+    "\u5979\u56de\u6211\u8bf4\u6211\u60f3\u592a\u591a",
+    "\u5979\u8ddf\u522b\u4eba\u8bb2\u6211\u603b\u662f\u60f3\u592a\u591a",
+    "\u5979\u5f53\u9762\u8bf4\u6211\u60f3\u592a\u591a\u4e86",
+)
+
+
+@pytest.mark.parametrize("text", ARBITRARY_THIRD_PARTIES)
+def test_an_arbitrary_named_third_party_is_a_frame(analyzer: NedAnalyzer, text: str) -> None:
+    """The guard never needs to know who the person is."""
+
+    result = analyzer.analyze_text(text, mode="normal")
+    types = {span.signal_type for span in result.evidence}
+    assert SignalType.SELF_DISCOUNT not in types, text
+    assert SignalType.SELF_NEGATIVE_BELIEF not in types, text
+
+
+@pytest.mark.parametrize("text", COMPOUND_RECEIVERS)
+def test_the_reader_may_speak_to_anybody(analyzer: NedAnalyzer, text: str) -> None:
+    """A receiver that looks like a third party is still only a receiver."""
+
+    result = analyzer.analyze_text(text, mode="normal")
+    types = {span.signal_type for span in result.evidence}
+    assert types & {SignalType.SELF_DISCOUNT, SignalType.SELF_NEGATIVE_BELIEF}, text
+
+
+@pytest.mark.parametrize("text", REPORTING_FRAMES)
+def test_a_reporting_verb_nobody_listed_is_still_a_frame(analyzer: NedAnalyzer, text: str) -> None:
+    """转述 / 转告 / 提了一句 / 发消息说: the closure is structural, not lexical."""
+
+    result = analyzer.analyze_text(text, mode="normal")
+    types = {span.signal_type for span in result.evidence}
+    assert SignalType.SELF_DISCOUNT not in types, text
+    assert SignalType.SELF_NEGATIVE_BELIEF not in types, text
 
 
 @pytest.mark.parametrize("text", UNTOUCHED_RESIDUALS)
