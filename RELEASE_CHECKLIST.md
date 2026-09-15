@@ -162,6 +162,7 @@ Review.
 
 | Check | Result |
 | --- | --- |
+| Version identity | `__version__ = "0.1.8"`, bumped in this closing; `/api/health` and `/api/version` report it |
 | Stage 1 commit | `2c13b84` — `feat: add alternative explanation audit` |
 | Stage 2 commit | `fc3356c` — `feat: add multiple aspects presentation` |
 | Final Integration Review | passed (mission review, personality review, Stage 1 x Stage 2 mixed matrix) |
@@ -176,8 +177,9 @@ Review.
 
 Not part of this closing (left for the Release Candidate / Release phase):
 
-- `version.py` bump (currently still `0.1.7`)
 - `main` update
 - tag creation
 - artifact build
 - release publication
+
+Release name: **NED v0.1.8 — Alternative Explanation Audit & Multiple Aspects**

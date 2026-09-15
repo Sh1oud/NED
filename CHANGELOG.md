@@ -7,7 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-**NED v0.1.8 — Alternative Explanation Audit & Multiple Aspects (release candidate)**
+### Planned
+
+- LLM provider implementation behind an opt-in flag.
+- More languages.
+- Timeline / event-log analysis.
+- Web UI i18n.
+- Saved report export.
+
+## [0.1.8] - 2026-09-15
+
+**NED v0.1.8 — Alternative Explanation Audit & Multiple Aspects**
 
 NED now audits the reader's own explanation with the same window it uses for
 everything else, and files several materials as several pages instead of merging
@@ -48,14 +58,6 @@ them into one answer. 👍
 - Stage 1 English Audit presentation remains partially Chinese (NED's first-screen lines
   and the Epistemic Breakdown card). Stage 2 English coverage is more complete. Runtime
   correctness is unaffected.
-
-### Planned
-
-- LLM provider implementation behind an opt-in flag.
-- More languages.
-- Timeline / event-log analysis.
-- Web UI i18n.
-- Saved report export.
 
 ## [0.1.7] - 2026-09-14
 
@@ -356,7 +358,8 @@ emotional evidence de-weighting engine.
   no database, no accounts, no paid APIs. v0.1 never calls an external LLM; the
   `LLMProvider` interface exists as a stub for future work.
 
-[Unreleased]: https://github.com/Sh1oud/NED/compare/v0.1.7...HEAD
+[Unreleased]: https://github.com/Sh1oud/NED/compare/v0.1.8...HEAD
+[0.1.8]: https://github.com/Sh1oud/NED/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/Sh1oud/NED/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/Sh1oud/NED/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/Sh1oud/NED/compare/v0.1.4...v0.1.5
