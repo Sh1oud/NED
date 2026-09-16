@@ -58,6 +58,12 @@ READER_PRONOUNS = attribution.READER_PRONOUNS
 #: A clause ends here; the prefix never crosses one.
 CLAUSE_BREAKS = attribution.CLAUSE_BREAKS
 
+#: Inline whitespace carries no speaker, receiver or proposition-owner meaning, so
+#: the boundary path does not read it as a clause break. This is boundary-local: the
+#: reader-owned firewall keeps its own break set.
+INLINE_WHITESPACE = " \t\u3000"
+BOUNDARY_BREAKS = "".join(char for char in CLAUSE_BREAKS if char not in INLINE_WHITESPACE)
+
 #: 我们/咱们/咱俩/你我 name both people: they are one subject, never 我 plus a stray
 #: character, and they are neither the reader alone nor the other person alone.
 INCLUSIVE_PRONOUNS = ("\u6211\u4eec", "\u54b1\u4eec", "\u54b1\u4fe9", "\u4f60\u6211")
@@ -290,7 +296,7 @@ def _clause_prefix(text: str, start: int) -> str:
     """Everything in front of ``start`` inside its own clause."""
 
     for index in range(start - 1, -1, -1):
-        if text[index] in CLAUSE_BREAKS:
+        if text[index] in BOUNDARY_BREAKS:
             return text[index + 1 : start]
     return text[:start]
 
@@ -325,7 +331,7 @@ def _receiver_token_length(text: str, index: int) -> int:
     while length < 6 and index + length < len(text):
         if _starts_with(text, index + length, SPEECH_VERBS + ASPECT + STANCE_HEADS) is not None:
             break
-        if text[index + length] in CLAUSE_BREAKS or text[index + length] in QUOTES:
+        if text[index + length] in BOUNDARY_BREAKS or text[index + length] in QUOTES:
             break
         length += 1
     return length
@@ -394,6 +400,10 @@ def _walk_spans(text: str) -> list[tuple[str, str, int]]:
             tokens.append(("pronoun", pronoun, index))
             index += len(pronoun)
             continue
+        if text[index] in INLINE_WHITESPACE:
+            # A pure separator is not part of a person noun phrase.
+            index += 1
+            continue
         skipped = _skip_fillers(text, index)
         if skipped != index:
             index = skipped
@@ -456,7 +466,7 @@ def _is_a_relay(tokens: list[tuple[str, str, int]]) -> bool:
 
 def _clause_end(text: str, start: int) -> int:
     for index in range(start, len(text)):
-        if text[index] in CLAUSE_BREAKS:
+        if text[index] in BOUNDARY_BREAKS:
             return index
     return len(text)
 
@@ -493,7 +503,7 @@ def _previous_clause(text: str, start: int) -> str:
     head = text[sentence:start]
     last = -1
     for index in range(len(head) - 1, -1, -1):
-        if head[index] in CLAUSE_BREAKS:
+        if head[index] in BOUNDARY_BREAKS:
             last = index
             break
     if last < 0:
@@ -501,7 +511,7 @@ def _previous_clause(text: str, start: int) -> str:
     before = head[:last]
     cut = 0
     for index in range(len(before) - 1, -1, -1):
-        if before[index] in CLAUSE_BREAKS:
+        if before[index] in BOUNDARY_BREAKS:
             cut = index + 1
             break
     return before[cut:]
@@ -653,7 +663,7 @@ def _reader_is_the_speaker(tokens: list[tuple[str, str]]) -> bool:
 
 
 def _report_local_spans(
-    prefix: str, spans: list[tuple[str, str, int]], stance_names_her: bool
+    prefix: str, spans: list[tuple[str, str, int]]
 ) -> list[tuple[str, str, int]]:
     """The noun-phrase chain of the clause this stance is stated in.
 
@@ -665,8 +675,6 @@ def _report_local_spans(
     still owns it.
     """
 
-    if not stance_names_her:
-        return spans
     cut = 0
     for marker in COORDINATION_MARKERS:
         at = prefix.rfind(marker)
@@ -687,9 +695,7 @@ def hers(text: str, start: int, end: int) -> bool:
     prefix = _clause_prefix(text, start)
     spans = _walk_spans(prefix)
     tokens = _walk(prefix)
-    local_spans = _report_local_spans(
-        prefix, spans, _starts_with(text, start, DESCRIBED_PRONOUNS) is not None
-    )
+    local_spans = _report_local_spans(prefix, spans)
     in_quote = _opens_a_quote(prefix)
     sender = _sender_of(tokens, _walk(stance)) or _inherited_speaker(text, start)
     clause = text[start - len(prefix) : _clause_end(text, start)]
