@@ -349,11 +349,22 @@ def reader_owned(text: str, start: int) -> bool:
             after = rest[len(pronoun) :]
             if after[:1] in PREPOSITIONS:
                 return True
+            lead = (
+                "是不是" if after.startswith("是不是") else ("也" if after.startswith("也") else "")
+            )
+            if after[len(lead) :].startswith(("不应该", "不该")):
+                # 我不该想太多 / 我也不该想太多 / 我是不是不该想太多: the reader's own
+                # conclusion, negation included. Only this branch - the reader's own
+                # clause - takes it, so a relay keeps its own reading.
+                return True
             return any(after.startswith(verb) for verb in READER_VERBS) or _is_reader_side(after)
 
     for pronoun in DESCRIBED_PRONOUNS:
         if rest.startswith(pronoun):
             after = rest[len(pronoun) :]
+            if after.startswith(("不应该", "不该")):
+                # 她不应该想太多: a claim about her, not the reader's own discount.
+                return False
             if _is_closed_class(after):
                 return True
             if after[:1] in PREPOSITIONS and after[1:2] in READER_PRONOUNS:

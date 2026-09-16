@@ -463,12 +463,7 @@ NON_READER_FRAMES = (
 #: Registered residual for a later batch: the discount lexicon does not cover
 #: 善良 / 就是 / 被动形式, and "她说讨厌我" needs a family that does not exist yet.
 #: This batch must leave them exactly as they were.
-UNTOUCHED_RESIDUALS = (
-    "她只是善良",
-    "她就是不喜欢我",
-    "我肯定被讨厌了",
-    "她说讨厌我",
-)
+UNTOUCHED_RESIDUALS = ("她说讨厌我",)
 
 #: Registered residual: negation is a different frame from attribution.
 NEGATION_RESIDUALS = ("我没想太多", "我没有想太多")

@@ -25,10 +25,16 @@ SELF_DISCOUNT = (
     ("我", "是不是想太多了"),
 )
 
-#: The firewall answers "no" for "我不该想太多" already at baseline: `不该` is not part of
-#: the closed-class reading. That is a pre-existing ownership gap, not a whitespace one, so
-#: this pair only has to stay invariant here (fixing negation is out of this contract).
-NEGATION_MATERIAL = (("我", "不该想太多"),)
+#: READER-GAP-1 closed in BATCH 5.1: 不该/不应该 is part of the reader's own closed-class
+#: reading, so the reader's negated discount is reader-owned. The reader-owned firewall is
+#: still space-sensitive (a separate plane from the boundary whitespace contract), so this
+#: test pins the wording itself rather than a whitespace equivalence claim.
+READER_SELF_DISCOUNT_NEGATION = (
+    "我不该想太多",
+    "我不应该想太多",
+    "我也不该想太多",
+    "我是不是不该想太多",
+)
 
 SELF_NEGATIVE_BELIEF = (
     ("我", "觉得她不喜欢我"),
@@ -100,18 +106,14 @@ def test_self_discount_keeps_the_reader_as_author() -> None:
         assert signals == ("zh.self_discount",), pair
 
 
-def test_negation_material_keeps_its_current_answer_in_every_variant() -> None:
-    """Whitespace may not move this answer either - whatever the answer currently is."""
+def test_the_readers_own_negated_discount_is_reader_owned() -> None:
+    """我不该想太多 and its approved neighbours are the reader's own conclusion."""
 
-    for pair in NEGATION_MATERIAL:
-        answers = {
-            (tuple(_owned_evidence(text)), tuple(_surviving_reader_signals(text)))
-            for text in _variants(pair)
-        }
-        assert len(answers) == 1, pair
-        evidence, signals = answers.pop()
-        assert evidence, pair
-        assert signals == (), pair
+    for text in READER_SELF_DISCOUNT_NEGATION:
+        evidence = _owned_evidence(text)
+        assert evidence, text
+        assert all(owned for _rule, owned in evidence), text
+        assert _surviving_reader_signals(text) == ["zh.self_discount"], text
 
 
 def test_self_negative_belief_keeps_the_reader_as_author() -> None:
