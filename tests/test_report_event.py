@@ -74,6 +74,8 @@ PROBES = (
     "我讨厌她",
     "很烦我",
     "不喜欢我",
+    "嫌弃我",
+    "她说嫌弃我",
     "讨厌我",
 )
 
@@ -179,3 +181,34 @@ def test_the_proposition_owner_is_extracted_without_touching_the_frame() -> None
     # the owner never makes an unresolved frame resolved
     index, relay = _resolve("朋友跟我说他讨厌我")
     assert relay.frame.speech_sender == "", _detail("朋友跟我说他讨厌我", index, relay)
+
+
+#: The owner lives in the proposition's head slot. A pronoun further inside the proposition is
+#: a predicate object and never the owner; an owner the text does not state stays empty.
+HEAD_SLOT_OWNERS = (
+    ("她说讨厌我", ""),
+    ("她说不喜欢我", ""),
+    ("她说很烦我", ""),
+    ("她说嫌弃我", ""),
+    ("她说真的讨厌我", ""),
+    ("她说她讨厌我", "她"),
+    ("她跟我说她讨厌我", "她"),
+    ("她跟我说他讨厌我", "他"),
+    ("她跟我说我讨厌她", "我"),
+)
+
+
+@pytest.mark.parametrize(("text", "owner"), HEAD_SLOT_OWNERS)
+def test_the_proposition_owner_comes_from_the_head_slot(text: str, owner: str) -> None:
+    index, resolved = _resolve(text)
+    assert resolved.proposition_owner == owner, _detail(text, index, resolved)
+
+
+def test_an_object_pronoun_is_never_the_proposition_owner() -> None:
+    """predicate object pronouns must not be read as the proposition owner."""
+
+    for text in ("她说讨厌我", "她说不喜欢我", "她说很烦我", "她说嫌弃我"):
+        index, resolved = _resolve(text)
+        assert resolved.proposition_owner == "", _detail(text, index, resolved)
+        assert resolved.frame.speech_sender == "她", _detail(text, index, resolved)
+        assert resolved.actuality == "ASSERTED", _detail(text, index, resolved)
