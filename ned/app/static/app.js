@@ -602,6 +602,44 @@
     card.hidden = false;
   }
 
+  function renderMaterialRegistry(d, situation) {
+    var card = $("material-registry");
+    var host = $("material-registry-rows");
+    if (!card || !host) { return; }
+    // Only the registry: material_aspects is a different display object with a
+    // different source, and the two are never merged into one material view.
+    var materials = list(obj(d).materials);
+    // Under a stated boundary the card is not shown at all. An explicit boundary
+    // outranks any material presentation, and one input can carry both a reported
+    // attitude and a plainly stated boundary.
+    if (materials.length === 0
+        || catalogueList("boundary_situations").indexOf(String(situation || "")) !== -1) {
+      card.hidden = true;
+      clear(host);
+      return;
+    }
+    var language = languageOf(d);
+    var copy = obj(catalogueObj("material_registry_copy")[language]);
+    var labels = obj(catalogueObj("material_source_labels")[language]);
+    setText("material-registry-title", copy.card_title);
+    setText("material-registry-intro", copy.registration_intro);
+    setText("material-registry-disclaimer", copy.disclaimer);
+    setText("material-registry-isolation", copy.conclusion_isolation);
+    clear(host);
+    materials.forEach(function (item, position) {
+      var number = position + 1;
+      host.appendChild(el("dt", "audit-label",
+        String(copy.item_label || "").split("{n}").join(number < 10 ? "0" + number : String(number))));
+      host.appendChild(el("dd", "audit-text",
+        String(copy.item_text || "").split("{text}").join(String(obj(item).reported_content || ""))));
+      var source = String(obj(item).source_kind || "");
+      host.appendChild(el("dt", "audit-label", String(copy.source_label || "")));
+      host.appendChild(el("dd", "audit-text",
+        labels[source] === undefined ? String(copy.source_unknown || "") : String(labels[source])));
+    });
+    card.hidden = false;
+  }
+
   function renderHypotheses(raw, payload) {
     var host = $("hypotheses-list");
     if (!host) { return; }
@@ -971,6 +1009,7 @@
     renderHypotheses(d.alternative_explanations, d);
     renderEpistemicBreakdown(d, situation);
     renderAspectBreakdown(d, situation);
+    renderMaterialRegistry(d, situation);
     renderReaching(d.ned_reaching_level, d.reaching_label);
     renderPersonality("reaching-personality", "analysis", d.ned_reaching_level);
     renderEvidence(d.evidence);
@@ -1386,6 +1425,7 @@
       situationFor: situationFor,
       displaySituation: displaySituation,
       renderAspectBreakdown: renderAspectBreakdown,
+      renderMaterialRegistry: renderMaterialRegistry,
       firstScreenCopy: firstScreenCopy,
       screenFact: screenFact,
       capturedReading: capturedReading,
