@@ -10,9 +10,12 @@ Recognition is structural rather than a sentiment reading. A material exists whe
 described person is reported to hold a negative attitude toward the reader: her frame, her
 proposition, the reader as the target. The frame has to be hers - the reader must not be
 the speaker, a named third party must not be the reporter, an uncertain frame is not a
-report, and a negated attitude is not the attitude. Everything this layer does not
-recognise stays silent, which is the safe direction: a missed report is a missing record,
-while an invented one puts words in somebody's mouth.
+report, and a negated attitude is not the attitude. Who spoke, to whom and whether the report
+happened at all is not decided here: the shared report-event contract resolves the frame, and
+this layer reads the resolved head to decide eligibility, and the resolved proposition to
+delimit the content. Everything this layer does not recognise stays silent, which is the safe
+direction: a missed report is a missing record, while an invented one puts words in somebody's
+mouth.
 
 ``register_materials(text, ...)`` takes the input, not the evidence list, on purpose: a
 material rule reads the input directly and a material record never becomes an
@@ -32,6 +35,10 @@ from pydantic import BaseModel, ConfigDict, Field
 from ned.app.core import attribution
 from ned.app.core.models import ObservedMaterial, Polarity, SourceKind
 from ned.app.core.rules import RuleBook
+
+#: Who "I" is, read from the attribution layer so the material layer never grows a second
+#: pronoun list of its own.
+READER_PRONOUNS = attribution.READER_PRONOUNS
 
 #: The material pack lives next to the signal pack and is read from the book's own
 #: directory, so ``NED_RULES_DIR`` overrides it too. A pack that predates the material
@@ -64,6 +71,12 @@ class MaterialRule(BaseModel):
     proposition_owner: str
     target: str
     reporters: tuple[str, ...] = Field(min_length=1)
+    #: Which report acts this rule may register, named the way the shared resolver names the
+    #: frame head ("说", "告诉", "嘀咕", "抱怨"). This is semantic eligibility, never speech
+    #: grammar: the layer never uses it to find a sender, a receiver, a frame or a modifier,
+    #: and it never reads it to widen the content pattern. Empty registers nothing, so a pack
+    #: that predates the field fails closed rather than inheriting the whole report grammar.
+    allowed_report_heads: tuple[str, ...] = ()
     speech_verbs: tuple[str, ...] = Field(min_length=1)
     predicates: tuple[str, ...] = Field(min_length=1)
     degree_adverbs: tuple[str, ...] = ()
@@ -88,10 +101,11 @@ def _alternation(values: tuple[str, ...]) -> str:
 def compile_material_rule(rule: MaterialRule) -> re.Pattern[str]:
     """The pattern a material rule reads with.
 
-    The shape is fixed - reporter, frame, proposition, reader as target - and the pack
-    supplies the vocabulary. Only the pack's own words may stand between the frame and the
-    predicate, so an uncertainty marker or a negation is never read past: "她可能说讨厌我"
-    and "她不讨厌我" do not reach the predicate at all.
+    The rule reads content only - a negative attitude with the reader as its target - and the
+    pack supplies the vocabulary for that content. No frame, no modifier, no receiver and no
+    ownership judgement is expressed here: those belong to the shared report-event contract,
+    which decides whether a candidate is a report at all. Keeping them out is what stops a
+    second, drifting speech grammar from growing inside the material layer.
     """
 
     proposition = [f"(?:(?P<owner>{_alternation(rule.reporters)}){_WS})?"]
@@ -100,19 +114,10 @@ def compile_material_rule(rule: MaterialRule) -> re.Pattern[str]:
     proposition.append(f"(?P<predicate>{_alternation(rule.predicates)})")
     proposition.append(_WS)
     proposition.append(f"(?P<reader>{re.escape(rule.reader)})")
-    return re.compile(
-        "".join(
-            [
-                f"(?P<reporter>{_alternation(rule.reporters)})",
-                _WS,
-                f"(?P<frame>{_alternation(rule.speech_verbs)})",
-                _WS,
-                "(?P<proposition>",
-                *proposition,
-                ")",
-            ]
-        )
-    )
+    # The rule reads *content* only: a negative attitude toward the reader. Who reported it,
+    # to whom, how, and whether the report happened at all belongs to the shared report-event
+    # contract - never to a second frame grammar here.
+    return re.compile("".join(["(?P<proposition>", *proposition, ")"]))
 
 
 @lru_cache(maxsize=1)
@@ -156,16 +161,39 @@ def _observed_material(
 ) -> ObservedMaterial | None:
     """The material one match reports, or ``None`` when the match is not a report."""
 
-    reporter = match.group("reporter")
-    owner = match.group("owner")
-    if owner is not None and owner != reporter:
-        # The proposition belongs to somebody else: a relay or a quotation, not her own
-        # report about the reader.
-        return None
-    if not _reporter_heads_its_clause(text, match.start("reporter")):
-        # The reader or a named third party speaks this frame.
-        return None
+    from ned.app.core import report_event
+
     start, end = match.start("proposition"), match.end("proposition")
+    resolved = report_event.resolve_report_event(text, start, end)
+    frame = resolved.frame
+    if frame.speech_verb not in rule.allowed_report_heads:
+        # The report act itself is not eligible for this material rule. The shared resolver
+        # accepts many more report acts than this rule may register, and eligibility is the
+        # rule's own decision, taken here and from this one field. An absent or empty list
+        # therefore registers nothing: the layer fails closed instead of widening silently.
+        return None
+    if frame.speech_sender not in rule.reporters:
+        # No described person is resolved as the speaker: a relay, the reader's own words, an
+        # uncertain frame. ``reporters`` only decides whether the resolved source is eligible.
+        return None
+    if frame.ambiguous:
+        # The grammar could not settle who speaks: silence, not an attribution.
+        return None
+    if resolved.actuality != "ASSERTED":
+        # The report event is negated, uncertain, questioned or not yet due.
+        return None
+    if start != resolved.content_start:
+        # The candidate is not the proposition this report governs: it sits inside a qualified
+        # phrase or somewhere else in the clause. Inline whitespace has no vote here, so the
+        # semantic slot - not the raw frame offset - is the anchor.
+        return None
+    owner = resolved.proposition_owner
+    if owner in READER_PRONOUNS:
+        # The reader is the proposition's own actor: it reports what the reader is like.
+        return None
+    if owner and owner != frame.speech_sender:
+        # An explicit owner who is not the sender: an owner conflict, never a stance transfer.
+        return None
     return ObservedMaterial(
         material_id=material_id(rule.material_kind, start, end, rule.id),
         material_kind=rule.material_kind,

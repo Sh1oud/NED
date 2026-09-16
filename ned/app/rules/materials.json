@@ -11,6 +11,7 @@
       "proposition_owner": "described_person",
       "target": "reader",
       "reporters": ["她", "他", "对方"],
+      "allowed_report_heads": ["说", "告诉", "嘀咕", "抱怨"],
       "speech_verbs": ["明确说", "跟我说", "告诉我", "说"],
       "predicates": ["不喜欢", "讨厌", "烦", "嫌弃"],
       "degree_adverbs": ["很", "真的", "非常", "特别", "挺"],
