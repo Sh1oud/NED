@@ -700,13 +700,13 @@ def hers(text: str, start: int, end: int) -> bool:
         # A joint subject ("我们") can continue a report the clause in front opened, but
         # only across a restricted coordination boundary and only when that clause
         # really is her/his report: "他说他很喜欢我 但我们还是做朋友吧".
+        # A joint subject continues a report only across a restricted coordination
+        # boundary; otherwise it is the reader, or a joint subject the reader speaks for.
         return bool(
             token in INCLUSIVE_PRONOUNS
             and _opens_with_coordination(prefix)
             and _inherited_speaker(text, start)
         )
-        # Otherwise it is the reader, or a joint subject the reader speaks for.
-        return False
 
     if in_quote:
         # Inside her direct speech everything is hers, but a noun phrase there still

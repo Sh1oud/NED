@@ -167,11 +167,17 @@ class EvidenceAsymmetryDetector:
         positive_clause = self._clause_with(clauses, external_positive or reader_positive) or text
         negative_clause = self._clause_with(clauses, external_negative or reader_negative) or text
 
+        # The clause is the material, but a clause can elide the speaker
+        # ("他说他很喜欢我，但后来让我别再联系她"): profiled on its own it reads as
+        # unattributed and the side disappears. The profile therefore uses the
+        # sentence the clause sits in, and the material stays the clause.
         return self.compare(
             positive_text=positive_clause,
             negative_text=negative_clause,
             mode=mode,
             reading_text=text,
+            positive_context=self._sentence_with(text, positive_clause),
+            negative_context=self._sentence_with(text, negative_clause),
             boundary_present=any(span.signal_type is SignalType.DIRECT_REJECTION for span in spans),
         )
 
@@ -185,6 +191,8 @@ class EvidenceAsymmetryDetector:
         negative_interpretation: str = "",
         reading_text: str = "",
         boundary_present: bool = False,
+        positive_context: str = "",
+        negative_context: str = "",
     ) -> AsymmetryResult:
         """Compare two clues and report the three layers separately.
 
@@ -199,6 +207,17 @@ class EvidenceAsymmetryDetector:
 
         positive = self._profile_side(positive_text, "positive", language, profile, config)
         negative = self._profile_side(negative_text, "negative", language, profile, config)
+        if positive is None and positive_context:
+            # "他说他很喜欢我，但后来让我别再联系她": the clause elides the speaker, so
+            # it reads as unattributed on its own. The sentence supplies the speaker
+            # and the material stays the clause.
+            positive = self._profile_side(positive_context, "positive", language, profile, config)
+            if positive is not None:
+                positive.text = positive_text
+        if negative is None and negative_context:
+            negative = self._profile_side(negative_context, "negative", language, profile, config)
+            if negative is not None:
+                negative.text = negative_text
         reading = self._user_reading(
             positive_text,
             negative_text,
@@ -220,8 +239,18 @@ class EvidenceAsymmetryDetector:
 
         applicable, reason = self._comparability(positive, negative, boundary_present)
         interpretation = self._interpretation(reading, applicable)
+        composite_positive = (
+            positive_text if positive is not None else (positive_context or positive_text)
+        )
+        composite_negative = (
+            negative_text if negative is not None else (negative_context or negative_text)
+        )
         legacy_score, legacy_sub_scores = self._legacy_composite(
-            positive_text, negative_text, mode, positive_interpretation, negative_interpretation
+            composite_positive,
+            composite_negative,
+            mode,
+            positive_interpretation,
+            negative_interpretation,
         )
         reality_check = self.book.reality_check(
             self._comparison_check_id(applicable, reason),
@@ -383,6 +412,17 @@ class EvidenceAsymmetryDetector:
             double_standard=status == "asymmetric_standard_detected",
             interpretive_score=None,
         )
+
+    @staticmethod
+    def _sentence_with(text: str, clause: str) -> str:
+        """The sentence of ``text`` that contains ``clause`` (the clause itself if none)."""
+
+        if not clause:
+            return text
+        for sentence in text_parser.split_sentences(text):
+            if clause in sentence:
+                return sentence
+        return clause
 
     def _insufficient_result(
         self,

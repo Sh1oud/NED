@@ -113,6 +113,8 @@ _EN_DURATION_RE = re.compile(
 
 _CLAUSE_SPLIT_RE = re.compile(r"[。！？!?；;\n]+|(?<=[，,])")
 
+_SENTENCE_SPLIT_RE = re.compile(r"(?<=[。！？!?])|\n+")
+
 _LANGUAGE_UNIT_LABELS: dict[str, dict[str, str]] = {
     "zh": {
         "second": "秒",
@@ -417,6 +419,12 @@ def raw_interpretation(span: EvidenceSpan | None, book: RuleBook, language: str)
     return span.label
 
 
+def split_sentences(text: str) -> list[str]:
+    """Split free text into sentences (used by the asymmetry side profiling)."""
+
+    return [sentence.strip() for sentence in _SENTENCE_SPLIT_RE.split(text) if sentence.strip()]
+
+
 def split_clauses(text: str) -> list[str]:
     """Split free text into comparable clauses (used by the asymmetry detector)."""
 
@@ -441,4 +449,5 @@ __all__ = [
     "signal_type_of",
     "spans_by_polarity",
     "split_clauses",
+    "split_sentences",
 ]
