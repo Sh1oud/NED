@@ -333,34 +333,22 @@ def _clause_prefix(text: str, start: int) -> str:
 
 
 def _is_her_speech_to_the_reader(text: str, start: int) -> bool:
-    """Whether the bounded 5.0 frame in front of the trigger is her speech to the reader.
+    """Whether the report frame in front of the trigger is her speech to the reader.
 
-    The frame grammar lives in ``boundary`` and is asked here rather than copied: one
-    implementation, no second verb list, and no drift between the two screens. A receiver
-    frame whose speaker is the described person and whose receiver is the reader means the
-    words in front of the trigger are a report, not the reader's own wording. The
-    proposition's own actor must not be the reader: a report that the reader is like this
-    or that is not read here.
+    The frame - including the single clause-punctuation continuation - is resolved once in
+    ``report_event``, so this screen and the material layer share one implementation instead
+    of copying it. A receiver frame whose speaker is the described person and whose receiver
+    is the reader means the words in front of the trigger are a report, not the reader's own
+    wording. The proposition's own actor must not be the reader.
     """
 
-    from ned.app.core import boundary
+    from ned.app.core import report_event
 
-    frame = boundary._local_frame(text, start, len(text))
+    resolved = report_event.resolve_report_event(text, start)
+    frame = resolved.frame
     if frame.speech_sender in DESCRIBED_PRONOUNS and frame.receiver in READER_PRONOUNS:
-        return frame.local_subject not in READER_PRONOUNS
-    if frame.local_subject in READER_PRONOUNS:
-        # The reader is the actor of this proposition: nothing may be inherited either.
-        return False
-    # The comma only interrupts her frame: the clause in front lends it
-    # between the punctuation and the proposition. Only the clause in front may lend the
-    # frame, and only when that clause is her own frame addressed to the reader.
-    if boundary._clause_prefix(text, start).strip():
-        return False
-    previous = boundary._previous_clause(text, start)
-    if not previous.strip():
-        return False
-    inherited = boundary._local_frame(previous, 0, len(previous))
-    return inherited.speech_sender in DESCRIBED_PRONOUNS and inherited.receiver in READER_PRONOUNS
+        return resolved.proposition_owner not in READER_PRONOUNS
+    return False
 
 
 def reader_owned(text: str, start: int) -> bool:
