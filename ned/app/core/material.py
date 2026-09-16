@@ -52,11 +52,6 @@ INLINE_WHITESPACE = attribution.INLINE_WHITESPACE
 
 _WS = f"[{INLINE_WHITESPACE}]*"
 
-#: A clause ends here. Only a clause break and closed-class words may stand in front of a
-#: reporter, which is what keeps the reader's own frame ("我跟她说她讨厌我") and a relay
-#: ("朋友说她说她讨厌我") out of the material layer.
-CLAUSE_HEADS = "\u3002\uff01\uff1f!?\uff0c,\uff1b;\u3001\n\r"
-
 
 class MaterialRule(BaseModel):
     """One material-recognition rule: what the input reports, never how much it counts."""
@@ -118,22 +113,6 @@ def compile_material_rule(rule: MaterialRule) -> re.Pattern[str]:
     # to whom, how, and whether the report happened at all belongs to the shared report-event
     # contract - never to a second frame grammar here.
     return re.compile("".join(["(?P<proposition>", *proposition, ")"]))
-
-
-@lru_cache(maxsize=1)
-def _clause_head_pattern() -> re.Pattern[str]:
-    """A reporter heads its clause when only a break and closed-class words precede it."""
-
-    markers = "|".join(
-        re.escape(marker) for marker in sorted(attribution.MARKERS, key=len, reverse=True)
-    )
-    return re.compile(rf"(?:^|[{re.escape(CLAUSE_HEADS)}])(?:{markers}|[{INLINE_WHITESPACE}]+)*$")
-
-
-def _reporter_heads_its_clause(text: str, start: int) -> bool:
-    """Whether only a clause break and closed-class words stand in front of the reporter."""
-
-    return bool(_clause_head_pattern().search(text[:start]))
 
 
 @lru_cache(maxsize=8)
@@ -238,7 +217,6 @@ def register_materials(text: str, *, book: RuleBook | None = None) -> list[Obser
 
 
 __all__ = [
-    "CLAUSE_HEADS",
     "INLINE_WHITESPACE",
     "MATERIAL_PACK",
     "MaterialRule",
