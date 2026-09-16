@@ -1358,11 +1358,25 @@ def test_the_registered_debt_is_closed(analyzer: NedAnalyzer, text: str) -> None
 
 
 def test_the_receiver_rejection_asymmetry_is_registered(analyzer: NedAnalyzer) -> None:
-    """The older two-character gap does not take the receiver frame; natural
-    forms with an inner subject do, and those are pinned above."""
+    """BATCH 5.3b: the asymmetry is closed as a contrast, not as one historical miss.
 
-    result = analyzer.analyze_text(RECEIVER_REJECTION_ASYMMETRY, mode="normal")
-    assert result.verdict.code != "ned.direct_rejection", RECEIVER_REJECTION_ASYMMETRY
+    A. subjectless ellipsis - the outer speech sender carries the proposition
+    B. aligned inner subject - it is still her statement
+    C. conflicting inner subject - the outer sender may not take it over
+    D. reader-as-actor - a different proposition, not this boundary
+    """
+
+    subjectless = RECEIVER_REJECTION_ASYMMETRY
+    aligned = "她跟我说她拒绝了我"
+    conflict = "她跟我说他拒绝了我"
+    direction = "她说我拒绝了她"
+
+    assert analyzer.analyze_text(subjectless, mode="normal").verdict.code == "ned.direct_rejection"
+    assert analyzer.analyze_text(aligned, mode="normal").verdict.code == "ned.direct_rejection"
+    for text in (conflict, direction):
+        assert analyzer.analyze_text(text, mode="normal").verdict.code != "ned.direct_rejection", (
+            text
+        )
 
 
 def test_the_receiver_frame_states_the_roles_explicitly(book: RuleBook) -> None:

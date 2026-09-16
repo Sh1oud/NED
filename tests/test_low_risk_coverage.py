@@ -212,3 +212,78 @@ def test_e1_subject_patient_0_the_readers_own_event_stays_a_boundary() -> None:
 def test_e1_subject_patient_0_a_reported_rejection_is_never_the_readers_event() -> None:
     for text in E1_REPORTED_REJECTION:
         assert "zh.direct_rejection" not in _rules(text), text
+
+
+#: B1: the friend-line is a boundary only when she says it. The same words as a bare
+#: utterance stay the reader's own text, and a belief, a relay or a conflicting owner
+#: never become her explicit boundary.
+B1_ATTRIBUTED = (
+    "她说还是当朋友比较好",
+    "她告诉我还是当朋友比较好",
+    "她跟我说还是当朋友比较好",
+    "她明确说还是做朋友比较好",
+)
+B1_BARE = (
+    "还是当朋友比较好",
+    "还是做朋友比较好",
+    "当朋友比较好",
+    "做朋友比较好",
+)
+B1_NOT_HERS = (
+    "她觉得还是当朋友比较好",
+    "她认为还是做朋友比较好",
+    "她妈妈说她还是当朋友比较好",
+    "朋友告诉我她还是做朋友比较好",
+    "她说他觉得还是当朋友比较好",
+)
+
+
+def test_b1_an_attributed_friend_line_is_a_boundary() -> None:
+    for text in B1_ATTRIBUTED:
+        assert "zh.direct_rejection" in _rules(text), text
+        assert _verdict(text) == "ned.direct_rejection", text
+
+
+def test_b1_a_bare_friend_line_is_never_attributed_to_her() -> None:
+    for text in B1_BARE:
+        assert "zh.direct_rejection" not in _rules(text), text
+
+
+def test_b1_belief_relay_and_owner_conflict_stay_precision_first() -> None:
+    for text in B1_NOT_HERS:
+        assert "zh.direct_rejection" not in _rules(text), text
+
+
+#: E2: an explicit speech frame may carry a subjectless rejection proposition, because
+#: "no local subject" is not a conflicting one. A named conflicting subject, a reader-actor
+#: proposition and a third-party relay all stay out.
+E2_SUBJECTLESS = (
+    "她跟我说拒绝了我",
+    "她跟我说已经拒绝我了",
+    "她告诉我拒绝了我",
+    "她说已经拒绝我了",
+)
+E2_ALIGNED = ("她跟我说她拒绝了我", "她告诉我她拒绝了我")
+E2_CONFLICT = ("她跟我说他拒绝了我", "她告诉我他拒绝了我")
+E2_DIRECTION = ("她跟我说我拒绝了她", "她说我拒绝了她")
+E2_RELAY = ("朋友告诉我她拒绝了我",)
+
+
+def test_e2_a_subjectless_rejection_under_her_speech_is_a_boundary() -> None:
+    for text in E2_SUBJECTLESS:
+        assert "zh.direct_rejection" in _rules(text), text
+        assert _verdict(text) == "ned.direct_rejection", text
+    for text in E2_ALIGNED:
+        assert "zh.direct_rejection" in _rules(text), text
+
+
+def test_e2_a_conflicting_subject_never_inherits_the_outer_sender() -> None:
+    for text in E2_CONFLICT:
+        assert "zh.direct_rejection" not in _rules(text), text
+
+
+def test_e2_the_reader_actor_direction_stays_a_recognition_miss() -> None:
+    for text in E2_DIRECTION:
+        assert "zh.direct_rejection" not in _rules(text), text
+    for text in E2_RELAY:
+        assert "zh.direct_rejection" not in _rules(text), text
