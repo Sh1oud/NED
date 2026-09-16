@@ -47,6 +47,8 @@ reporting verb (``转述``, ``嘀咕``, ``断言``) needs to be known.
 
 from __future__ import annotations
 
+import itertools
+
 from ned.app.core import attribution
 
 #: The other person, and the reader. Closed classes.
@@ -60,10 +62,18 @@ CLAUSE_BREAKS = attribution.CLAUSE_BREAKS
 #: character, and they are neither the reader alone nor the other person alone.
 INCLUSIVE_PRONOUNS = ("\u6211\u4eec", "\u54b1\u4eec", "\u54b1\u4fe9", "\u4f60\u6211")
 
+#: The reader as the person being addressed. Inside her quote 你 is the reader.
+ADDRESSEE_PRONOUNS = ("\u4f60\u4eec", "\u60a8", "\u4f60")
+
 #: Every pronoun the walk recognises, longest first so 我们 is not read as 我.
 ALL_PRONOUNS = tuple(
     sorted(
-        [*INCLUSIVE_PRONOUNS, *attribution.DESCRIBED_PRONOUNS, *attribution.READER_PRONOUNS],
+        [
+            *INCLUSIVE_PRONOUNS,
+            *ADDRESSEE_PRONOUNS,
+            *attribution.DESCRIBED_PRONOUNS,
+            *attribution.READER_PRONOUNS,
+        ],
         key=len,
         reverse=True,
     )
@@ -110,6 +120,12 @@ FILLERS = (
         "\u8d76\u7d27",
         "\u6ca1\u5173\u7cfb",
         "\u6ca1\u4e8b",
+        "以后",
+        "之前",
+        "从此",
+        "再也",
+        "永远",
+        "从前",
     ),
 )
 FILLERS = tuple(sorted(set(FILLERS), key=len, reverse=True))
@@ -237,6 +253,34 @@ STANCE_HEADS = tuple(
     sorted({*SPEECH_VERBS, *COGNITION_VERBS, *STANCE_HEADS}, key=len, reverse=True)
 )
 
+#: Mental state, not expression: a wish or a belief is not a stated boundary.
+MENTAL_VERBS: tuple[str, ...] = (
+    *COGNITION_VERBS,
+    "\u5e0c\u671b",
+    "\u60f3\u8981",
+    "\u6253\u7b97",
+    "\u51b3\u5b9a",
+)
+MENTAL_VERBS = tuple(sorted(set(MENTAL_VERBS), key=len, reverse=True))
+
+#: Directives: the causative verbs take the reader as their object.
+CAUSATIVE_VERBS = ("\u547d\u4ee4", "\u8981\u6c42", "\u8ba9", "\u53eb", "\u903c")
+
+#: Action classes with opposite polarity. A distancing action is a boundary only when
+#: it is a directive; a contact action is a boundary only when it is prohibited.
+DISTANCING_ACTIONS = ("\u6eda", "\u8d70\u5f00", "\u79bb\u5f00")
+CONTACT_ACTIONS = ("\u8054\u7cfb", "\u627e", "\u7406", "\u70e6", "\u6253\u6270")
+PROHIBITIVE_MARKERS = ("\u4e0d\u8981", "\u4e0d\u7528", "\u4e0d\u51c6", "\u4e0d\u8bb8", "\u522b")
+
+#: The quote marks that open her direct speech.
+QUOTE_OPENERS = ("\u201c", "\u201d", '"', "'", "\u2018", "\u2019", "\uff1a", ":")
+
+#: A sentence ends here; speaker inheritance never crosses one.
+SENTENCE_BREAKS = "\u3002\uff01\uff1f!?\n\r"
+
+#: Coordination markers that may carry a report scope across a clause break.
+COORDINATION_MARKERS = ("但是", "不过", "可是", "但", "却")
+
 #: The passive: in "我表白被拒了" the reader is the patient and the other person the
 #: agent, so a first-person pronoun does not make the reader the author.
 PASSIVE = ("\u88ab", "\u906d\u5230", "\u906d")
@@ -275,18 +319,11 @@ def _starts_with(text: str, index: int, tokens: tuple[str, ...]) -> str | None:
 
 
 def _receiver_token_length(text: str, index: int) -> int:
-    """Length of the receiver phrase: a run that ends where the speech starts.
-
-    The receiver is open class on purpose (``朋友``, ``她妈妈``, ``他最好的朋友``), and it
-    is only ever allowed here, because a preposition or a receiver-object verb marks
-    the slot.
-    """
+    """Length of the receiver phrase: a run that ends where the speech starts."""
 
     length = 0
     while length < 6 and index + length < len(text):
         if _starts_with(text, index + length, SPEECH_VERBS + ASPECT + STANCE_HEADS) is not None:
-            # The receiver ends where the speech or the proposition begins. The
-            # delivery noun is *not* a break: 给我发消息说 is one frame.
             break
         if text[index + length] in CLAUSE_BREAKS or text[index + length] in QUOTES:
             break
@@ -304,11 +341,17 @@ def _receiver_end(text: str, index: int) -> int | None:
 
 
 def _frame_end(text: str, index: int) -> tuple[int, str] | None:
-    """A frame at ``index``: ``(end, kind)`` with kind in receiver/speech/cognition."""
+    """A frame at ``index``: (end, kind) with kind in receiver/speech/mental/causative."""
 
     if _starts_with(text, index, ALL_PRONOUNS) is not None:
         # A pronoun is never the head of a frame: 对方 is not 对 + a receiver.
         return None
+    causative = _starts_with(text, index, CAUSATIVE_VERBS)
+    if causative is not None:
+        cursor = index + len(causative)
+        length = _receiver_token_length(text, cursor)
+        if length:
+            return cursor + length, "causative"
     after_receiver = _receiver_end(text, index)
     if after_receiver is not None:
         cursor = _skip_fillers(text, after_receiver)
@@ -324,59 +367,167 @@ def _frame_end(text: str, index: int) -> tuple[int, str] | None:
     speech = _starts_with(text, index, SPEECH_VERBS)
     if speech is not None:
         return index + len(speech), "speech"
-    cognition = _starts_with(text, index, COGNITION_VERBS)
-    if cognition is not None:
-        return index + len(cognition), "cognition"
+    mental = _starts_with(text, index, MENTAL_VERBS)
+    if mental is not None:
+        return index + len(mental), "mental"
     return None
 
 
-def _walk(text: str) -> list[tuple[str, str]]:
-    """Classify text into (kind, token) pairs: the roles, and what is left over.
+def _walk_spans(text: str) -> list[tuple[str, str, int]]:
+    """Roles with their offsets, so adjacency can be read off the text.
 
     The walk stops at the first predicate: everything from there on is the
     proposition itself, which this module does not need to read.
     """
 
-    tokens: list[tuple[str, str]] = []
+    tokens: list[tuple[str, str, int]] = []
     index = 0
     while index < len(text):
-        # Frames first, and at the raw position: 给/跟/和/与/对 begin a receiver
-        # frame even though they are also function words elsewhere.
         frame = _frame_end(text, index)
         if frame is not None:
             end, kind = frame
-            tokens.append((kind, text[index:end]))
+            tokens.append((kind, text[index:end], index))
             index = end
             continue
         pronoun = _starts_with(text, index, ALL_PRONOUNS)
         if pronoun is not None:
-            tokens.append(("pronoun", pronoun))
+            tokens.append(("pronoun", pronoun, index))
             index += len(pronoun)
             continue
         skipped = _skip_fillers(text, index)
         if skipped != index:
-            # Closed-class material first: 别 in 别人 is not a predicate, and a
-            # negation in 不想 is not the start of the proposition's content.
             index = skipped
             continue
         head = _starts_with(text, index, STANCE_HEADS)
         if head is not None:
-            tokens.append(("predicate", head))
+            tokens.append(("predicate", head, index))
             break
-        tokens.append(("content", text[index]))
+        tokens.append(("content", text[index], index))
         index += 1
     return tokens
 
 
-def _stance_subject_ok(stance: str) -> bool:
-    """The stance's own subject, when it has one, must not be a possessive phrase.
+def _walk(text: str) -> list[tuple[str, str]]:
+    return [(kind, token) for kind, token, _start in _walk_spans(text)]
 
-    ``她姐姐只想当普通朋友`` gives the stance a subject of its own, and that subject
-    is a noun phrase, so the proposition belongs to somebody else. No person noun
-    has to be known for this: only that nothing between that pronoun and the
-    family's predicate is a content word. A stance with no leading subject of its
-    own (``别再来找我``, ``保持距离``) says nothing about ownership here.
+
+def _adjacent_content(tokens: list[tuple[str, str, int]]) -> bool:
+    """A content word glued to a subject or a frame is a noun phrase.
+
+    她妈妈…, 我妈…, 告诉我别人…: the content follows with nothing (or only a negation)
+    in between, and the chain starts at the pronoun or the frame. A content word
+    behind a filler (他可能生气了…, 她可能不喜欢我…) belongs to the predicate instead.
     """
+
+    glued = False
+    for previous, current in itertools.pairwise(tokens):
+        kind, _token, start = current
+        gap = start - (previous[2] + len(previous[1]))
+        if kind == "content":
+            if gap == 0 or (gap == 1 and previous[0] != "content"):
+                glued = previous[0] != "content" or glued
+            else:
+                glued = False
+            if glued:
+                return True
+            continue
+        glued = False
+    return False
+
+
+def _is_a_relay(tokens: list[tuple[str, str, int]]) -> bool:
+    """A noun phrase in the speaker slot followed by a speech frame.
+
+    她妈妈说…, 她朋友说…: the clause names somebody else as the speaker, so it cannot
+    lend its speaker to the next clause.
+    """
+
+    adjacent = False
+    for kind, _token, _start in tokens[1:]:
+        if kind == "content":
+            adjacent = True
+            continue
+        if kind in ("receiver", "speech") and adjacent:
+            return True
+        if kind in ("pronoun", "predicate", "causative", "mental"):
+            adjacent = False
+    return False
+
+
+def _clause_end(text: str, start: int) -> int:
+    for index in range(start, len(text)):
+        if text[index] in CLAUSE_BREAKS:
+            return index
+    return len(text)
+
+
+def _opens_a_quote(prefix: str) -> bool:
+    """True when the closed prefix puts the match inside her own speech.
+
+    A quotation mark does it, and so does reported speech without one: the first
+    person of a reported imperative belongs to the speaker, not to the reader.
+    """
+
+    return any(kind in ("speech", "receiver") for kind, _ in _walk(prefix))
+
+
+def _opens_with_coordination(prefix: str) -> bool:
+    """True when the clause begins with a coordination marker.
+
+    Only 但/但是/不过/可是/却 may carry a report scope across a clause break; an
+    arbitrary preceding clause does not lend its speaker.
+    """
+
+    stripped = prefix.strip()
+    return any(stripped.startswith(marker) for marker in COORDINATION_MARKERS)
+
+
+def _previous_clause(text: str, start: int) -> str:
+    """The clause before the one the match sits in, inside the same sentence."""
+
+    sentence = 0
+    for index in range(start - 1, -1, -1):
+        if text[index] in SENTENCE_BREAKS:
+            sentence = index + 1
+            break
+    head = text[sentence:start]
+    last = -1
+    for index in range(len(head) - 1, -1, -1):
+        if head[index] in CLAUSE_BREAKS:
+            last = index
+            break
+    if last < 0:
+        return ""
+    before = head[:last]
+    cut = 0
+    for index in range(len(before) - 1, -1, -1):
+        if before[index] in CLAUSE_BREAKS:
+            cut = index + 1
+            break
+    return before[cut:]
+
+
+def _inherited_speaker(text: str, start: int) -> str:
+    """The other person, when the clause in front of this one speaks for it.
+
+    Only the previous clause of the same sentence is consulted, and only when its own
+    speaker slot is hers alone: "他说我很好 但我们不合适" continues his report, while
+    "她妈妈跟我说 她不想见我" must not become her own statement.
+    """
+
+    previous = _previous_clause(text, start)
+    if not previous.strip():
+        return ""
+    tokens = _walk_spans(previous)
+    if not tokens or tokens[0][0] != "pronoun" or tokens[0][1] not in DESCRIBED_PRONOUNS:
+        return ""
+    if _is_a_relay(tokens):
+        return ""
+    return tokens[0][1]
+
+
+def _stance_subject_ok(stance: str) -> bool:
+    """The stance's own subject, when it has one, must not be a possessive phrase."""
 
     tokens = _walk(stance)
     if not tokens or tokens[0][0] != "pronoun":
@@ -386,21 +537,119 @@ def _stance_subject_ok(stance: str) -> bool:
         # 我表白被拒了: the reader is the patient, the other person the agent.
         return any(marker in stance for marker in PASSIVE)
     if pronoun in INCLUSIVE_PRONOUNS:
-        # 我们性格不合适: with a joint subject the stance is about both people, so
-        # what follows is the proposition, not a possessive modifier.
         return True
     return not any(kind == "content" for kind, _ in tokens[1:])
 
 
+def _stance_owns_itself(stance: str) -> bool:
+    """POLICY A's only exceptions.
+
+    A bare utterance belongs to the reader unless the stance itself makes the other
+    person its subject, or the reader is the passive patient of somebody else's act.
+    A bare causative is not an exception: its causer is unmarked.
+    """
+
+    tokens = _walk(stance)
+    if not tokens or tokens[0][0] != "pronoun":
+        return False
+    pronoun = tokens[0][1]
+    if pronoun in DESCRIBED_PRONOUNS:
+        return True
+    if pronoun in READER_PRONOUNS:
+        return any(marker in stance for marker in PASSIVE)
+    return False
+
+
+def _stance_is_directive(stance: str) -> bool:
+    """True when the stance orders or forbids somebody: 让我…, 别联系…."""
+
+    if any(kind == "causative" for kind, _ in _walk(stance)):
+        return True
+    for action in CONTACT_ACTIONS + DISTANCING_ACTIONS:
+        at = stance.find(action)
+        if at <= 0:
+            continue
+        window = stance[max(0, at - 4) : at]
+        if any(marker in window for marker in PROHIBITIVE_MARKERS):
+            return True
+    return False
+
+
+def _volition_only(tokens: list[tuple[str, str]]) -> bool:
+    """Her wish or belief, with no speech frame: not an expression."""
+
+    kinds = [kind for kind, _ in tokens]
+    return "mental" in kinds and not any(kind in ("speech", "receiver") for kind in kinds)
+
+
+def _contact_target_ok(
+    clause: str,
+    stance: str,
+    start: int,
+    sender: str,
+    in_quote: bool,
+    her_speaking: bool,
+) -> bool:
+    """A directive CONTACT action must carry a target that denotes the sender.
+
+    "她让我别联系她" keeps; "…别联系他", "…别人", "…我" and "…她朋友" do not, and an
+    omitted target is hers only when she is the one speaking (she quotes herself).
+    """
+
+    causative = any(kind == "causative" for kind, _ in _walk(stance))
+    offset = start  # the stance begins at the match offset inside the clause
+    cursor_in_stance = 0
+    while cursor_in_stance < len(stance):
+        found = None
+        for action in CONTACT_ACTIONS:
+            at = stance.find(action, cursor_in_stance)
+            if at != -1 and (found is None or at < found[0]):
+                found = (at, action)
+        if found is None:
+            return True
+        at, action = found
+        cursor_in_stance = at + len(action)
+        window = stance[max(0, at - 4) : at]
+        if not any(marker in window for marker in PROHIBITIVE_MARKERS):
+            continue
+        cursor = offset + cursor_in_stance
+        token = _starts_with(clause, cursor, ALL_PRONOUNS)
+        if token is None:
+            # "她说以后别联系了" elides the object, and there it is the speaker
+            # herself; "她让我别联系" leaves it unknown.
+            if causative:
+                return False
+            return her_speaking
+        after = _walk(clause[cursor + len(token) :])
+        if after and after[0][0] == "content":
+            # 她朋友 / 他家人: the pronoun is a modifier, the target is a noun phrase.
+            return False
+        if in_quote:
+            # inside her speech the first person is her, and reported speech
+            # names her with the sender pronoun instead
+            return token in READER_PRONOUNS or token == sender
+        if token not in DESCRIBED_PRONOUNS:
+            return False
+        return token == sender
+    return True
+
+
+def _sender_of(*token_lists: list[tuple[str, str]]) -> str:
+    for tokens in token_lists:
+        if tokens and tokens[0][0] == "pronoun" and tokens[0][1] in DESCRIBED_PRONOUNS:
+            return tokens[0][1]
+    return ""
+
+
 def _reader_is_the_speaker(tokens: list[tuple[str, str]]) -> bool:
-    """The reader narrates their own speech or cognition: 我告诉她…, 我觉得…."""
+    """The reader narrates their own speech, cognition or directive."""
 
     if not tokens:
         return False
     kind, token = tokens[0]
     if kind != "pronoun" or token not in READER_PRONOUNS + INCLUSIVE_PRONOUNS:
         return False
-    return any(other in ("receiver", "speech", "cognition") for other, _ in tokens)
+    return any(other in ("receiver", "speech", "mental", "causative") for other, _ in tokens)
 
 
 def hers(text: str, start: int, end: int) -> bool:
@@ -410,12 +659,28 @@ def hers(text: str, start: int, end: int) -> bool:
     if not _stance_subject_ok(stance):
         return False
 
-    tokens = _walk(_clause_prefix(text, start))
+    prefix = _clause_prefix(text, start)
+    spans = _walk_spans(prefix)
+    tokens = _walk(prefix)
+    in_quote = _opens_a_quote(prefix)
+    sender = _sender_of(tokens, _walk(stance)) or _inherited_speaker(text, start)
+    clause = text[start - len(prefix) : _clause_end(text, start)]
+    her_speaking = in_quote or (
+        bool(tokens)
+        and tokens[0][0] == "pronoun"
+        and tokens[0][1] in DESCRIBED_PRONOUNS
+        and any(other in ("receiver", "speech") for other, _ in tokens[1:])
+    )
+    if not _contact_target_ok(clause, stance, len(prefix), sender, in_quote, her_speaking):
+        return False
+
     if not tokens:
-        # A bare stock line with no author named. The family has always read these
-        # as her line, and the reader's own stance with 你 as its object
-        # (``我不想和你说话``) is part of that same shipped reading.
-        return True
+        # POLICY A: no speaker is named, so the utterance belongs to the reader,
+        # unless the stance itself is hers or the clause in front names her.
+        if _inherited_speaker(text, start):
+            return True
+        return _stance_owns_itself(stance)
+
     if _reader_is_the_speaker(tokens):
         return False
 
@@ -423,20 +688,35 @@ def hers(text: str, start: int, end: int) -> bool:
     if kind == "content":
         # A noun phrase where the speaker must be: 她妈妈…, 室友…, 小王…, 我妈…
         return False
-    if kind == "pronoun" and token not in DESCRIBED_PRONOUNS:
-        # The reader, or a joint subject the reader speaks for, with no frame of
-        # its own: the family's shipped reading of a bare stance.
-        return True
     if kind != "pronoun":
-        # A frame with no speaker named in front of it: nobody was named.
-        return True
+        # A frame with no speaker named in front of it: the subject may simply be
+        # elided in the clause in front ("他约我周末看电影，后来又说我们保持距离吧"),
+        # otherwise POLICY A asks the stance itself to name her ("让我滚" alone
+        # names nobody).
+        if _inherited_speaker(text, start):
+            return True
+        return _stance_owns_itself(stance)
+    if token not in DESCRIBED_PRONOUNS:
+        # A joint subject ("我们") can continue a report the clause in front opened, but
+        # only across a restricted coordination boundary and only when that clause
+        # really is her/his report: "他说他很喜欢我 但我们还是做朋友吧".
+        return bool(
+            token in INCLUSIVE_PRONOUNS
+            and _opens_with_coordination(prefix)
+            and _inherited_speaker(text, start)
+        )
+        # Otherwise it is the reader, or a joint subject the reader speaks for.
+        return False
 
-    # She is the speaker. A content word outside a frame, between her and the
-    # stance, is a third party's subject again: 她告诉我别人觉得…, 她妈妈说…
-    framed = any(other in ("receiver", "speech", "cognition") for other, _ in tokens[1:])
-    if not framed:
-        return True
-    return not any(other == "content" for other, _ in tokens[1:])
+    if in_quote:
+        # Inside her direct speech everything is hers, but a noun phrase there still
+        # belongs to somebody else ("她说："我妈觉得我们不合适"").
+        return not _adjacent_content(spans)
+
+    if _volition_only(tokens) and _stance_is_directive(stance):
+        # 她想让我离开: a wish about what the reader should do is not a statement.
+        return False
+    return not _adjacent_content(spans)
 
 
 __all__ = ["ALL_PRONOUNS", "INCLUSIVE_PRONOUNS", "hers"]

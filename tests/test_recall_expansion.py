@@ -328,7 +328,7 @@ def test_a_reader_positive_conclusion_is_not_a_discount(analyzer: NedAnalyzer) -
 
 
 def test_boundary_still_outranks_a_discount(analyzer: NedAnalyzer) -> None:
-    result = analyzer.analyze_text("我本来觉得可能只是人好，但她后来让我别再联系", mode="normal")
+    result = analyzer.analyze_text("我本来觉得可能只是人好，但她后来让我别再联系她", mode="normal")
     assert result.verdict.code == "ned.direct_rejection"
     assert p.resolve_situation(result.verdict.code) == p.SITUATION_BOUNDARY
 

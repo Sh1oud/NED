@@ -27,7 +27,7 @@ from typer.testing import CliRunner
 POSITIVE = "她主动找我聊了两个小时"
 LATENCY = "五分钟没回复"
 BOUNDARY = "她最后让我滚开别烦她"
-HOSTILE_AND_BOUNDARY = "去你妈的，别再联系我"
+HOSTILE_AND_BOUNDARY = "去你妈的，她让我别再联系她"
 HOSTILE_ONLY = "她怒骂我"
 MIXED_SENTENCE = "她主动找我聊了两个小时，但她最后让我滚开别烦她"
 
@@ -306,7 +306,7 @@ def test_the_gate_can_be_disabled_from_config(book: RuleBook) -> None:
 def test_reclassifying_the_boundary_changes_the_outcome(book: RuleBook) -> None:
     """Reclassifying the signal type is enough: no verbatim case is hardcoded."""
 
-    plain_boundary = "别再联系我了"
+    plain_boundary = "她说别再联系我了"
     default = NedAnalyzer(book=book).asymmetry.compare(
         positive_text=POSITIVE, negative_text=plain_boundary
     )

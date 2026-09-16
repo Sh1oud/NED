@@ -567,7 +567,7 @@ def test_the_ladder_prefers_the_real_boundary(analyzer: NedAnalyzer) -> None:
     """A boundary beats every lower rung, whatever else the input contains."""
 
     result = analyzer.analyze_text(
-        "她主动找我聊了两个小时，但她说让我别再联系她了。", mode="normal"
+        "她主动找我聊了两个小时，但她说她让我别再联系她了。", mode="normal"
     )
     assert situation_of(result) == p.SITUATION_BOUNDARY
 
@@ -1573,7 +1573,9 @@ def test_a3_self_discount_only_needs_no_quote(analyzer: NedAnalyzer) -> None:
 def test_a3_boundary_and_hostile_still_win_with_a_discount_present(
     analyzer: NedAnalyzer,
 ) -> None:
-    boundary = analyzer.analyze_text("我本来觉得可能只是人好，但她后来让我别再联系", mode="extreme")
+    boundary = analyzer.analyze_text(
+        "我本来觉得可能只是人好，但她后来让我别再联系她", mode="extreme"
+    )
     hostile = analyzer.analyze_text("她怒骂我，但我想也许只是人好", mode="extreme")
     assert situation_of(boundary) == p.SITUATION_BOUNDARY
     assert situation_of(hostile) == p.SITUATION_HOSTILE

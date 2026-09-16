@@ -172,6 +172,7 @@ class EvidenceAsymmetryDetector:
             negative_text=negative_clause,
             mode=mode,
             reading_text=text,
+            boundary_present=any(span.signal_type is SignalType.DIRECT_REJECTION for span in spans),
         )
 
     def compare(
@@ -183,6 +184,7 @@ class EvidenceAsymmetryDetector:
         positive_interpretation: str = "",
         negative_interpretation: str = "",
         reading_text: str = "",
+        boundary_present: bool = False,
     ) -> AsymmetryResult:
         """Compare two clues and report the three layers separately.
 
@@ -205,14 +207,18 @@ class EvidenceAsymmetryDetector:
             reading_text,
         )
 
-        if (positive is None and not reading["positive_present"]) or (
-            negative is None and not reading["negative_present"]
+        # An explicit boundary is a semantic fact about this input, so it decides
+        # the reason before the missing-side shortcut: a stated refusal is not
+        # "insufficient evidence to compare".
+        if not boundary_present and (
+            (positive is None and not reading["positive_present"])
+            or (negative is None and not reading["negative_present"])
         ):
             return self._insufficient_result(
                 mode, language, positive, negative, reading, profile, config
             )
 
-        applicable, reason = self._comparability(positive, negative)
+        applicable, reason = self._comparability(positive, negative, boundary_present)
         interpretation = self._interpretation(reading, applicable)
         legacy_score, legacy_sub_scores = self._legacy_composite(
             positive_text, negative_text, mode, positive_interpretation, negative_interpretation
@@ -746,7 +752,10 @@ class EvidenceAsymmetryDetector:
         return classes.get(signal_type, "unclassified")
 
     def _comparability(
-        self, positive: AsymmetrySide | None, negative: AsymmetrySide | None
+        self,
+        positive: AsymmetrySide | None,
+        negative: AsymmetrySide | None,
+        boundary_present: bool = False,
     ) -> tuple[bool, str]:
         """Are these two clues candidate answers to a similar question?
 
@@ -756,6 +765,8 @@ class EvidenceAsymmetryDetector:
         """
 
         config = self.book.asymmetry.comparability
+        if boundary_present:
+            return False, REASON_EXPLICIT_BOUNDARY
         if positive is None or negative is None:
             return False, REASON_MISSING_EXTERNAL_EVIDENCE
         if not config.enabled:

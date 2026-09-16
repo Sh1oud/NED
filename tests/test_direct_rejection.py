@@ -29,6 +29,18 @@ NEUTRAL = "今天开会开了三个小时，回来路上买了瓶水"
 #: Direct imperatives, reported speech and the one-word forms.
 REJECTION_TEXTS = [
     "他让我滚出去别烦他了",
+    "她叫我以后不要再联系她",
+    "对方明确说不想再和我说话",
+    "他说以后不要再找他了",
+    "她说别再联系我了",
+    "她说：“你以后不要出现在我面前”",
+    "她让我别再找她了",
+]
+
+#: POLICY A: a bare utterance belongs to the reader, so it cannot certify that she
+#: stated a boundary. These used to be shipped as boundaries; the assertion below
+#: pins the corrected behaviour.
+BARE_UTTERANCE_TEXTS = [
     "别烦我",
     "不要再联系我",
     "别来找我",
@@ -38,9 +50,6 @@ REJECTION_TEXTS = [
     "滚出去",
     "别再给我发消息",
     "别再打扰我",
-    "她叫我以后不要再联系她",
-    "对方明确说不想再和我说话",
-    "他说以后不要再找他了",
     "请你以后不要出现在我面前",
     "别管我了",
 ]
@@ -142,10 +151,10 @@ def test_context_exclusions_suppress_the_rule(book: RuleBook) -> None:
 @pytest.mark.parametrize(
     "text",
     [
-        "我没心情，别烦我",
-        "别再联系我好吗？",
+        "我没心情，但她让我别烦她",
+        "她说别再联系我了",
         "她说让我滚，我很难受",
-        "请你以后不要出现在我面前",
+        "她说：“你以后不要出现在我面前”",
     ],
 )
 def test_unrelated_words_do_not_switch_a_real_boundary_off(
@@ -153,7 +162,7 @@ def test_unrelated_words_do_not_switch_a_real_boundary_off(
 ) -> None:
     """The negation and question guards must not cost a real refusal.
 
-    "我没心情，别烦我" carries an unrelated 没, and "别再联系我好吗？" is a
+    "我没心情，但她让我别烦她" carries an unrelated 没, and "她说别再联系我了" is a
     politely softened refusal: both are still boundaries.
     """
 
@@ -166,7 +175,7 @@ def test_unrelated_words_do_not_switch_a_real_boundary_off(
 def test_a_stated_boundary_is_never_explained_away(analyzer: NedAnalyzer, mode: str) -> None:
     """No mode may turn an explicit refusal into a fuzzy signal."""
 
-    result = analyzer.analyze_text("不要再联系我", mode=mode)  # type: ignore[arg-type]
+    result = analyzer.analyze_text("她跟我说：不要再联系我了", mode=mode)
     assert result.verdict.code == "ned.direct_rejection"
     assert result.alternative_explanations == [], "the boundary was offered an escape route"
     assert result.negative_evidence_amplification < 20
@@ -267,10 +276,10 @@ def test_boundary_reality_check_claims_no_attribution(analyzer: NedAnalyzer) -> 
     """NED detects that a boundary was stated, not who stated it.
 
     A boundary the user set themselves is still reported as a boundary signal,
-    so the reality check must not assert whose choice it was.
+    A directive the reader issued is the reader's own stance, not hers.
     """
 
-    result = analyzer.analyze_text("我让她别再来找我了", mode="normal")
+    result = analyzer.analyze_text("她让我别再找她了", mode="normal")
     assert result.signal_type == SignalType.DIRECT_REJECTION
     assert result.verdict.code == "ned.direct_rejection"
     assert "对方的选择" not in result.reality_check
@@ -716,9 +725,17 @@ OTHER_OBJECTS = (
 
 #: The guards are scoped to the new shapes. These older triggers keep the
 #: behaviour the shipped pack gave them.
-OLD_TRIGGER_SCOPE = (
+OLD_TRIGGER_SCOPE = ("她让我滚出去别烦他了",)
+
+#: A question cannot certify a boundary, whatever shape its trigger has.
+QUESTIONED_BOUNDARY_SHAPES = (
     "她为什么不想和我说话了？",
-    "她让我滚出去别烦他了",
+    "她不想和我说话吗？",
+    "她为什么让我滚？",
+    "她让我滚吗？",
+    "她是不是让我滚？",
+    "她为什么让我别联系她？",
+    "她让我别联系她了吗？",
 )
 
 #: Older triggers whose shipped answer was a mis-attribution, and which BATCH 4's
@@ -1369,7 +1386,7 @@ def test_the_question_guard_sees_the_receiver_frame(book: RuleBook) -> None:
 
 
 # --------------------------------------------------------------------------- #
-# BATCH 4: a boundary is hers - author, receiver, proposition owner
+# BATCH 3 follow-up: a boundary is hers
 # --------------------------------------------------------------------------- #
 
 #: The reader is the author of the stance: it is the reader's sentence, not her
@@ -1475,14 +1492,21 @@ HER_OWN_ACT_OR_STANCE = (
 #: keeps reading it as her line, and the reader's own 你-object stance keeps its
 #: shipped answer too.
 BARE_STOCK_LINES = (
-    "我不想和你说话",
     "对方明确说不想再和我说话",
     "她只想当普通朋友",
     "他给我买了早餐，但她只想当普通朋友",
+)
+
+#: POLICY A: bare forms the family used to certify; the stance names nobody.
+BARE_UTTERANCE_NOT_BOUNDARY = (
+    "我不想和你说话",
     "我们还是做朋友吧",
     "保持距离",
     "让我滚",
     "离我远点",
+    "滚",
+    "别烦我",
+    "我们不合适",
 )
 
 
@@ -1600,3 +1624,39 @@ def test_the_helper_is_only_wired_for_the_chinese_boundary_family() -> None:
     parser = (REPO_ROOT / "ned" / "app" / "core" / "parser.py").read_text(encoding="utf-8")
     assert 'rule.id.startswith("zh.") and rule.signal_type.value == "direct_rejection"' in parser
     assert "boundary.hers(text, item[0], item[1])" in parser
+
+
+@pytest.mark.parametrize("text", BARE_UTTERANCE_TEXTS)
+def test_a_bare_utterance_is_not_certified(analyzer: NedAnalyzer, text: str) -> None:
+    """POLICY A: with no speaker in the input, the utterance is the reader's."""
+
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code != "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text) == [], text
+
+
+@pytest.mark.parametrize("text", BARE_UTTERANCE_NOT_BOUNDARY)
+def test_a_bare_form_is_not_a_boundary(analyzer: NedAnalyzer, text: str) -> None:
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code != "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text) == [], text
+
+
+@pytest.mark.parametrize("text", QUESTIONED_BOUNDARY_SHAPES)
+def test_a_question_never_certifies_a_boundary(analyzer: NedAnalyzer, text: str) -> None:
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.verdict.code != "ned.direct_rejection", text
+    assert boundary_spans(analyzer, text) == [], text
+
+
+def test_the_reader_default_is_shared_with_the_positive_family(analyzer: NedAnalyzer) -> None:
+    """我想你了 and 我不想和你说话 read the same 我: the reader's.
+
+    NED's canonical input is the reader's own sentence, so the boundary family gets no
+    exemption that would read the same pronoun as the other person.
+    """
+
+    longing = analyzer.analyze_text("我想你了", mode="normal")
+    bare = analyzer.analyze_text("我不想和你说话", mode="normal")
+    assert longing.verdict.code != "ned.direct_rejection"
+    assert bare.verdict.code != "ned.direct_rejection"

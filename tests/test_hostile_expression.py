@@ -66,7 +66,7 @@ ENGLISH_NOT_HOSTILE = [
     "I am discussing the phrase shut up",
 ]
 
-MIXED = "去你妈的，别再联系我"
+MIXED = "去你妈的，她让我别再联系她"
 
 
 def hostiles(analyzer: NedAnalyzer, text: str) -> list[str]:
