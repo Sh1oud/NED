@@ -48,6 +48,7 @@ reporting verb (``转述``, ``嘀咕``, ``断言``) needs to be known.
 from __future__ import annotations
 
 import itertools
+from typing import NamedTuple
 
 from ned.app.core import attribution
 
@@ -685,11 +686,278 @@ def _report_local_spans(
     return [item for item in spans if item[2] >= cut]
 
 
+#: Belief-class mental verbs. Volition ("她想让我离开") is not a belief about the reader
+#: and is handled by the directive guard instead.
+BELIEF_VERBS = ("觉得", "认为", "感觉", "以为")
+
+#: Speech verbs that take their receiver as an object ("她告诉我"). Only these three may
+#: be followed by a receiver; every other speech verb ends its frame immediately.
+OBJECT_RECEIVER_VERBS = ("告诉", "通知", "告知")
+
+#: Simple speech verbs: the frame ends right after them.
+SIMPLE_SPEECH_VERBS = tuple(
+    verb
+    for verb in ("表示", "解释", "承认", "回复", "回答", "说", "讲", "称", "答", "问", "提")
+    if verb not in OBJECT_RECEIVER_VERBS
+)
+
+#: The reader as the receiver of her speech.
+RECEIVER_PRONOUNS = ("我", "咱")
+
+#: Closed-class material that may stand inside a frame without naming an actor.
+FRAME_FILLERS = tuple(
+    sorted(
+        {
+            *FILLERS,
+            *(
+                "好像",
+                "可能",
+                "也许",
+                "大概",
+                "似乎",
+                "应该",
+                "明明",
+                "确实",
+                "只是",
+                "就是",
+                "根本",
+                "其实",
+                "今天",
+                "昨天",
+                "昨晚",
+                "今早",
+                "早上",
+                "上午",
+                "中午",
+                "下午",
+                "晚上",
+                "前天",
+                "那天",
+                "刚刚",
+                "刚才",
+                "直接",
+                "明确",
+                "后来",
+                "已经",
+                "当面",
+                "亲口",
+                "突然",
+                "最后",
+            ),
+        },
+        key=len,
+        reverse=True,
+    )
+)
+
+#: Tokens the local tail walk may step over while looking for the governing frame.
+FRAME_WALK_TOKENS = tuple(
+    sorted(
+        {
+            *ALL_PRONOUNS,
+            *BELIEF_VERBS,
+            *SIMPLE_SPEECH_VERBS,
+            *OBJECT_RECEIVER_VERBS,
+            *FRAME_FILLERS,
+            *attribution.PREPOSITIONS,
+            *("请",),
+        },
+        key=len,
+        reverse=True,
+    )
+)
+
+
+class LocalFrame(NamedTuple):
+    """The bounded attribution frame of one stance, plus the proposition it governs."""
+
+    tail_start: int
+    speech_sender: str
+    speech_verb: str
+    receiver: str
+    mental_sender: str
+    mental_verb: str
+    proposition_start: int
+    proposition: str
+    local_subject: str
+    ambiguous: bool
+
+
+def _frame_match_left(text: str, end: int, lexicon: tuple[str, ...]) -> str:
+    for token in lexicon:
+        if end - len(token) >= 0 and text[end - len(token) : end] == token:
+            return token
+    return ""
+
+
+def _frame_tail_start(text: str, start: int) -> int:
+    """The left edge of the clause that can govern the stance at ``start``."""
+
+    index = start
+    while index > 0:
+        if text[index - 1] in INLINE_WHITESPACE:
+            index -= 1
+            continue
+        matched = _frame_match_left(text, index, FRAME_WALK_TOKENS)
+        if not matched:
+            break
+        index -= len(matched)
+    return index
+
+
+def _frame_skip_fillers(text: str, index: int, limit: int) -> int:
+    while index < limit:
+        if text[index] in INLINE_WHITESPACE:
+            index += 1
+            continue
+        token = _starts_with(text, index, FRAME_FILLERS)
+        if token is None:
+            break
+        index += len(token)
+    return index
+
+
+def _frame_preposition(text: str, index: int) -> str:
+    for preposition in attribution.PREPOSITIONS:
+        if text[index : index + len(preposition)] == preposition:
+            return preposition
+    return ""
+
+
+def _frame_subject_after(text: str, start: int, end: int) -> str:
+    """The first actor named in the proposition, skipping closed-class fillers.
+
+    A receiver object is not an actor, and an inclusive "我们" is not a single actor, so
+    both are refused: an unclear owner stays unclear (precision first).
+    """
+
+    index = _frame_skip_fillers(text, start, end)
+    token = _starts_with(text, index, DESCRIBED_PRONOUNS + RECEIVER_PRONOUNS)
+    if token is None or text[index + len(token) : index + len(token) + 1] == "们":
+        return ""
+    return token
+
+
+def _local_frame(text: str, start: int, end: int) -> LocalFrame:
+    """Who says the stance at ``start``, read from a bounded frame grammar.
+
+    A simple speech verb ends the frame; a prepositional receiver ("她跟我说") or an
+    object receiver ("她告诉我") is consumed before it; at most one nested belief frame
+    ("她说她觉得…") may follow. Everything after the frame is the proposition, and no
+    later token may be absorbed into the frame - so a previous proposition cannot supply
+    the actor, and a proposition subject cannot be eaten.
+    """
+
+    window_start = _frame_tail_start(text, start)
+    limit = end if end > start else len(text)
+    cursor = window_start
+    while cursor < limit and text[cursor] in INLINE_WHITESPACE:
+        cursor += 1
+
+    subject = _starts_with(text, cursor, ALL_PRONOUNS) or ""
+    if subject:
+        cursor += len(subject)
+    after_subject = _frame_skip_fillers(text, cursor, limit)
+
+    speech_sender = ""
+    speech_verb = ""
+    receiver = ""
+    frame_end = after_subject
+    object_verb = _starts_with(text, after_subject, OBJECT_RECEIVER_VERBS)
+    if object_verb is not None:
+        probe = after_subject + len(object_verb)
+        receiver_token = _starts_with(text, probe, RECEIVER_PRONOUNS)
+        if receiver_token is not None:
+            speech_verb = object_verb
+            receiver = receiver_token
+            frame_end = probe + len(receiver_token)
+    if not speech_verb:
+        for position in (after_subject, cursor):
+            preposition = _frame_preposition(text, position)
+            if not preposition:
+                continue
+            probe = position + len(preposition)
+            receiver_token = _starts_with(text, probe, RECEIVER_PRONOUNS)
+            if receiver_token is None:
+                continue
+            probe += len(receiver_token)
+            verb = _starts_with(text, probe, SIMPLE_SPEECH_VERBS)
+            if verb is not None:
+                speech_verb = verb
+                receiver = receiver_token
+                frame_end = probe + len(verb)
+                break
+        if not speech_verb:
+            verb = _starts_with(text, after_subject, SIMPLE_SPEECH_VERBS)
+            if verb is not None:
+                speech_verb = verb
+                frame_end = after_subject + len(verb)
+    if speech_verb:
+        speech_sender = subject
+        cursor = frame_end
+    else:
+        cursor = window_start
+
+    mental_sender = ""
+    mental_verb = ""
+    probe = _frame_skip_fillers(text, cursor, limit)
+    mental_subject = _starts_with(text, probe, ALL_PRONOUNS)
+    if mental_subject is not None:
+        after_mental = _frame_skip_fillers(text, probe + len(mental_subject), limit)
+        verb = _starts_with(text, after_mental, BELIEF_VERBS)
+        if verb is not None:
+            mental_sender = mental_subject
+            mental_verb = verb
+            cursor = after_mental + len(verb)
+            frame_end = cursor
+
+    proposition_start = cursor
+    return LocalFrame(
+        tail_start=window_start,
+        speech_sender=speech_sender if speech_verb else "",
+        speech_verb=speech_verb,
+        receiver=receiver,
+        mental_sender=mental_sender,
+        mental_verb=mental_verb,
+        proposition_start=proposition_start,
+        proposition=text[proposition_start:limit],
+        local_subject=_frame_subject_after(text, proposition_start, limit),
+        ambiguous=bool(speech_verb) and not (speech_sender if speech_verb else ""),
+    )
+
+
+def _implements_a_boundary(stance: str) -> bool:
+    """A directive or an implemented act, as opposed to a private belief."""
+
+    return (
+        _stance_is_directive(stance)
+        or any(verb in stance for verb in CAUSATIVE_VERBS)
+        or any(action in stance for action in DISTANCING_ACTIONS)
+    )
+
+
 def hers(text: str, start: int, end: int) -> bool:
     """Whether the other person is the author of the stance at ``[start:end]``."""
 
     stance = text[start:end]
     if not _stance_subject_ok(stance):
+        return False
+
+    frame = _local_frame(text, start, end)
+    if (
+        frame.mental_verb
+        and frame.mental_sender in DESCRIBED_PRONOUNS
+        and not frame.speech_verb
+        and not frame.receiver
+        and not _implements_a_boundary(stance)
+    ):
+        # 她觉得我们不合适: a private belief states nothing to the reader. A communicated
+        # belief ("她说她觉得我们不合适") keeps its speech frame and stays a boundary.
+        return False
+    owner = frame.mental_sender if frame.mental_verb else frame.local_subject
+    if frame.speech_sender and owner and owner != frame.speech_sender:
+        # 她跟我说他拒绝了我: the proposition names somebody else as its actor, so the
+        # outer speech sender may not take the stance over.
         return False
 
     prefix = _clause_prefix(text, start)
@@ -750,6 +1018,7 @@ def hers(text: str, start: int, end: int) -> bool:
     if _volition_only(tokens) and _stance_is_directive(stance):
         # 她想让我离开: a wish about what the reader should do is not a statement.
         return False
+
     return not _adjacent_content(local_spans)
 
 
