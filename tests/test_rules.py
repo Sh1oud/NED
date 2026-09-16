@@ -17,6 +17,7 @@ from ned.app.core.rules import RuleBook, format_template, resolve_localized, res
 
 PACK_FILES = (
     "signals.json",
+    "materials.json",
     "modes.json",
     "escaping.json",
     "verdicts.json",

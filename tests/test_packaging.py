@@ -13,6 +13,7 @@ import pytest
 
 RULE_PACKS = (
     "signals.json",
+    "materials.json",
     "modes.json",
     "escaping.json",
     "verdicts.json",

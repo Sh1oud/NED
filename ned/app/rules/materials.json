@@ -1,0 +1,21 @@
+{
+  "version": "0.1.0",
+  "notes": "Material rules read the input directly and never enter the evidence pipeline: a material record reports what the input says, not what it proves.",
+  "rules": [
+    {
+      "id": "zh.material.reported_negative_attitude",
+      "material_kind": "reported_negative_interpersonal",
+      "polarity": "negative",
+      "source_kind": "attributed_report",
+      "reporter_role": "described_person",
+      "proposition_owner": "described_person",
+      "target": "reader",
+      "reporters": ["她", "他", "对方"],
+      "speech_verbs": ["明确说", "跟我说", "告诉我", "说"],
+      "predicates": ["不喜欢", "讨厌", "烦", "嫌弃"],
+      "degree_adverbs": ["很", "真的", "非常", "特别", "挺"],
+      "reader": "我",
+      "notes": "A described person is reported to hold a negative attitude toward the reader. The frame must be hers and the proposition must be hers too: an owner conflict is a relay, not her report, and the reader must not be the speaker."
+    }
+  ]
+}
