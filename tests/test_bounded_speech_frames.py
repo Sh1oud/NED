@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import pathlib
 
+import pytest
 from ned.app.core.analyzer import NedAnalyzer
 from ned.app.core.parser import detect
 from ned.app.core.rules import RuleBook
@@ -125,3 +126,52 @@ def test_private_belief_versus_communicated_versus_direct() -> None:
     for text in DIRECT_BOUNDARY:
         assert _boundary(text), text
         assert _verdict(text) == "ned.direct_rejection", text
+
+
+#: The approved delivery modifiers: a closed class inside the bounded speech frame.
+DELIVERY_FRAMES = (
+    "她跟我笑着说她讨厌我",
+    "她跟我哭着说她讨厌我",
+    "她跟我小声说她讨厌我",
+    "她跟我认真说她讨厌我",
+    "她跟我突然说她讨厌我",
+    "她对我说她讨厌我",
+)
+
+#: Nothing may widen the slot: an open-class adverb, a noun phrase, a different event, an
+#: unapproved X着 verb, or two modifiers in a row.
+DELIVERY_REFUSED = (
+    "她跟我关系很好说她讨厌我",
+    "她跟我朋友说她讨厌我",
+    "她跟我吃饭说她讨厌我",
+    "她跟我讨论说她讨厌我",
+    "她跟我分析说她讨厌我",
+    "她跟我想着说她讨厌我",
+    "她跟我看着说她讨厌我",
+    "她跟我睡着说她讨厌我",
+    "她跟我小声认真说她讨厌我",
+    "她跟我小声认真突然笑着说她讨厌我",
+)
+
+
+@pytest.mark.parametrize("text", DELIVERY_FRAMES)
+def test_a_delivery_modifier_keeps_the_frame_fields(text: str) -> None:
+    """The slot only says how she said it: the frame's own fields are unchanged."""
+
+    from ned.app.core import boundary
+
+    start = text.index("她讨厌我")
+    frame = boundary._local_frame(text, start, len(text))
+    assert frame.speech_sender == "她", text
+    assert frame.receiver == "我", text
+    assert frame.local_subject == "她", text
+    assert frame.ambiguous is False, text
+
+
+@pytest.mark.parametrize("text", DELIVERY_REFUSED)
+def test_the_delivery_slot_stays_bounded(text: str) -> None:
+    from ned.app.core import boundary
+
+    start = text.index("她讨厌我")
+    frame = boundary._local_frame(text, start, len(text))
+    assert frame.speech_sender != "她" or frame.receiver != "我", text

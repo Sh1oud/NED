@@ -775,6 +775,12 @@ FRAME_WALK_TOKENS = tuple(
 )
 
 
+#: How she delivered it. A closed class, and at most one of them: the slot exists for the
+#: manners no existing filler expresses. It is deliberately not a matcher for every
+#: adverb, and not for "X着" verbs nobody approved (想着, 看着, 睡着 stay unread).
+DELIVERY_MODIFIERS = ("小声", "认真", "笑着", "哭着")
+
+
 class LocalFrame(NamedTuple):
     """The bounded attribution frame of one stance, plus the proposition it governs."""
 
@@ -805,6 +811,10 @@ def _frame_tail_start(text: str, start: int) -> int:
         if text[index - 1] in INLINE_WHITESPACE:
             index -= 1
             continue
+        modifier = _frame_match_left(text, index, DELIVERY_MODIFIERS)
+        if modifier:
+            index -= len(modifier)
+            continue
         matched = _frame_match_left(text, index, FRAME_WALK_TOKENS)
         if not matched:
             break
@@ -821,6 +831,20 @@ def _frame_skip_fillers(text: str, index: int, limit: int) -> int:
         if token is None:
             break
         index += len(token)
+    return index
+
+
+def _frame_skip_delivery(text: str, index: int, limit: int) -> int:
+    """Closed-class fillers, at most one delivery modifier, then fillers again.
+
+    One modifier only: "她跟我小声认真说" is not a bounded shape. The slot never accepts a
+    content word, a noun phrase or a different event, so "她跟我吃饭说" stays unread.
+    """
+
+    index = _frame_skip_fillers(text, index, limit)
+    token = _starts_with(text, index, DELIVERY_MODIFIERS)
+    if token is not None:
+        return _frame_skip_fillers(text, index + len(token), limit)
     return index
 
 
@@ -888,6 +912,7 @@ def _local_frame(text: str, start: int, end: int) -> LocalFrame:
             if receiver_token is None:
                 continue
             probe += len(receiver_token)
+            probe = _frame_skip_delivery(text, probe, limit)
             verb = _starts_with(text, probe, SIMPLE_SPEECH_VERBS)
             if verb is not None:
                 speech_verb = verb

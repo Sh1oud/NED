@@ -828,3 +828,43 @@ def test_a_punctuated_report_frame_is_still_her_report(analyzer: NedAnalyzer) ->
     rules = {span.rule_id for span in analyzer.analyze_text("她跟我说，然后她讨厌我").evidence}
     assert "zh.self_negative_belief" not in rules
     assert not analyzer.analyze_text("她跟我说，天气不错").evidence
+
+
+#: The approved delivery modifiers inside a reported attitude: her frame, the reader as its
+#: receiver, so the trigger is her report and not the reader's own conclusion.
+DELIVERY_REPORTS = (
+    "她跟我笑着说她讨厌我",
+    "她跟我哭着说她讨厌我",
+    "她跟我小声说她讨厌我",
+    "她跟我认真说她讨厌我",
+    "她跟我突然说她讨厌我",
+)
+
+
+@pytest.mark.parametrize("text", DELIVERY_REPORTS)
+def test_a_delivered_report_is_not_the_readers_conclusion(analyzer: NedAnalyzer, text: str) -> None:
+    """C: 状语只说明她怎么说，不改变是谁在说。"""
+
+    result = analyzer.analyze_text(text, mode="normal")
+    types = {span.signal_type for span in result.evidence}
+    assert SignalType.SELF_NEGATIVE_BELIEF not in types, text
+    assert SignalType.SELF_DISCOUNT not in types, text
+
+
+def test_a_delivered_report_protects_direction_owner_and_relay(
+    analyzer: NedAnalyzer,
+) -> None:
+    """D: 方向、owner conflict、relay、reader frame 在 modifier 下同样成立。"""
+
+    from ned.app.core import attribution
+
+    # direction: the reader is the actor of the proposition, so nothing flips
+    assert attribution.reader_owned("她跟我小声说我讨厌她", 6) is True
+    # owner conflict: her frame, somebody else's proposition
+    assert attribution.reader_owned("她跟我认真说他讨厌我", 6) is False
+    # the reader's own speech frame keeps the reader's words
+    assert attribution.reader_owned("我跟她哭着说她讨厌我", 6) is True
+    # a relay never transfers the stance to her: no material, no reader conclusion
+    relay = "朋友跟我说笑着说她讨厌我"
+    assert attribution.reader_owned(relay, 8) is False
+    assert analyzer.analyze_text(relay, mode="normal").materials == []
