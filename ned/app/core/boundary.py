@@ -708,6 +708,12 @@ SIMPLE_SPEECH_VERBS = tuple(
     if verb not in OBJECT_RECEIVER_VERBS
 )
 
+DIRECTED_MESSAGE_HEADS = ("嘀咕", "抱怨")
+
+#: A directed message head needs the explicit receiver branch: "她跟我抱怨她讨厌我"
+#: is a report to the reader, while "她抱怨她讨厌我" names no receiver and stays unread.
+DIRECTED_SPEECH_HEADS = SIMPLE_SPEECH_VERBS + DIRECTED_MESSAGE_HEADS
+
 #: The reader as the receiver of her speech.
 RECEIVER_PRONOUNS = ("我", "咱")
 
@@ -762,6 +768,7 @@ FRAME_WALK_TOKENS = tuple(
     sorted(
         {
             *ALL_PRONOUNS,
+            *DIRECTED_MESSAGE_HEADS,
             *BELIEF_VERBS,
             *SIMPLE_SPEECH_VERBS,
             *OBJECT_RECEIVER_VERBS,
@@ -913,7 +920,7 @@ def _local_frame(text: str, start: int, end: int) -> LocalFrame:
                 continue
             probe += len(receiver_token)
             probe = _frame_skip_delivery(text, probe, limit)
-            verb = _starts_with(text, probe, SIMPLE_SPEECH_VERBS)
+            verb = _starts_with(text, probe, DIRECTED_SPEECH_HEADS)
             if verb is not None:
                 speech_verb = verb
                 receiver = receiver_token

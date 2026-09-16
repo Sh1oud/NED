@@ -1594,14 +1594,21 @@ def test_a_bare_stock_line_keeps_its_shipped_reading(analyzer: NedAnalyzer, text
 
 
 def test_the_ownership_helper_reads_roles_not_people() -> None:
-    """The closure is structural: no person list and no reporting-verb list.
+    """The closure is structural: no person list and no generic reporting-verb list.
 
     The check reads the module's own vocabulary literals, so the example sentences
     in its docstring cannot satisfy it by accident.
+
+    DOCTRINAL CLARIFICATION (receiver-bound directed messages). Roles determine ownership;
+    a head category only classifies an already structured message event. "嘀咕" and "抱怨"
+    are therefore admitted as a *separate* closed category that exists only inside an
+    explicit receiver frame - never as generic speech vocabulary, never as a reader-owned
+    heuristic, and never in a subject + head + proposition branch of their own.
     """
 
     module = REPO_ROOT / "ned" / "app" / "core" / "boundary.py"
-    tree = ast.parse(module.read_text(encoding="utf-8"))
+    source = module.read_text(encoding="utf-8")
+    tree = ast.parse(source)
     vocabulary = {
         element.value
         for node in ast.walk(tree)
@@ -1609,6 +1616,18 @@ def test_the_ownership_helper_reads_roles_not_people() -> None:
         for element in node.elts
         if isinstance(element, ast.Constant) and isinstance(element.value, str)
     }
+    defined: dict[str, set[str]] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name):
+            name = node.targets[0].id
+            if isinstance(node.value, (ast.Tuple, ast.List, ast.Set)):
+                literals = {
+                    element.value
+                    for element in node.value.elts
+                    if isinstance(element, ast.Constant) and isinstance(element.value, str)
+                }
+                if literals:
+                    defined[name] = literals
     names = (
         "妈妈",
         "妈妈".replace("妈", "爸"),
@@ -1630,8 +1649,54 @@ def test_the_ownership_helper_reads_roles_not_people() -> None:
     )
     for name in names:
         assert name not in vocabulary, name
-    for verb in ("转述", "复述", "转达", "嘀咕", "断言", "念叨", "私下说", "提了一句"):
+    for verb in ("转述", "复述", "转达", "断言", "念叨", "私下说", "提了一句"):
         assert verb not in vocabulary, verb
+    # A/B: the directed family is a closed category of its own, and it is never folded into
+    # the generic speech vocabulary the closure argument is about.
+    assert defined.get("DIRECTED_MESSAGE_HEADS") == {"嘀咕", "抱怨"}, defined.get(
+        "DIRECTED_MESSAGE_HEADS"
+    )
+    for generic in ("SPEECH_VERBS", "SIMPLE_SPEECH_VERBS", "OBJECT_RECEIVER_VERBS"):
+        assert not defined.get(generic, set()) & {"嘀咕", "抱怨"}, generic
+    # D/E: the category is consumed through the receiver-bound head set only, the walk keeps
+    # it in the frame window, and the receiverless branch stays on the generic heads.
+    assert defined.get("DIRECTED_SPEECH_HEADS") is None
+    assert "DIRECTED_SPEECH_HEADS = SIMPLE_SPEECH_VERBS + DIRECTED_MESSAGE_HEADS" in source
+    assert "_starts_with(text, probe, DIRECTED_SPEECH_HEADS)" in source
+    assert "_starts_with(text, after_subject, SIMPLE_SPEECH_VERBS)" in source
+    walked = next(
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Assign)
+        and isinstance(node.targets[0], ast.Name)
+        and node.targets[0].id == "FRAME_WALK_TOKENS"
+    )
+    assert any(
+        isinstance(element, ast.Starred)
+        and getattr(element.value, "id", "") == "DIRECTED_MESSAGE_HEADS"
+        for element in walked.value.args[0].args[0].elts
+    )
+    # C: the reader-owned firewall carries no head heuristic of its own. Its docstring may
+    # still name an unknown reporting predicate as an example, so only code is read.
+    firewall_source = (REPO_ROOT / "ned" / "app" / "core" / "attribution.py").read_text(
+        encoding="utf-8"
+    )
+    firewall_tree = ast.parse(firewall_source)
+    code_literals = {
+        node.value
+        for parent in ast.walk(firewall_tree)
+        for node in ast.iter_child_nodes(parent)
+        if isinstance(node, ast.Constant)
+        and isinstance(node.value, str)
+        and not (isinstance(parent, ast.Expr) and parent.value is node)
+    }
+    code_names = {node.id for node in ast.walk(firewall_tree) if isinstance(node, ast.Name)} | {
+        node.attr for node in ast.walk(firewall_tree) if isinstance(node, ast.Attribute)
+    }
+    for head in ("嘀咕", "抱怨"):
+        assert head not in code_literals, head
+    for category in ("DIRECTED_MESSAGE_HEADS", "DIRECTED_SPEECH_HEADS"):
+        assert category not in code_names, category
     # the receiver slot is marked by grammar instead: a preposition or a
     # receiver-object verb, and the reader's own pronoun
     for token in ("跟", "和", "与", "对", "向", "给", "告诉", "通知", "告知"):
