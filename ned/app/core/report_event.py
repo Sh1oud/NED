@@ -58,6 +58,22 @@ class ResolvedReportEvent(NamedTuple):
     head_end: int
     proposition_start: int
     proposition_owner: str
+    #: The semantic anchor of the report's proposition: inline CJK whitespace has no
+    #: vote, so a space in front of the proposition keeps the same clause, frame and
+    #: actuality. Consumers align candidates against this slot.
+    content_start: int
+
+
+def _content_start(text: str, index: int, end: int) -> int:
+    """The proposition's semantic start: inline whitespace is skipped, nothing else.
+
+    The primitive is ``boundary.INLINE_WHITESPACE`` - the same closed set the grammar's own
+    whitespace contract uses, so newlines and punctuation still separate clauses.
+    """
+
+    while index < end and text[index] in boundary.INLINE_WHITESPACE:
+        index += 1
+    return index
 
 
 def _head_end(text: str, clause_start: int, proposition_start: int) -> int:
@@ -134,6 +150,7 @@ def resolve_report_event(
             head_end=head_end,
             proposition_start=proposition_start,
             proposition_owner=frame.local_subject or _proposition_owner(text, head_end, end),
+            content_start=_content_start(text, frame.proposition_start, end),
         )
     owner = frame.local_subject or _proposition_owner(text, proposition_start, end)
     if prefix.strip():
@@ -146,11 +163,19 @@ def resolve_report_event(
             head_end=head_end,
             proposition_start=proposition_start,
             proposition_owner=owner,
+            content_start=_content_start(text, proposition_start, end),
         )
     previous = boundary._previous_clause(text, proposition_start)
     if not previous.strip():
         return ResolvedReportEvent(
-            frame, False, "UNRESOLVED", clause_start, clause_start, proposition_start, owner
+            frame,
+            False,
+            "UNRESOLVED",
+            clause_start,
+            clause_start,
+            proposition_start,
+            owner,
+            proposition_start,
         )
     inherited = boundary._local_frame(previous, 0, len(previous))
     if not (
@@ -158,7 +183,14 @@ def resolve_report_event(
         and inherited.receiver in attribution.READER_PRONOUNS
     ):
         return ResolvedReportEvent(
-            frame, False, "UNRESOLVED", clause_start, clause_start, proposition_start, owner
+            frame,
+            False,
+            "UNRESOLVED",
+            clause_start,
+            clause_start,
+            proposition_start,
+            owner,
+            proposition_start,
         )
     inherited_start = max(inherited.tail_start, 0)
     previous_start = max(inherited.proposition_start, inherited_start)
@@ -170,6 +202,7 @@ def resolve_report_event(
         head_end=clause_start,
         proposition_start=proposition_start,
         proposition_owner=owner,
+        content_start=proposition_start,
     )
 
 

@@ -212,3 +212,53 @@ def test_an_object_pronoun_is_never_the_proposition_owner() -> None:
         assert resolved.proposition_owner == "", _detail(text, index, resolved)
         assert resolved.frame.speech_sender == "她", _detail(text, index, resolved)
         assert resolved.actuality == "ASSERTED", _detail(text, index, resolved)
+
+
+#: Inline whitespace is same-clause trivia, not a clause separator: a space in front of the
+#: proposition keeps one clause, one frame, the same actuality and the same content anchor.
+SAME_CLAUSE_WS = (
+    "她跟我说她讨厌我",
+    "她跟我说 她讨厌我",
+    "她跟我小声说 她讨厌我",
+    "她跟我认真说 她讨厌我",
+    "她跟我抱怨 她讨厌我",
+    "她跟我嘀咕 她讨厌我",
+)
+
+OUTER_WS = (
+    "她没跟我说 她讨厌我",
+    "她可能跟我说 她讨厌我",
+    "她是否跟我说 她讨厌我",
+)
+
+
+@pytest.mark.parametrize("text", SAME_CLAUSE_WS)
+def test_inline_whitespace_keeps_one_same_clause_frame(text: str) -> None:
+    from ned.app.core import report_event
+
+    probe = next(p for p in PROBES if p in text)
+    index = text.find(probe)
+    resolved = report_event.resolve_report_event(text, index, len(text))
+    assert resolved.inherited is False, text
+    assert resolved.actuality == "ASSERTED", text
+    assert resolved.content_start == index, text
+    assert text[resolved.content_start :].startswith(probe), text
+
+
+@pytest.mark.parametrize("text", OUTER_WS)
+def test_inline_whitespace_does_not_bypass_actuality(text: str) -> None:
+    from ned.app.core import report_event
+
+    probe = next(p for p in PROBES if p in text)
+    index = text.find(probe)
+    resolved = report_event.resolve_report_event(text, index, len(text))
+    assert resolved.actuality == "NOT_ASSERTED", text
+
+
+def test_punctuation_continuation_stays_distinct_from_whitespace() -> None:
+    from ned.app.core import report_event
+
+    space = report_event.resolve_report_event("她跟我说 她讨厌我", 5, 9)
+    comma = report_event.resolve_report_event("她跟我说，她讨厌我", 5, 9)
+    assert (space.inherited, comma.inherited) == (False, True)
+    assert space.actuality == comma.actuality == "ASSERTED"
