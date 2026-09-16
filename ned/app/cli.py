@@ -32,6 +32,7 @@ from ned.app.core.models import (
 )
 from ned.app.ui.personality import (
     ASPECT_CARD_SITUATIONS,
+    BOUNDARY_SITUATIONS,
     FORBIDDEN_EMOJI,
     GREETING_RULE,
     QUALITY_SOURCE,
@@ -54,6 +55,8 @@ from ned.app.ui.personality import (
     fact_signal_types,
     first_screen,
     fnbp_feedback,
+    material_registry_copy,
+    material_registry_rows,
     nea_framing,
     primary_positive_rule,
     quality_label,
@@ -398,6 +401,42 @@ def render_aspect_breakdown(result: AnalysisResult, situation: str, out: Console
     )
 
 
+def render_material_registry(result: AnalysisResult, situation: str, out: Console) -> None:
+    """The materials this input reported: registered, and nothing more.
+
+    A material is what the input reports. It is not evidence, and registering it
+    decides nothing: the card names the reported statements and their provenance,
+    restates that this agency has verified nothing, and says out loud that none of
+    it was converted into a conclusion.
+
+    Under a stated boundary the card is not shown at all. An explicit boundary
+    outranks any material presentation, and one input can carry both - a reported
+    attitude and a plainly stated boundary - so this gate is load-bearing, not
+    decorative. The JSON payload is untouched either way: only this screen is
+    withheld.
+    """
+
+    if not result.materials or situation in BOUNDARY_SITUATIONS:
+        return
+    language = "en" if result.language == "en" else "zh"
+    copy = material_registry_copy(language)
+    body = Table(show_header=False, box=None, padding=(0, 2))
+    for label, text in material_registry_rows(result.materials, language):
+        body.add_row(label, Text(text))
+    out.print(
+        Panel(
+            Group(
+                Text(copy["registration_intro"]),
+                body,
+                Text(copy["disclaimer"], style="dim italic"),
+                Text(copy["conclusion_isolation"], style="dim italic"),
+            ),
+            title=copy["card_title"],
+            border_style="cyan",
+        )
+    )
+
+
 def render_analysis(result: AnalysisResult, out: Console) -> None:
     """Render an analysis result: NED's screen first, the evidence after it."""
 
@@ -405,6 +444,7 @@ def render_analysis(result: AnalysisResult, out: Console) -> None:
     render_first_screen(result, situation, basis, language, out)
     render_epistemic_breakdown(result, situation, out)
     render_aspect_breakdown(result, situation, out)
+    render_material_registry(result, situation, out)
     out.print()
     out.print(Text("Technical Details " + "\u2500" * 44, style="dim"))
     out.print(

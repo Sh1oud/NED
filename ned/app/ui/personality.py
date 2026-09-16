@@ -1121,6 +1121,91 @@ def aspect_breakdown_rows(
 ASPECT_CARD_SITUATIONS: tuple[str, ...] = (SITUATION_MULTIPLE_ASPECTS, SITUATION_BOUNDARY)
 
 
+# --------------------------------------------------------------------------- #
+# Observed material registry (the material layer's own record)
+# --------------------------------------------------------------------------- #
+
+#: The registry card's own copy. This is a different card from the filing card
+#: above: the filing card files *evidence pages*, while this one registers the
+#: reported statements the material layer actually recorded. The two never share a
+#: row and never merge into one "combined material" view. Its title is deliberately
+#: not "MATERIALS RECEIVED": that heading already belongs to the no-signal screen,
+#: where it means "no classifiable signal was found", which is a different fact.
+MATERIAL_REGISTRY_COPY: dict[str, dict[str, str]] = {
+    "zh": {
+        "card_title": "材料登记",
+        "registration_intro": "本次输入报告了以下说法，已登记：",
+        "item_label": "附件 {n}",
+        "item_text": "「{text}」",
+        "source_label": "来源",
+        "source_unknown": "来源未标注",
+        "conclusion_isolation": "本机构没有把上述材料折算成关系结论。",
+    },
+    "en": {
+        "card_title": "MATERIAL REGISTRY",
+        "registration_intro": "The input reports the following; it is on file:",
+        "item_label": "Attachment {n}",
+        "item_text": "\u201c{text}\u201d",
+        "source_label": "Source",
+        "source_unknown": "Source not stated",
+        "conclusion_isolation": "This agency has not converted the material above into a "
+        "conclusion about the relationship.",
+    },
+}
+
+#: How a report's provenance is said out loud. Provenance, never truth: a directly
+#: stated report is still only what the input reports. ``direct_user_statement``
+#: means the reader typed it, and nothing more.
+MATERIAL_SOURCE_LABELS: dict[str, dict[str, str]] = {
+    "zh": {
+        "attributed_report": "转述材料",
+        "direct_user_statement": "用户直接陈述",
+    },
+    "en": {
+        "attributed_report": "Recorded as reported speech",
+        "direct_user_statement": "Stated directly by the user",
+    },
+}
+
+
+def material_registry_copy(language: str = "zh") -> dict[str, str]:
+    """The registry card's copy, with the shared restraint sentence attached.
+
+    The epistemic-restraint line is the existing filing-card disclaimer itself,
+    not a second sentence saying the same thing: one sentence, one source, so the
+    two cards cannot drift apart.
+    """
+
+    key = "en" if language == "en" else "zh"
+    return {**MATERIAL_REGISTRY_COPY[key], "disclaimer": ASPECT_COPY[key]["disclaimer"]}
+
+
+def material_registry_rows(
+    materials: Sequence[object], language: str = "zh"
+) -> tuple[tuple[str, str], ...]:
+    """One label/text pair per registered material. Display only.
+
+    Only the default-visible fields reach this card: the reported statement,
+    verbatim, and where it came from. No id, no rule id, no offsets and no
+    polarity. The rows are the registry in the registry's own order - nothing here
+    sorts, merges, ranks, scores or de-duplicates - and it never reads
+    ``material_aspects``, which is a different display object with a different
+    source.
+    """
+
+    key = "en" if language == "en" else "zh"
+    copy = MATERIAL_REGISTRY_COPY[key]
+    labels = MATERIAL_SOURCE_LABELS[key]
+    rows: list[tuple[str, str]] = []
+    for position, item in enumerate(materials, start=1):
+        content = str(getattr(item, "reported_content", "") or "")
+        source = str(getattr(item, "source_kind", "") or "")
+        label = copy["item_label"].replace("{n}", f"{position:02d}")
+        rows.append((label, copy["item_text"].replace("{text}", content)))
+        rows.append((copy["source_label"], labels.get(source, copy["source_unknown"])))
+    return tuple(rows)
+
+
 #: situation -> mode -> language -> FirstScreen
 FIRST_SCREEN: dict[str, dict[str, dict[str, FirstScreen]]] = {
     SITUATION_BOUNDARY: _fixed(
@@ -2015,6 +2100,8 @@ def web_personality_catalog() -> dict[str, object]:
         "multiple_aspects_promotes": list(MULTIPLE_ASPECTS_PROMOTES),
         "aspect_card_situations": list(ASPECT_CARD_SITUATIONS),
         "materials_slot": MATERIALS_SLOT,
+        "material_registry_copy": {key: material_registry_copy(key) for key in ("zh", "en")},
+        "material_source_labels": MATERIAL_SOURCE_LABELS,
         "boundary_page_types": list(aspect_pages.BOUNDARY_TYPES),
         "materials_fallback": MATERIALS_FALLBACK,
         "aspect_page_labels": {key: list(value) for key, value in ASPECT_PAGE_LABELS.items()},
@@ -2056,6 +2143,8 @@ __all__ = [
     "GREETING_RULE",
     "MATERIALS_FALLBACK",
     "MATERIALS_SLOT",
+    "MATERIAL_REGISTRY_COPY",
+    "MATERIAL_SOURCE_LABELS",
     "MODES",
     "MULTIPLE_ASPECTS_PROMOTES",
     "MULTIPLE_ASPECTS_REALITY",
@@ -2103,6 +2192,8 @@ __all__ = [
     "greeting_is_one_off",
     "has_missing_duration",
     "is_boundary_situation",
+    "material_registry_copy",
+    "material_registry_rows",
     "nea_framing",
     "page_grade",
     "page_label",
