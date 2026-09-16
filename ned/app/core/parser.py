@@ -376,8 +376,37 @@ def detect(text: str, book: RuleBook) -> list[EvidenceSpan]:
             )
         )
 
+    spans = _drop_boundary_contained_positives(spans)
     spans.sort(key=lambda span: (-span.base_strength, span.start))
     return spans
+
+
+def _drop_boundary_contained_positives(spans: list[EvidenceSpan]) -> list[EvidenceSpan]:
+    """Drop a positive fragment that an explicit boundary contains.
+
+    "她说她不想谈恋爱" matches the boundary, and the positive rule behind 谈恋爱 matches
+    the boundary's own negated wording. The fragment is not a second material: it is
+    part of the proposition the boundary states, so it may not become its own page,
+    weight or audit material.
+
+    The rule reads offsets and polarity only - no word list - and only containment by
+    an explicit boundary counts, so independent material in the same sentence (a gift,
+    a remembered detail, affection in another clause) is left alone.
+    """
+
+    boundaries = [
+        (span.start, span.end) for span in spans if span.signal_type is SignalType.DIRECT_REJECTION
+    ]
+    if not boundaries:
+        return spans
+    return [
+        span
+        for span in spans
+        if not (
+            span.polarity == "positive"
+            and any(start <= span.start and span.end <= end for start, end in boundaries)
+        )
+    ]
 
 
 def cast_polarity(value: str) -> Polarity:
