@@ -287,3 +287,51 @@ def test_e2_the_reader_actor_direction_stays_a_recognition_miss() -> None:
         assert "zh.direct_rejection" not in _rules(text), text
     for text in E2_RELAY:
         assert "zh.direct_rejection" not in _rules(text), text
+
+
+#: E3: 请 is a proposition-level politeness filler. It never changes who speaks, who owns
+#: the boundary or who the target is, and a bare "请…" keeps POLICY A.
+E3_ATTRIBUTED = (
+    "她说请不要再联系我",
+    "她说请别联系我",
+    "她跟我说请别联系她",
+    "她明确告诉我请不要再来找她",
+)
+E3_BARE = ("请不要再联系我", "请别联系我", "请不要来找我", "请别再找我")
+E3_WHITESPACE = (
+    "她说请不要再联系我",
+    "她说 请不要再联系我",
+    "她说	请不要再联系我",
+    "她说　请不要再联系我",
+)
+E3_RECEIVER_FRAME = ("她跟我说请别联系她", "她明确告诉我请不要再来找她")
+E3_NOT_HERS = (
+    "朋友说请不要再联系她",
+    "她妈妈告诉我请别联系她",
+    "她是不是说请不要再联系我",
+    "她可能会说请不要再联系我",
+    "她说他请我不要再联系她",
+)
+
+
+def test_e3_a_politeness_filler_keeps_her_boundary() -> None:
+    for text in E3_ATTRIBUTED:
+        assert "zh.direct_rejection" in _rules(text), text
+        assert _verdict(text) == "ned.direct_rejection", text
+
+
+def test_e3_a_bare_politeness_request_is_still_policy_a() -> None:
+    for text in E3_BARE:
+        assert "zh.direct_rejection" not in _rules(text), text
+
+
+def test_e3_inline_whitespace_does_not_change_the_politeness_reading() -> None:
+    signatures = {(tuple(sorted(_rules(text))), _verdict(text)) for text in E3_WHITESPACE}
+    assert signatures == {(("zh.direct_rejection",), "ned.direct_rejection")}, signatures
+
+
+def test_e3_the_receiver_frame_stays_hers_and_a_relay_never_transfers() -> None:
+    for text in E3_RECEIVER_FRAME:
+        assert "zh.direct_rejection" in _rules(text), text
+    for text in E3_NOT_HERS:
+        assert "zh.direct_rejection" not in _rules(text), text

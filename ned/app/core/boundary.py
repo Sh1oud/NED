@@ -413,6 +413,13 @@ def _walk_spans(text: str) -> list[tuple[str, str, int]]:
         if head is not None:
             tokens.append(("predicate", head, index))
             break
+        if text[index] == "请" and any(
+            kind in ("speech", "receiver", "mental", "causative") for kind, _token, _start in tokens
+        ):
+            # "她说请不要再联系我": the politeness marker introduces the
+            # proposition, so it is not content glued to her speech frame.
+            index += 1
+            continue
         tokens.append(("content", text[index], index))
         index += 1
     return tokens
