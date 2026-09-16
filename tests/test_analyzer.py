@@ -715,3 +715,98 @@ def test_the_described_subject_branch_names_no_reporting_verb() -> None:
     assert not hasattr(attribution, "REPORT_VERBS")
     assert attribution._reader_is_a_prepositional_object("\u5bf9\u6211\u597d") is True
     assert attribution._reader_is_a_prepositional_object("\u8ddf\u6211\u8bf4\u6211") is False
+
+
+#: Reported attitudes. The approved 5.0 bounded frame says *who is speaking*: when it
+#: names the described person as the speaker and the reader as its receiver, the trigger
+#: inside it is her report about the reader, not the reader's own conclusion.
+#: "她跟我说她讨厌我" is a report; the evidence list says nothing about what she meant.
+REPORTED_ATTITUDE_FRAMES = (
+    "她跟我说她讨厌我",
+    "她跟我说她不喜欢我",
+    "她跟我说她烦我",
+    "她对我说她讨厌我",
+    "她对我表示她讨厌我",
+    "他跟我说她讨厌我",
+    "她跟我说 她讨厌我",
+)
+
+#: Shapes the guard must not touch: the reader's own conclusion, the reader speaking the
+#: frame, the pinned prepositional survivor and a bare clause (POLICY A).
+REPORTED_ATTITUDE_SURVIVORS = (
+    "我觉得她讨厌我",
+    "我和她说她不喜欢我",
+    "我跟小王说她讨厌我",
+    "她对我好可能只是出于礼貌",
+    "她讨厌我",
+)
+
+
+@pytest.mark.parametrize("text", REPORTED_ATTITUDE_FRAMES)
+def test_a_reported_attitude_is_not_the_readers_own_conclusion(
+    analyzer: NedAnalyzer, text: str
+) -> None:
+    """A/B: 转述句不是读者自己的结论，也不是读者自己的自我降权。"""
+
+    result = analyzer.analyze_text(text, mode="normal")
+    types = {span.signal_type for span in result.evidence}
+    assert SignalType.SELF_NEGATIVE_BELIEF not in types, text
+    assert SignalType.SELF_DISCOUNT not in types, text
+
+
+@pytest.mark.parametrize("text", REPORTED_ATTITUDE_SURVIVORS)
+def test_a_reader_conclusion_survives_the_reported_attitude_guard(
+    analyzer: NedAnalyzer, text: str
+) -> None:
+    """C/D/E: 读者自己的结论、读者自述的框、受动形态都保持原判。"""
+
+    result = analyzer.analyze_text(text, mode="normal")
+    assert result.signal_type in (SignalType.SELF_NEGATIVE_BELIEF, SignalType.SELF_DISCOUNT), text
+
+
+def test_the_reported_attitude_guard_reads_the_frame_not_the_wording() -> None:
+    """The decision is structural: the same wording flips only when the frame is hers."""
+
+    from ned.app.core import attribution
+
+    assert attribution.reader_owned("她跟我说她讨厌我", 4) is False
+    assert attribution.reader_owned("我觉得她讨厌我", 3) is True
+    assert attribution.reader_owned("我和她说她不喜欢我", 4) is True
+    assert attribution.reader_owned("她对我好可能只是出于礼貌", 4) is True
+
+
+def test_a_report_about_the_reader_is_not_the_readers_conclusion() -> None:
+    """G: 她的框、别人的命题（owner conflict）也不是读者自己的结论。"""
+
+    from ned.app.core import attribution
+
+    assert attribution.reader_owned("她跟我说他讨厌我", 4) is False
+
+
+def test_the_reader_speaking_the_frame_keeps_their_own_words() -> None:
+    """F: 读者自己说出的那个框，方向不得反转。"""
+
+    from ned.app.core import attribution
+
+    assert attribution.reader_owned("她跟我说我讨厌她", 4) is True
+
+
+def test_a_relay_keeps_its_own_reading() -> None:
+    """H: 第三方转述不转移 stance。"""
+
+    from ned.app.core import attribution
+
+    assert attribution.reader_owned("朋友跟我说她讨厌我", 5) is False
+    assert attribution.reader_owned("她妈妈跟我说她讨厌我", 6) is False
+
+
+def test_a_punctuated_report_frame_stays_registered_debt() -> None:
+    """MATERIAL-COUPLING-2: 句读分开的转述框仍按现状（登记债，本批不修）。
+
+    This test exists so that a future coupling-2 batch has to change it on purpose: the
+    clause break is the firewall's own boundary, not part of this fix.
+    """
+
+    from ned.app.core import attribution
+
+    assert attribution.reader_owned("她跟我说，她讨厌我", 5) is True

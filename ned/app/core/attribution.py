@@ -332,6 +332,27 @@ def _clause_prefix(text: str, start: int) -> str:
     return text[:start]
 
 
+def _is_her_speech_to_the_reader(text: str, start: int) -> bool:
+    """Whether the bounded 5.0 frame in front of the trigger is her speech to the reader.
+
+    The frame grammar lives in ``boundary`` and is asked here rather than copied: one
+    implementation, no second verb list, and no drift between the two screens. A receiver
+    frame whose speaker is the described person and whose receiver is the reader means the
+    words in front of the trigger are a report, not the reader's own wording. The
+    proposition's own actor must not be the reader: a report that the reader is like this
+    or that is not read here.
+    """
+
+    from ned.app.core import boundary
+
+    frame = boundary._local_frame(text, start, len(text))
+    return (
+        frame.speech_sender in DESCRIBED_PRONOUNS
+        and frame.receiver in READER_PRONOUNS
+        and frame.local_subject not in READER_PRONOUNS
+    )
+
+
 def reader_owned(text: str, start: int) -> bool:
     """Whether the reader could have authored the words in front of this trigger.
 
@@ -339,6 +360,10 @@ def reader_owned(text: str, start: int) -> bool:
     reader-owned trigger, so an unreasoned answer is always *no*.
     """
 
+    if _is_her_speech_to_the_reader(text, start):
+        # Her frame with the reader as its receiver: the trigger is her words, the
+        # same contract ``boundary.hers`` already reads.
+        return False
     clause = _strip_cjk_inline_whitespace(_clause_prefix(text, start))
     rest = _strip_markers(clause).strip()
     if not rest:
