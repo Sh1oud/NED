@@ -38,6 +38,11 @@ READER_OWNED_TYPES = frozenset({"self_discount", "self_negative_belief"})
 #: A clause ends here. Anything after the last break belongs to the trigger's clause.
 CLAUSE_BREAKS = "\u3002\uff01\uff1f!?\uff0c,\uff1b;\u3001\n\r\t "
 
+#: Inline formatting whitespace. Inside a CJK sentence it separates characters, so it is
+#: not a clause boundary, not a content token and not a speaker boundary. Between or next
+#: to ASCII it keeps its own meaning - English words need their spaces.
+INLINE_WHITESPACE = " \t\u3000"
+
 #: The reader, and the person the reader is describing.
 READER_PRONOUNS = ("\u6211", "\u54b1")
 DESCRIBED_PRONOUNS = ("\u5bf9\u65b9", "\u4ed6\u4eec", "\u5979\u4eec", "\u5979", "\u4ed6")
@@ -260,12 +265,70 @@ def _is_reader_side(text: str) -> bool:
     return True
 
 
-def _clause_prefix(text: str, start: int) -> str:
-    """Everything in front of ``start`` inside its own clause."""
+def _is_cjk(char: str) -> bool:
+    """Whether ``char`` is a CJK character (a one-character string, or empty)."""
 
-    for index in range(start - 1, -1, -1):
-        if text[index] in CLAUSE_BREAKS:
+    return char != "" and "\u3400" <= char <= "\u9fff"
+
+
+def _is_cjk_inline_whitespace_run(text: str, start: int, end: int) -> bool:
+    """Whether the whitespace run ``text[start:end]`` is CJK formatting whitespace.
+
+    Only a run whose two neighbours are both CJK characters is a formatting separator.
+    A run at the edge of the text, or one next to ASCII ("I think she is just being
+    polite"), keeps whatever structural meaning it had.
+    """
+
+    if start <= 0 or end >= len(text):
+        return False
+    return _is_cjk(text[start - 1]) and _is_cjk(text[end])
+
+
+def _strip_cjk_inline_whitespace(text: str) -> str:
+    """Drop the CJK formatting separators from a clause read by the firewall."""
+
+    kept: list[str] = []
+    index = 0
+    while index < len(text):
+        char = text[index]
+        if char in INLINE_WHITESPACE:
+            end = index
+            while end < len(text) and text[end] in INLINE_WHITESPACE:
+                end += 1
+            if _is_cjk_inline_whitespace_run(text, index, end):
+                index = end
+                continue
+            kept.append(char)
+            index += 1
+            continue
+        kept.append(char)
+        index += 1
+    return "".join(kept)
+
+
+def _clause_prefix(text: str, start: int) -> str:
+    """Everything in front of ``start`` inside its own clause.
+
+    CJK formatting whitespace does not end the clause, so the reader of "他 说 我 想太多"
+    still sees the whole clause; newline and punctuation keep ending it.
+    """
+
+    index = start - 1
+    while index >= 0:
+        char = text[index]
+        if char in CLAUSE_BREAKS:
+            if char in INLINE_WHITESPACE:
+                run_start = index
+                while run_start > 0 and text[run_start - 1] in INLINE_WHITESPACE:
+                    run_start -= 1
+                run_end = index + 1
+                while run_end < start and text[run_end] in INLINE_WHITESPACE:
+                    run_end += 1
+                if _is_cjk_inline_whitespace_run(text, run_start, run_end):
+                    index = run_start - 1
+                    continue
             return text[index + 1 : start]
+        index -= 1
     return text[:start]
 
 
@@ -276,7 +339,8 @@ def reader_owned(text: str, start: int) -> bool:
     reader-owned trigger, so an unreasoned answer is always *no*.
     """
 
-    rest = _strip_markers(_clause_prefix(text, start)).strip()
+    clause = _strip_cjk_inline_whitespace(_clause_prefix(text, start))
+    rest = _strip_markers(clause).strip()
     if not rest:
         return True
 
