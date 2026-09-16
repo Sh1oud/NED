@@ -652,6 +652,31 @@ def _reader_is_the_speaker(tokens: list[tuple[str, str]]) -> bool:
     return any(other in ("receiver", "speech", "mental", "causative") for other, _ in tokens)
 
 
+def _report_local_spans(
+    prefix: str, spans: list[tuple[str, str, int]], stance_names_her: bool
+) -> list[tuple[str, str, int]]:
+    """The noun-phrase chain of the clause this stance is stated in.
+
+    "她给我买了早餐但她说不想见我" states the boundary in the clause behind the
+    coordination mark: the material in front of the mark ("买了早餐") is another
+    proposition, so it may not glue itself onto this stance's subject. Only the
+    noun-phrase reading is scoped here - the report frame keeps reading the whole
+    prefix, so a third party relaying the stance ("室友说她很喜欢我但她只想当朋友")
+    still owns it.
+    """
+
+    if not stance_names_her:
+        return spans
+    cut = 0
+    for marker in COORDINATION_MARKERS:
+        at = prefix.rfind(marker)
+        if at > 0:
+            cut = max(cut, at)
+    if not cut:
+        return spans
+    return [item for item in spans if item[2] >= cut]
+
+
 def hers(text: str, start: int, end: int) -> bool:
     """Whether the other person is the author of the stance at ``[start:end]``."""
 
@@ -662,6 +687,9 @@ def hers(text: str, start: int, end: int) -> bool:
     prefix = _clause_prefix(text, start)
     spans = _walk_spans(prefix)
     tokens = _walk(prefix)
+    local_spans = _report_local_spans(
+        prefix, spans, _starts_with(text, start, DESCRIBED_PRONOUNS) is not None
+    )
     in_quote = _opens_a_quote(prefix)
     sender = _sender_of(tokens, _walk(stance)) or _inherited_speaker(text, start)
     clause = text[start - len(prefix) : _clause_end(text, start)]
@@ -711,12 +739,12 @@ def hers(text: str, start: int, end: int) -> bool:
     if in_quote:
         # Inside her direct speech everything is hers, but a noun phrase there still
         # belongs to somebody else ("她说："我妈觉得我们不合适"").
-        return not _adjacent_content(spans)
+        return not _adjacent_content(local_spans)
 
     if _volition_only(tokens) and _stance_is_directive(stance):
         # 她想让我离开: a wish about what the reader should do is not a statement.
         return False
-    return not _adjacent_content(spans)
+    return not _adjacent_content(local_spans)
 
 
 __all__ = ["ALL_PRONOUNS", "INCLUSIVE_PRONOUNS", "hers"]
