@@ -484,8 +484,12 @@ def test_the_family_carries_exactly_two_modal_guards(book: RuleBook) -> None:
     guard, so the same modal vocabulary is not maintained in several excludes.
     """
 
-    guards = modal_guards(book)
+    guards = [pattern for pattern in modal_guards(book) if "确定|确认|判断|知道" in pattern]
     assert len(guards) == 2, guards
+    reader_patient = [
+        pattern for pattern in modal_guards(book) if "被" in pattern and "拒" in pattern
+    ]
+    assert reader_patient, "reader-patient hedge/question guard class is missing"
     behaviour = next(pattern for pattern in guards if "做朋友" in pattern)
     judgement = next(pattern for pattern in guards if "不合(适|来)" in pattern)
     for token in ("被拒", "被绝", "拒绝了我"):
@@ -1028,8 +1032,12 @@ def test_the_hedge_guard_covers_the_new_shapes(book: RuleBook) -> None:
     bringing a third copy of the modal vocabulary with it.
     """
 
-    guards = modal_guards(book)
+    guards = [pattern for pattern in modal_guards(book) if "确定|确认|判断|知道" in pattern]
     assert len(guards) == 2, guards
+    reader_patient = [
+        pattern for pattern in modal_guards(book) if "被" in pattern and "拒" in pattern
+    ]
+    assert reader_patient, "reader-patient hedge/question guard class is missing"
     behaviour = next(pattern for pattern in guards if "做朋友" in pattern)
     assert "当(个)?(普通|一般|平常)?朋友" in behaviour, behaviour
     assert "做(个)?(普通|一般|平常)?朋友" in behaviour, behaviour
@@ -1118,7 +1126,11 @@ def test_the_uncertainty_frame_is_classes_not_tokens(book: RuleBook) -> None:
     """No bespoke token list: both guards share one class vocabulary."""
 
     patterns = rejection_patterns(book)
-    guards = [pattern for pattern in rejection_excludes(book) if "可能|也许" in pattern]
+    guards = [
+        pattern
+        for pattern in rejection_excludes(book)
+        if "可能|也许" in pattern and "确定|确认|判断" in pattern
+    ]
     assert len(guards) == 2, guards
 
     # the shared head: modal adverbs, then a negator class times an epistemic class

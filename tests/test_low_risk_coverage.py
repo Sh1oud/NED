@@ -123,3 +123,38 @@ def test_g_a_reported_proposition_is_never_a_stance_transfer() -> None:
 def test_g_unrelated_reader_phrases_keep_their_own_behaviour() -> None:
     for text in G_UNTOUCHED:
         assert "zh.self_discount" not in _rules(text), text
+
+
+E1_POSITIVE = (
+    "我被她拒绝了",
+    "我被她明确拒绝了",
+    "我被她当面拒绝了",
+    "我被对方拒绝了",
+)
+E1_DIRECTION = (
+    "我拒绝了她",
+    "她被我拒绝了",
+    "我把她拒绝了",
+    "我明确拒绝了她",
+)
+E1_NOT_UPGRADED = (
+    "我没有被她拒绝",
+    "我是不是被她拒绝了",
+    "我可能被她拒绝了",
+)
+
+
+def test_e1_a_reader_patient_rejection_is_reported_as_a_boundary() -> None:
+    for text in E1_POSITIVE:
+        assert "zh.direct_rejection" in _rules(text), text
+        assert _verdict(text) == "ned.direct_rejection", text
+
+
+def test_e1_the_reader_actor_direction_is_never_inverted() -> None:
+    for text in E1_DIRECTION:
+        assert "zh.direct_rejection" not in _rules(text), text
+
+
+def test_e1_negation_question_and_possibility_are_not_upgraded() -> None:
+    for text in E1_NOT_UPGRADED:
+        assert "zh.direct_rejection" not in _rules(text), text
