@@ -158,3 +158,57 @@ def test_e1_the_reader_actor_direction_is_never_inverted() -> None:
 def test_e1_negation_question_and_possibility_are_not_upgraded() -> None:
     for text in E1_NOT_UPGRADED:
         assert "zh.direct_rejection" not in _rules(text), text
+
+
+#: E1-SUBJECT-PATIENT-1: a sentence that starts with 我 is not automatically the patient
+#: of a rejection. A relative ("我朋友"), a perception or a report ("我看到/我听说/我
+#: 知道/我发现/我记得") never makes the reader the person who was rejected.
+E1_NOT_READER_PATIENT = (
+    "我朋友被她拒绝了",
+    "我室友被她拒绝了",
+    "我妹妹被他拒绝了",
+    "我看到她被他拒绝了",
+    "我看见她被拒绝了",
+    "我听说她被拒绝了",
+    "我知道她被拒绝了",
+    "我发现她被拒绝了",
+    "我记得她被拒绝了",
+    "我看到对方被她拒绝了",
+    "我朋友昨天被她拒绝了",
+)
+
+
+def test_e1_subject_patient_1_never_reads_a_third_party_rejection_as_the_readers() -> None:
+    for text in E1_NOT_READER_PATIENT:
+        assert "zh.direct_rejection" not in _rules(text), text
+
+
+#: E1-SUBJECT-PATIENT-0: only the reader's own rejection event is a boundary; a report
+#: about somebody else's rejection never becomes the reader's own.
+LEGACY_READER_EVENT = (
+    "我表白被拒了",
+    "我表白被拒绝了",
+)
+E1_REPORTED_REJECTION = (
+    "我看见她被拒绝了",
+    "我听说她被拒绝了",
+    "我知道她被拒绝了",
+    "我发现她被拒绝了",
+    "我记得她被拒绝了",
+)
+
+
+def test_e1_subject_patient_0_the_readers_own_event_stays_a_boundary() -> None:
+    """我表白被拒了 keeps the pre-E1 span, family and verdict."""
+
+    expected = {"我表白被拒了": (0, 5), "我表白被拒绝了": (0, 6)}
+    for text in LEGACY_READER_EVENT:
+        spans = [span for span in detect(text, BOOK) if span.rule_id == "zh.direct_rejection"]
+        assert spans, text
+        assert (spans[0].start, spans[0].end) == expected[text], (text, spans[0])
+        assert _verdict(text) == "ned.direct_rejection", text
+
+
+def test_e1_subject_patient_0_a_reported_rejection_is_never_the_readers_event() -> None:
+    for text in E1_REPORTED_REJECTION:
+        assert "zh.direct_rejection" not in _rules(text), text
