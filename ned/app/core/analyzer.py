@@ -14,6 +14,7 @@ from typing import Any
 
 from ned.app.core import aspects as material_aspects
 from ned.app.core import audit as explanation_audit
+from ned.app.core import material as observed_materials
 from ned.app.core import parser as text_parser
 from ned.app.core.asymmetry import EvidenceAsymmetryDetector
 from ned.app.core.fnbp import NotificationBranchPredictor
@@ -216,6 +217,7 @@ class NedAnalyzer:
             asymmetry=asymmetry,
             interpretation_audit=explanation_audit.build(spans, text=text),
             material_aspects=material_aspects.build(spans, text=text),
+            materials=observed_materials.register_materials(text, book=self.book),
             easter_eggs=eggs,
             breakdown=ScoringBreakdown(
                 positive_mass=round(pos_mass, 4),

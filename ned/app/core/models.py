@@ -16,6 +16,15 @@ from ned.app.config import MAX_INPUT_CHARS
 
 Mode = Literal["normal", "scientific", "extreme"]
 Polarity = Literal["positive", "negative", "neutral", "self_discount"]
+
+#: Only one epistemic status exists for a material record: NED knows that a report appears
+#: in the input, and nothing about whether it happened. There is deliberately no VERIFIED
+#: value, so no consumer can promote a report into reality by accident.
+EpistemicStatus = Literal["reported"]
+
+#: Where the report comes from. This is provenance, not truth, so it lives next to the
+#: epistemic status instead of inside it.
+SourceKind = Literal["direct_user_statement", "attributed_report"]
 Severity = Literal["info", "warning", "reject", "chaos"]
 Language = Literal["zh", "en", "unknown"]
 ProviderKind = Literal["local-rule", "llm"]
@@ -455,6 +464,31 @@ class EngineInfo(BaseModel):
     escapes_used: int = 0
 
 
+class ObservedMaterial(BaseModel):
+    """What the input reports, and nothing more.
+
+    A material record answers exactly one question - which report appears in the input.
+    It carries no qualification, no weight, no confidence and no verdict: those belong to
+    separate, optional records that do not exist yet, and an absent qualification record
+    means precisely "no evidence qualification has been produced".
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    material_id: str
+    material_kind: str
+    reported_content: str
+    start: int = Field(default=-1)
+    end: int = Field(default=-1)
+    reporter_role: str = ""
+    proposition_owner: str = ""
+    target: str = ""
+    polarity: Polarity = "neutral"
+    source_kind: SourceKind = "direct_user_statement"
+    epistemic_status: EpistemicStatus = "reported"
+    origin_rule_id: str = ""
+
+
 class AnalysisResult(BaseModel):
     """The full NED report for one input."""
 
@@ -484,6 +518,12 @@ class AnalysisResult(BaseModel):
     interpretation_audit: InterpretationAudit | None = None
     #: Stage 2: the material pages this input reports, kept and never merged.
     material_aspects: MaterialAspects | None = None
+    #: Observed materials: what the input reports, registered before any qualification.
+    #: Empty for now - the layer is additive plumbing, and an empty list is not serialized,
+    #: so the public payload of every existing input stays byte-identical.
+    materials: list[ObservedMaterial] = Field(
+        default_factory=list, exclude_if=lambda value: not value
+    )
     easter_eggs: list[EasterEggHit] = Field(default_factory=list)
     breakdown: ScoringBreakdown = Field(default_factory=ScoringBreakdown)
     engine: EngineInfo
