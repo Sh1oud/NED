@@ -346,11 +346,21 @@ def _is_her_speech_to_the_reader(text: str, start: int) -> bool:
     from ned.app.core import boundary
 
     frame = boundary._local_frame(text, start, len(text))
-    return (
-        frame.speech_sender in DESCRIBED_PRONOUNS
-        and frame.receiver in READER_PRONOUNS
-        and frame.local_subject not in READER_PRONOUNS
-    )
+    if frame.speech_sender in DESCRIBED_PRONOUNS and frame.receiver in READER_PRONOUNS:
+        return frame.local_subject not in READER_PRONOUNS
+    if frame.local_subject in READER_PRONOUNS:
+        # The reader is the actor of this proposition: nothing may be inherited either.
+        return False
+    # The comma only interrupts her frame: the clause in front lends it
+    # between the punctuation and the proposition. Only the clause in front may lend the
+    # frame, and only when that clause is her own frame addressed to the reader.
+    if boundary._clause_prefix(text, start).strip():
+        return False
+    previous = boundary._previous_clause(text, start)
+    if not previous.strip():
+        return False
+    inherited = boundary._local_frame(previous, 0, len(previous))
+    return inherited.speech_sender in DESCRIBED_PRONOUNS and inherited.receiver in READER_PRONOUNS
 
 
 def reader_owned(text: str, start: int) -> bool:

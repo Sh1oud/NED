@@ -800,13 +800,31 @@ def test_a_relay_keeps_its_own_reading() -> None:
     assert attribution.reader_owned("她妈妈跟我说她讨厌我", 6) is False
 
 
-def test_a_punctuated_report_frame_stays_registered_debt() -> None:
-    """MATERIAL-COUPLING-2: 句读分开的转述框仍按现状（登记债，本批不修）。
+def test_a_punctuated_report_frame_is_still_her_report(analyzer: NedAnalyzer) -> None:
+    """MATERIAL-COUPLING-2: 逗号只是打断她的框，命题仍是转述，不是读者自己的结论。
 
-    This test exists so that a future coupling-2 batch has to change it on purpose: the
-    clause break is the firewall's own boundary, not part of this fix.
+    The comparison set is the point of this test: the frame may only be lent by the clause
+    immediately in front, only when that clause is her own speech frame addressed to the
+    reader, and only when nothing stands between the punctuation and the proposition.
     """
 
     from ned.app.core import attribution
 
-    assert attribution.reader_owned("她跟我说，她讨厌我", 5) is True
+    # her complete frame + one clause punctuation + the proposition directly after it
+    assert attribution.reader_owned("她跟我说，她讨厌我", 5) is False
+    assert attribution.reader_owned("她告诉我，她讨厌我", 5) is False
+    assert attribution.reader_owned("她对我说，她不喜欢我", 5) is False
+    # owner conflict: her frame, somebody else's proposition - never the reader's conclusion
+    assert attribution.reader_owned("她跟我说，他讨厌我", 5) is False
+    # a relay keeps its own reading, and the reader's own frame keeps the reader's words
+    assert attribution.reader_owned("朋友跟我说，她讨厌我", 6) is True
+    assert attribution.reader_owned("我跟她说，她讨厌我", 5) is True
+    # direction protection: the reader is the actor of the proposition
+    assert attribution.reader_owned("她跟我说，我讨厌她", 5) is True
+    # nothing may stand between the punctuation and the proposition: a connector or an
+    # unrelated clause never bridges the frame, so that clause keeps its own reading
+    assert attribution.reader_owned("她跟我说，但是她讨厌我", 7) is True
+    assert attribution.reader_owned("她跟我说，后来她讨厌我", 7) is True
+    rules = {span.rule_id for span in analyzer.analyze_text("她跟我说，然后她讨厌我").evidence}
+    assert "zh.self_negative_belief" not in rules
+    assert not analyzer.analyze_text("她跟我说，天气不错").evidence
