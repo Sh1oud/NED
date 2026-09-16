@@ -92,19 +92,19 @@ def _assertion(text: str, report_start: int, head_end: int) -> Actuality:
 
 
 def _proposition_owner(text: str, start: int, end: int) -> str:
-    """The proposed actor of the proposition, read from the proposition slice.
+    """The proposition's explicit owner: the pronoun in its head slot, or nothing.
 
-    This only ever fills in the proposition owner, and only after the report structure is
-    already established: it may not create a frame, resolve one, or change actuality.
+    Only the head slot is read - the first token after any approved leading closed-class
+    material, using the grammar's own filler table. A pronoun further inside the proposition
+    is an object and is never the owner; an owner the text does not state stays
+    unstated, because inferring one is the consumer's contract.
     """
 
-    for index in range(start, end):
-        token = boundary._starts_with(
-            text, index, attribution.DESCRIBED_PRONOUNS + attribution.READER_PRONOUNS
-        )
-        if token is not None:
-            return token
-    return ""
+    index = boundary._frame_skip_fillers(text, start, end)
+    token = boundary._starts_with(
+        text, index, attribution.DESCRIBED_PRONOUNS + attribution.READER_PRONOUNS
+    )
+    return token or ""
 
 
 def resolve_report_event(
