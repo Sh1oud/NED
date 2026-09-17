@@ -1135,6 +1135,60 @@ textarea.input { min-height: 84px; }
   .stage-card { border-left-width: 1px; }
 }
 
+/* ------------------------------------------- front desk: review region rails  */
+
+/* FRONT DESK RENEWAL-3 (option ii). The dossier gets its review-department rhythm
+   from region rails, spacing and layered backgrounds only: no element was added,
+   moved or regrouped, and the existing nested disclosures remain the foldable
+   units. Titles are carried by the blocks' own existing labels. */
+
+#technical-details > .review-region-start {
+  position: relative;
+  margin-top: 26px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-strong);
+}
+
+#technical-details > .review-region-start::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 0;
+  width: 58px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent-2), rgba(45, 212, 191, 0));
+}
+
+#technical-details > .stack,
+#technical-details > .card,
+#technical-details > .kv {
+  background: linear-gradient(180deg, var(--panel), var(--bg-soft));
+  border-radius: var(--radius-sm);
+}
+
+#technical-details > .card { padding: 12px; }
+
+#technical-details .disclosure {
+  margin-top: 14px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+#technical-details .disclosure > summary {
+  cursor: pointer;
+  color: var(--text-dim);
+  font-size: 0.74rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 0;
+}
+
+#technical-details .disclosure > summary:hover { color: var(--text); }
+
+@media (max-width: 460px) {
+  #technical-details > .review-region-start { margin-top: 18px; padding-top: 12px; }
+}
+
 /* ------------------------------------------------------------ responsive  */
 
 @media (max-width: 900px) {
