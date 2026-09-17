@@ -41,6 +41,7 @@ from ned.app.ui.personality import (
     ROUTINE_CLAIM,
     SELF_DISCOUNT_SIGNAL_TYPES,
     SITUATION_EXPLANATION_AUDIT,
+    SITUATION_MATERIAL_ONLY,
     PersonalityFeedback,
     analysis_feedback,
     aspect_breakdown_rows,
@@ -171,7 +172,19 @@ def screen_context(result: AnalysisResult) -> tuple[str, bool, str]:
         aspects=result.material_aspects is not None,
         reader_conclusion=any(item in READING_SIGNAL_TYPES for item in signal_types),
     )
+    if result.recognition == "material_registered":
+        # PR-2: material was filed but nothing could be adjudicated. That is its own screen,
+        # not the empty one: the reader has to be told what was heard.
+        situation = SITUATION_MATERIAL_ONLY
     return situation, basis, language
+
+
+def registered_materials_of(result: AnalysisResult) -> tuple[str, ...]:
+    """The verbatim material records this analysis filed, in input order."""
+
+    return tuple(
+        item.reported_content for item in (result.materials or []) if item.reported_content
+    )
 
 
 def material_pages_of(result: AnalysisResult) -> tuple[str, ...]:
@@ -196,6 +209,13 @@ def screen_fact(result: AnalysisResult, situation: str, language: str = "zh") ->
     fixed = fact_fixed(situation, language)
     if fixed:
         return fixed
+    if situation == SITUATION_MATERIAL_ONLY:
+        # PR-2: the reader must be able to see what NED actually heard. The screen line below
+        # quotes the filed material verbatim; this row only states how much was filed.
+        count = len(registered_materials_of(result))
+        if language == "en":
+            return f"Material on file: {count}. None of it can be signed on its own."
+        return f"已登记材料 {count} 条，均不足以单独签发结论。"
     if fact_from_observed(situation):
         return (
             repair_display_text(result.observed_evidence)
@@ -290,7 +310,9 @@ def render_first_screen(
         basis=basis,
         reading=captured_reading_of(result),
         rule=primary_positive_rule(result.evidence),
-        materials=material_pages_of(result),
+        materials=registered_materials_of(result)
+        if situation == SITUATION_MATERIAL_ONLY
+        else material_pages_of(result),
     )
     body = Table(show_header=False, box=None, padding=(0, 2))
     body.add_row("Observed evidence", Text(screen_fact(result, situation)))

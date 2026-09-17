@@ -17,10 +17,10 @@
     {
       "id": "zh.explicit_love",
       "signal_type": "expressed_love",
-      "label": "Explicit love statement (我爱你)",
+      "label": "Explicit love statement",
       "labels": {
-        "en": "Explicit love statement (我爱你)",
-        "zh": "明确的爱意表达（我爱你）"
+        "en": "Explicit love statement",
+        "zh": "明确的爱意表达"
       },
       "polarity": "positive",
       "weight": 93,
@@ -43,10 +43,10 @@
     {
       "id": "zh.explicit_affection",
       "signal_type": "explicit_affection",
-      "label": "Explicit affection statement (我喜欢你)",
+      "label": "Explicit affection statement",
       "labels": {
-        "en": "Explicit affection statement (我喜欢你)",
-        "zh": "明确的喜欢表达（我喜欢你）"
+        "en": "Explicit affection statement",
+        "zh": "明确的喜欢表达"
       },
       "polarity": "positive",
       "weight": 84,
@@ -70,10 +70,10 @@
     {
       "id": "zh.reported_affection",
       "signal_type": "explicit_affection",
-      "label": "Third-person reported affection (她说喜欢我)",
+      "label": "Third-person reported affection",
       "labels": {
-        "en": "Third-person reported affection (她说喜欢我)",
-        "zh": "转述的喜欢表达（她说喜欢我）"
+        "en": "Third-person reported affection",
+        "zh": "转述的喜欢表达"
       },
       "polarity": "positive",
       "weight": 86,
@@ -99,10 +99,10 @@
     {
       "id": "zh.marriage",
       "signal_type": "marriage",
-      "label": "Marriage-level commitment (结婚)",
+      "label": "Marriage-level commitment",
       "labels": {
-        "en": "Marriage-level commitment (结婚)",
-        "zh": "婚姻层面的承诺（结婚）"
+        "en": "Marriage-level commitment",
+        "zh": "婚姻层面的承诺"
       },
       "polarity": "positive",
       "weight": 97,
@@ -128,10 +128,10 @@
     {
       "id": "zh.commitment_offer",
       "signal_type": "commitment_offer",
-      "label": "Relationship offer (做我男朋友吧)",
+      "label": "Relationship offer",
       "labels": {
-        "en": "Relationship offer (做我男朋友吧)",
-        "zh": "确立关系的请求（做我男朋友吧）"
+        "en": "Relationship offer",
+        "zh": "确立关系的请求"
       },
       "polarity": "positive",
       "weight": 88,
@@ -163,10 +163,10 @@
     {
       "id": "zh.dating_intent",
       "signal_type": "commitment_offer",
-      "label": "Explicit dating intent (谈恋爱)",
+      "label": "Explicit dating intent",
       "labels": {
-        "en": "Explicit dating intent (谈恋爱)",
-        "zh": "恋爱意图（谈恋爱）"
+        "en": "Explicit dating intent",
+        "zh": "恋爱意图"
       },
       "polarity": "positive",
       "weight": 80,
@@ -186,10 +186,10 @@
     {
       "id": "zh.miss_you",
       "signal_type": "missing_you",
-      "label": "Expressed missing (我想你了)",
+      "label": "Expressed missing",
       "labels": {
-        "en": "Expressed missing (我想你了)",
-        "zh": "表达的想念（她说“我想你了”）"
+        "en": "Expressed missing",
+        "zh": "表达的想念"
       },
       "polarity": "positive",
       "weight": 55,
@@ -216,10 +216,10 @@
     {
       "id": "zh.initiation",
       "signal_type": "initiation",
-      "label": "Unprompted initiation (主动找我)",
+      "label": "Unprompted initiation",
       "labels": {
-        "en": "Unprompted initiation (主动找我)",
-        "zh": "主动发起的互动（主动找我）"
+        "en": "Unprompted initiation",
+        "zh": "主动发起的互动"
       },
       "polarity": "positive",
       "weight": 48,
@@ -248,10 +248,10 @@
     {
       "id": "zh.sustained_interaction",
       "signal_type": "sustained_interaction",
-      "label": "Sustained interaction (聊了两个小时)",
+      "label": "Sustained interaction",
       "labels": {
-        "en": "Sustained interaction (聊了两个小时)",
-        "zh": "持续互动（聊了两个小时）"
+        "en": "Sustained interaction",
+        "zh": "持续互动"
       },
       "polarity": "positive",
       "weight": 66,
@@ -293,10 +293,10 @@
     {
       "id": "zh.meetup_invitation",
       "signal_type": "meetup_invitation",
-      "label": "Meetup invitation (约我吃饭)",
+      "label": "Meetup invitation",
       "labels": {
-        "en": "Meetup invitation (约我吃饭)",
-        "zh": "线下见面邀请（约我吃饭）"
+        "en": "Meetup invitation",
+        "zh": "线下见面邀请"
       },
       "polarity": "positive",
       "weight": 42,
@@ -323,10 +323,10 @@
     {
       "id": "zh.compliment",
       "signal_type": "compliment",
-      "label": "Compliment (夸我)",
+      "label": "Compliment",
       "labels": {
-        "en": "Compliment (夸我)",
-        "zh": "正面评价（夸我）"
+        "en": "Compliment",
+        "zh": "正面评价"
       },
       "polarity": "positive",
       "weight": 34,
@@ -348,10 +348,10 @@
     {
       "id": "zh.care",
       "signal_type": "care",
-      "label": "Everyday care (让我早点睡)",
+      "label": "Everyday care",
       "labels": {
-        "en": "Everyday care (让我早点睡)",
-        "zh": "日常关心（让我早点睡）"
+        "en": "Everyday care",
+        "zh": "日常关心"
       },
       "polarity": "positive",
       "weight": 36,
@@ -378,10 +378,10 @@
     {
       "id": "zh.responsiveness",
       "signal_type": "responsiveness",
-      "label": "Fast responsiveness (秒回)",
+      "label": "Fast responsiveness",
       "labels": {
-        "en": "Fast responsiveness (秒回)",
-        "zh": "较快的回复（秒回）"
+        "en": "Fast responsiveness",
+        "zh": "较快的回复"
       },
       "polarity": "positive",
       "weight": 30,
@@ -406,10 +406,10 @@
     {
       "id": "zh.daily_goodnight",
       "signal_type": "care",
-      "label": "Routine goodnight (每天说晚安)",
+      "label": "Routine goodnight",
       "labels": {
-        "en": "Routine goodnight (每天说晚安)",
-        "zh": "规律性问候（每天说晚安）"
+        "en": "Routine goodnight",
+        "zh": "规律性问候"
       },
       "polarity": "positive",
       "weight": 25,
@@ -434,9 +434,9 @@
     {
       "id": "zh.gift",
       "signal_type": "care",
-      "label": "Gift or favour (送我东西)",
+      "label": "Gift or favour",
       "labels": {
-        "en": "Gift or favour (送我东西)",
+        "en": "Gift or favour",
         "zh": "物质或行动上的付出"
       },
       "polarity": "positive",
@@ -464,10 +464,10 @@
     {
       "id": "zh.affection_emoji",
       "signal_type": "compliment",
-      "label": "Affection emoji (heart)",
+      "label": "Affection emoji",
       "labels": {
-        "en": "Affection emoji (heart)",
-        "zh": "带情感色彩的符号（爱心表情）"
+        "en": "Affection emoji",
+        "zh": "带情感色彩的符号"
       },
       "polarity": "positive",
       "weight": 22,
@@ -489,10 +489,10 @@
     {
       "id": "en.love",
       "signal_type": "expressed_love",
-      "label": "Explicit love statement (I love you)",
+      "label": "Explicit love statement",
       "labels": {
-        "en": "Explicit love statement (I love you)",
-        "zh": "明确的爱意表达（I love you）"
+        "en": "Explicit love statement",
+        "zh": "明确的爱意表达"
       },
       "polarity": "positive",
       "weight": 93,
@@ -511,10 +511,10 @@
     {
       "id": "en.affection",
       "signal_type": "explicit_affection",
-      "label": "Explicit affection statement (I like you)",
+      "label": "Explicit affection statement",
       "labels": {
-        "en": "Explicit affection statement (I like you)",
-        "zh": "明确的喜欢表达（I like you）"
+        "en": "Explicit affection statement",
+        "zh": "明确的喜欢表达"
       },
       "polarity": "positive",
       "weight": 84,
@@ -534,10 +534,10 @@
     {
       "id": "en.commitment",
       "signal_type": "commitment_offer",
-      "label": "Relationship offer (be my girlfriend)",
+      "label": "Relationship offer",
       "labels": {
-        "en": "Relationship offer (be my girlfriend)",
-        "zh": "确立关系的请求（be my girlfriend）"
+        "en": "Relationship offer",
+        "zh": "确立关系的请求"
       },
       "polarity": "positive",
       "weight": 88,
@@ -558,10 +558,10 @@
     {
       "id": "en.marriage",
       "signal_type": "marriage",
-      "label": "Marriage-level commitment (marry me)",
+      "label": "Marriage-level commitment",
       "labels": {
-        "en": "Marriage-level commitment (marry me)",
-        "zh": "婚姻层面的承诺（marry me）"
+        "en": "Marriage-level commitment",
+        "zh": "婚姻层面的承诺"
       },
       "polarity": "positive",
       "weight": 97,
@@ -584,10 +584,10 @@
     {
       "id": "en.miss_you",
       "signal_type": "missing_you",
-      "label": "Expressed missing (I miss you)",
+      "label": "Expressed missing",
       "labels": {
-        "en": "Expressed missing (I miss you)",
-        "zh": "表达的想念（I miss you）"
+        "en": "Expressed missing",
+        "zh": "表达的想念"
       },
       "polarity": "positive",
       "weight": 55,
@@ -608,10 +608,10 @@
     {
       "id": "en.initiation",
       "signal_type": "initiation",
-      "label": "Unprompted initiation (texted me first)",
+      "label": "Unprompted initiation",
       "labels": {
-        "en": "Unprompted initiation (texted me first)",
-        "zh": "主动发起的互动（texted me first）"
+        "en": "Unprompted initiation",
+        "zh": "主动发起的互动"
       },
       "polarity": "positive",
       "weight": 48,
@@ -631,10 +631,10 @@
     {
       "id": "en.sustained_interaction",
       "signal_type": "sustained_interaction",
-      "label": "Sustained interaction (talked for two hours)",
+      "label": "Sustained interaction",
       "labels": {
-        "en": "Sustained interaction (talked for two hours)",
-        "zh": "持续互动（talked for two hours）"
+        "en": "Sustained interaction",
+        "zh": "持续互动"
       },
       "polarity": "positive",
       "weight": 66,
@@ -704,9 +704,9 @@
     {
       "id": "zh.direct_rejection",
       "signal_type": "direct_rejection",
-      "label": "Direct rejection or boundary (明确拒绝)",
+      "label": "Direct rejection or boundary",
       "labels": {
-        "en": "Direct rejection or boundary (明确拒绝)",
+        "en": "Direct rejection or boundary",
         "zh": "明确拒绝 / 边界表达"
       },
       "polarity": "negative",
@@ -807,9 +807,9 @@
       },
       "notes": "The mirror of the latency rule in the other direction: the weight is high because an insult is an observed act, while the information content is below the boundary rule because it describes this exchange rather than the relationship's trajectory. NED treats hostility as evidence without reading anyone's mind.",
       "id": "zh.hostile_expression",
-      "label": "Hostile or abusive expression (辱骂)",
+      "label": "Hostile or abusive expression",
       "labels": {
-        "en": "Hostile or abusive expression (辱骂)",
+        "en": "Hostile or abusive expression",
         "zh": "敌意 / 辱骂表达"
       },
       "patterns": [
@@ -845,10 +845,10 @@
     {
       "id": "zh.response_latency",
       "signal_type": "response_latency",
-      "label": "Reply latency (没回复)",
+      "label": "Reply latency",
       "labels": {
-        "en": "Reply latency (没回复)",
-        "zh": "回复延迟（没回复）"
+        "en": "Reply latency",
+        "zh": "回复延迟"
       },
       "polarity": "negative",
       "weight": 90,
@@ -881,10 +881,10 @@
     {
       "id": "zh.self_negative_belief",
       "signal_type": "self_negative_belief",
-      "label": "Self-authored negative conclusion (她不想理我)",
+      "label": "Self-authored negative conclusion",
       "labels": {
-        "en": "Self-authored negative conclusion (她不想理我)",
-        "zh": "自我得出的负面结论（她不想理我）"
+        "en": "Self-authored negative conclusion",
+        "zh": "自我得出的负面结论"
       },
       "polarity": "negative",
       "weight": 85,
@@ -912,9 +912,9 @@
     {
       "id": "zh.cold_reply",
       "signal_type": "cold_reply",
-      "label": "Cold or minimal reply (就回了一个字)",
+      "label": "Cold or minimal reply",
       "labels": {
-        "en": "Cold or minimal reply (就回了一个字)",
+        "en": "Cold or minimal reply",
         "zh": "冷淡或简短的回复"
       },
       "polarity": "negative",
@@ -939,9 +939,9 @@
     {
       "id": "zh.plan_cancelled",
       "signal_type": "plan_cancelled",
-      "label": "Cancelled plan (临时有事)",
+      "label": "Cancelled plan",
       "labels": {
-        "en": "Cancelled plan (临时有事)",
+        "en": "Cancelled plan",
         "zh": "计划被取消或推迟"
       },
       "polarity": "negative",
@@ -968,10 +968,10 @@
     {
       "id": "zh.self_discount",
       "signal_type": "self_discount",
-      "label": "Self-discounting language (可能只是人好)",
+      "label": "Self-discounting language",
       "labels": {
-        "en": "Self-discounting language (可能只是人好)",
-        "zh": "自我降权语言（可能只是人好）"
+        "en": "Self-discounting language",
+        "zh": "自我降权语言"
       },
       "polarity": "self_discount",
       "weight": 70,
@@ -1001,9 +1001,9 @@
     {
       "id": "en.direct_rejection",
       "signal_type": "direct_rejection",
-      "label": "Direct rejection or boundary (leave me alone)",
+      "label": "Direct rejection or boundary",
       "labels": {
-        "en": "Direct rejection or boundary (leave me alone)",
+        "en": "Direct rejection or boundary",
         "zh": "明确拒绝 / 边界表达"
       },
       "polarity": "negative",
@@ -1093,10 +1093,10 @@
     {
       "id": "en.latency",
       "signal_type": "response_latency",
-      "label": "Reply latency (no reply)",
+      "label": "Reply latency",
       "labels": {
-        "en": "Reply latency (no reply)",
-        "zh": "回复延迟（no reply）"
+        "en": "Reply latency",
+        "zh": "回复延迟"
       },
       "polarity": "negative",
       "weight": 90,
@@ -1154,10 +1154,10 @@
     {
       "id": "en.self_discount",
       "signal_type": "self_discount",
-      "label": "Self-discounting language (just being nice)",
+      "label": "Self-discounting language",
       "labels": {
-        "en": "Self-discounting language (just being nice)",
-        "zh": "自我降权语言（just being nice）"
+        "en": "Self-discounting language",
+        "zh": "自我降权语言"
       },
       "polarity": "self_discount",
       "weight": 70,

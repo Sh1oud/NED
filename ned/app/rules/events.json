@@ -1,0 +1,224 @@
+{
+  "version": "0.1.0",
+  "notes": "Event rules register what an input reports as having happened. They read the input directly and never enter the evidence pipeline: an event record never becomes an EvidenceSpan, carries no weight and produces no verdict. A record says which bounded family the event belongs to, whose act or state it is, the verbatim words it was read from, and why this release cannot sign a conclusion on it alone (commitment_reason). Everything a rule does not recognise stays silent: a missing record is a gap, an invented one puts words in somebody's mouth.",
+  "rules": [
+    {
+      "id": "zh.event.relationship_started",
+      "material_kind": "relationship_status",
+      "family": "relationship_status",
+      "polarity": "positive",
+      "source_kind": "direct_user_statement",
+      "reporter_role": "reader",
+      "proposition_owner": "inclusive",
+      "target": "relationship",
+      "commitment_reason": "status_report",
+      "patterns": [
+        "我们(已经|正式|终于)?在一起了",
+        "我们(已经|正式|终于)?开始交往了",
+        "我们(已经|正式)?交往了",
+        "我们(已经|正式)?处对象了"
+      ],
+      "labels": {
+        "zh": "关系状态：已在一起",
+        "en": "Relationship status: together"
+      },
+      "notes": "A declared state change, reported by the reader. It is a state report, not an act of courtship, so it never counts as an offer and never carries evidence weight on its own."
+    },
+    {
+      "id": "zh.event.relationship_ended",
+      "material_kind": "relationship_status",
+      "family": "relationship_status",
+      "polarity": "negative",
+      "source_kind": "direct_user_statement",
+      "reporter_role": "reader",
+      "proposition_owner": "inclusive",
+      "target": "relationship",
+      "commitment_reason": "status_report",
+      "patterns": [
+        "我们(已经)?分手了",
+        "我们(已经)?分开了",
+        "我们(已经)?结束了",
+        "我们(已经)?吹了"
+      ],
+      "labels": {
+        "zh": "关系状态：已分手",
+        "en": "Relationship status: ended"
+      },
+      "notes": "The mirror of the state report above. NED registers it and does not turn it into a verdict about either person."
+    },
+    {
+      "id": "zh.event.friends_only_declared",
+      "material_kind": "relationship_status",
+      "family": "relationship_status",
+      "polarity": "negative",
+      "source_kind": "attributed_report",
+      "reporter_role": "described_person",
+      "proposition_owner": "described_person",
+      "target": "reader",
+      "commitment_reason": "status_report",
+      "patterns": [
+        "(她|他|对方)(说|表示|说好|跟我说|告诉我)?[“\"'「『：:]?我们(还是|就)?(只)?是朋友[”\"'」』]?",
+        "(她|他|对方)(跟我说|告诉我|表示|说好|说)[“\"'「『：:]?(她|他|我)?只(是)?(想|要|愿|愿意)?(?:(和|跟|与|把)(我|你))?(当|做)(个)?(普通|一般|平常)?朋友[”\"'」』]?"
+      ],
+      "labels": {
+        "zh": "关系状态：对方定位为朋友",
+        "en": "Relationship status: friends only"
+      },
+      "notes": "The friend-zone family, whose phrasings PR-0 showed were treated inconsistently: one wording reached the boundary rule, another was read as the reader's own discount, a third was never heard. Registering all of them here gives the family one material kind and one reason, without deciding that any of them is her boundary."
+    },
+    {
+      "id": "zh.event.contact_removed",
+      "material_kind": "contact_access",
+      "family": "contact_access",
+      "polarity": "negative",
+      "source_kind": "direct_user_statement",
+      "reporter_role": "reader",
+      "proposition_owner": "described_person",
+      "target": "reader",
+      "commitment_reason": "access_change",
+      "patterns": [
+        "(她|他|对方)把我(的)?(微信|好友|联系方式|电话|号码|QQ|微博|抖音)?(删除|拉黑又解除|拉黑了又解除|加入黑名单|移除黑名单|删了|拉黑了)",
+        "我(被|给)(她|他|对方)(删除|删了|拉黑了)",
+        "(她|他|对方)把我(从)?(好友|通讯录|群里)(删了|移除了)",
+        "(她|他|对方)(跟我说|告诉我|表示|说)[“\"'「『：:]?(她|他|我)?(也)?不想(再)?(和|跟|与)?(我|你)?(说话|聊天|联系|来往|理我)了?[”\"'」』]?",
+        "(别|不要|不用)(再)?(来)?(烦|打扰|骚扰|联系|找|理|管)(我|她|他|你)",
+        "(请|麻烦)?(你)?(以后|从此|再也|永远)(不要|别|不准|不许)(再)?(联系|找|烦|打扰|理)"
+      ],
+      "labels": {
+        "zh": "联系方式变化：删除、拉黑或声明不再联系",
+        "en": "Contact access: removed, blocked or stated no-contact"
+      },
+      "notes": "An access change is an act by the other person, reported by the reader; a stated no-contact is the same family said out loud. Both are registered as events; whether either means anything about the relationship is not decided here."
+    },
+    {
+      "id": "zh.event.social_with_third_party",
+      "material_kind": "social_interaction",
+      "family": "social_interaction",
+      "polarity": "negative",
+      "source_kind": "direct_user_statement",
+      "reporter_role": "reader",
+      "proposition_owner": "described_person",
+      "target": "third_party",
+      "commitment_reason": "third_party_activity",
+      "patterns": [
+        "(她|他|对方)(跟|和|与)(别的|其他|另一个)?(男生|女生|男人|女人|前男友|前女友|朋友|同事|同学|人)(一起)?(出去玩|出去旅游|出去|看电影|吃饭|见面|逛街)了?",
+        "(她|他|对方)(跟|和|与)(别的|其他|另一个)?(男生|女生|男人|女人|人)(在)?一起了?"
+      ],
+      "labels": {
+        "zh": "社交互动：与第三人活动",
+        "en": "Social interaction: activity with a third party"
+      },
+      "notes": "An activity that names somebody else. Who that person is and what the activity means stays open; the event is registered so the reader can see NED heard it."
+    },
+    {
+      "id": "zh.event.memory_act",
+      "material_kind": "memory_care_act",
+      "family": "memory_care_act",
+      "polarity": "positive",
+      "source_kind": "direct_user_statement",
+      "reporter_role": "reader",
+      "proposition_owner": "described_person",
+      "target": "reader",
+      "commitment_reason": "single_act",
+      "patterns": [
+        "(她|他|对方)(还)?记得我(的)?生日",
+        "(她|他|对方)记得我(爱|喜欢|不吃|不能吃|过敏|怕)的?",
+        "(她|他|对方)(给我)?带了?(一份|个)?(早餐|早饭|午饭|晚饭|宵夜|水果|药|伞)",
+        "(她|他|对方)(提前)?给我(准备|订|买)了(生日)?(蛋糕|礼物)"
+      ],
+      "labels": {
+        "zh": "记忆与照料行为",
+        "en": "Memory or care act"
+      },
+      "notes": "A remembered detail or a small act of care. One act is one observation; the family is registered as material because a single act cannot carry a relationship conclusion by itself."
+    },
+    {
+      "id": "zh.event.evaluative_speech",
+      "material_kind": "reported_evaluation",
+      "family": "reported_evaluation",
+      "polarity": "negative",
+      "source_kind": "attributed_report",
+      "reporter_role": "described_person",
+      "proposition_owner": "described_person",
+      "target": "reader",
+      "commitment_reason": "evaluative_speech",
+      "patterns": [
+        "(她|他|对方)(说|表示|跟我说|告诉我)?[“\"'「『：:]?(我)?(配不上|配不上你)[”\"'」』]?",
+        "(她|他|对方)(说|表示|跟我说|告诉我)?[“\"'「『：:]?你(值得|会遇到|能找到)(更好|更适合)(的人|的)?[”\"'」』]?",
+        "(她|他|对方)(说|表示|跟我说|告诉我)?[“\"'「『：:]?你(是|真是)(个)?好人[”\"'」』]?",
+        "(她|他|对方)(说|表示|跟我说|告诉我)?[“\"'「『：:]?你人(很|真|挺)好[”\"'」』]?",
+        "(她|他|对方)(说|表示|跟我说|告诉我)?[“\"'「『：:]?(她|他|我)?(对(我|你))?(也)?没(什么|啥)?感觉[”\"'」』]?"
+      ],
+      "labels": {
+        "zh": "评价性话语：拒绝式夸奖",
+        "en": "Evaluative speech: the kind rejection"
+      },
+      "notes": "Praise that usually accompanies a refusal, and the two classic closing lines. Registered as reported speech, not as evidence and not as a boundary: the pack states the family, the reason field states why it cannot be signed."
+    },
+    {
+      "id": "zh.event.external_opposition",
+      "material_kind": "external_opposition",
+      "family": "external_opposition",
+      "polarity": "negative",
+      "source_kind": "direct_user_statement",
+      "reporter_role": "reader",
+      "proposition_owner": "third_party",
+      "target": "relationship",
+      "commitment_reason": "third_party_opposition",
+      "patterns": [
+        "(她|他|我)?(的)?(妈妈|妈|爸爸|爸|父母|家里|家人|家长|姐姐|妹妹|哥哥|弟弟|亲戚|朋友|闺蜜|同事|同学)(们)?(都)?(不同意|不赞成|不支持|反对|不愿意|不肯)[^。！？!?，,]{0,4}(在一起|交往|谈恋爱|处对象|结婚|来往)",
+        "(家里|双方父母|两家人|长辈)(们)?(都)?(不同意|不赞成|不支持|反对)[^。！？!?，,]{0,4}(在一起|交往|谈恋爱|处对象|结婚|来往)"
+      ],
+      "labels": {
+        "zh": "第三方阻力",
+        "en": "Third-party opposition"
+      },
+      "notes": "Somebody else objects to the relationship. This is resistance, not her boundary: the family records who objects and quotes the words, and PR-1's polarity layer already makes sure it is never offered as positive evidence. Registering it here is what stops the reader being told that nothing was heard."
+    },
+    {
+      "id": "zh.event.reported_dismissal",
+      "material_kind": "reported_dismissal",
+      "family": "reported_dismissal",
+      "polarity": "neutral",
+      "source_kind": "attributed_report",
+      "reporter_role": "described_person",
+      "proposition_owner": "described_person",
+      "target": "reader",
+      "commitment_reason": "dismissive_answer",
+      "patterns": [
+        "(她|他|对方)(说|表示|跟我说|告诉我)[“\"'「『：:]?(你|我)?想(得)?(太|很|好)?多(了)?[”\"'」』]?",
+        "(她|他|对方)(说|表示|跟我说|告诉我)[“\"'「『：:]?(没有|没)的事[”\"'」』]?",
+        "(她|他|对方)(说|表示|跟我说|告诉我)[“\"'「『：:]?(你|我)?误会了?[”\"'」』]?",
+        "(她|他|对方)(说|表示|跟我说|告诉我)[“\"'「『：:]?(别|不要)想太多[”\"'」』]?"
+      ],
+      "labels": {
+        "zh": "被转述的否认或打断",
+        "en": "Reported dismissal"
+      },
+      "notes": "Her answer denies that there is anything to read in the situation. Registered as a speech act the reader reported, with no commitment about what it means; the reader can see NED heard the answer rather than the silence."
+    },
+    {
+      "id": "zh.event.reported_deferral",
+      "material_kind": "reported_deferral",
+      "family": "reported_deferral",
+      "polarity": "neutral",
+      "source_kind": "attributed_report",
+      "reporter_role": "described_person",
+      "proposition_owner": "described_person",
+      "target": "reader",
+      "commitment_reason": "deferred_answer",
+      "patterns": [
+        "(她|他|对方)(说|表示|跟我说|告诉我)[“\"'「『：:]?(她|他|我)?(还)?(没准备好|没有准备好|还没想好)[”\"'」』]?",
+        "(她|他|对方)(说|表示|跟我说|告诉我)[“\"'「『：:]?(再|让我再)?(给(我|你))?(一点|一些|点)时间[”\"'」』]?",
+        "(她|他|对方)(说|表示|跟我说|告诉我)[“\"'「『：:]?(她|他|我)?(要|得|再)?考虑一下[”\"'」』]?",
+        "(她|他|对方)(说|表示|跟我说|告诉我)[“\"'「『：:]?(她|他|我)?现在(只)?(想|要)(搞|忙|拼)事业[”\"'」』]?",
+        "(她|他|对方)(说|表示|跟我说|告诉我)[“\"'「『：:]?(她|他|我)?需要(一点|一些|点)?(空间|时间)[”\"'」』]?"
+      ],
+      "labels": {
+        "zh": "被转述的延迟答复",
+        "en": "Reported deferred answer"
+      },
+      "notes": "An answered-later reply: neither a yes nor a refusal. Registered so the reader can see it was heard, with no commitment either way."
+    }
+  ]
+}

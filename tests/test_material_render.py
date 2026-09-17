@@ -413,12 +413,29 @@ def test_the_card_names_no_qualification_state() -> None:
 # --------------------------------------------------------------------------- #
 
 
-def test_the_first_screen_slot_still_serves_only_multiple_aspects() -> None:
-    situation, _basis, language = screen_context(ANALYZER.analyze_text(FLAGSHIP, mode="normal"))
-    assert situation != p.SITUATION_MULTIPLE_ASPECTS
+def test_the_first_screen_slot_serves_only_the_two_material_screens() -> None:
+    """The ``{materials}`` slot is filled for the two screens that name material, and for
+    no other: PR-2 gave the material-only screen the same verbatim slot, and a screen like
+    the boundary one must never pick up a material record it did not ask for.
+    """
+
+    text = "她说她只想做朋友"
+    situation, _basis, language = screen_context(ANALYZER.analyze_text(text, mode="normal"))
+    assert situation == p.SITUATION_BOUNDARY
     screen = p.first_screen(situation, "normal", language, materials=("她讨厌我",))
     blob = " ".join([screen.title, *screen.lines, screen.reality])
     assert "她讨厌我" not in blob
+
+    only = ANALYZER.analyze_text("她记得我生日", mode="normal")
+    material_situation, _basis, language = screen_context(only)
+    assert material_situation == p.SITUATION_MATERIAL_ONLY
+    material_screen = p.first_screen(
+        material_situation, "normal", language, materials=("她记得我生日",)
+    )
+    material_blob = " ".join(
+        [material_screen.title, *material_screen.lines, material_screen.reality]
+    )
+    assert "她记得我生日" in material_blob
 
 
 def test_the_first_screen_slot_still_fills_for_multiple_aspects() -> None:

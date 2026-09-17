@@ -1379,18 +1379,23 @@ OVERRCLAIM = "这不是坏消息，只是没有消息。"
 CAPABILITY = "当前支持的信号类型"
 
 
-@pytest.mark.parametrize(
-    "text", [NEUTRAL_INPUT, UNRECOGNISED_INPUT, "他把我微信删了", "她说她需要一点空间"]
-)
+@pytest.mark.parametrize("text", [NEUTRAL_INPUT, UNRECOGNISED_INPUT])
 def test_d_a_the_fallback_screen_names_neds_own_limit(analyzer: NedAnalyzer, text: str) -> None:
-    """D + E + F. One honest fallback for both genuinely empty and unrecognised input."""
+    """D + E + F. One honest fallback for genuinely unrecognised input.
+
+    PR-2 split the old single fallback in two: an input NED heard but cannot adjudicate now
+    gets the material screen ("MATERIAL ON FILE — NO VERDICT", pinned in
+    ``tests/test_material_events.py``), and only an input with no material at all reaches
+    this one. Its copy says what was not recognised, never that the reader is empty.
+    """
 
     result = analyzer.analyze_text(text, mode="normal")
     assert result.verdict.code == "ned.no_signal", text
+    assert result.recognition == "nothing_recognized", text
     screen = screen_for(result)
     blob = " ".join([screen.title, *screen.lines, screen.reality])
-    assert screen.title == "NO CLASSIFIABLE SIGNAL"
-    assert "暂无可分类信号" in blob
+    assert screen.title == "NO RECOGNIZED MATERIAL"
+    assert "没有识别到可登记的材料" in blob
     assert "不知道该送哪个窗口" in blob
     assert CAPABILITY in blob
     assert "不代表输入本身没有意义" in blob

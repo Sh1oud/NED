@@ -25,6 +25,15 @@ EpistemicStatus = Literal["reported"]
 #: Where the report comes from. This is provenance, not truth, so it lives next to the
 #: epistemic status instead of inside it.
 SourceKind = Literal["direct_user_statement", "attributed_report"]
+
+#: PR-2: what NED actually heard, as a first-class part of the result.
+#:
+#: Before this field, one ``no_signal`` carried two different realities: "the input was
+#: understood, but nothing in it can be adjudicated" and "this release recognised no
+#: material at all". They are separate now, and the distinction is read from the real
+#: detection layers - evidence and materials - never from the wording of an input or from
+#: a string match in a front end.
+RecognitionState = Literal["adjudicated", "material_registered", "nothing_recognized"]
 Severity = Literal["info", "warning", "reject", "chaos"]
 Language = Literal["zh", "en", "unknown"]
 ProviderKind = Literal["local-rule", "llm"]
@@ -526,6 +535,11 @@ class AnalysisResult(BaseModel):
     )
     easter_eggs: list[EasterEggHit] = Field(default_factory=list)
     breakdown: ScoringBreakdown = Field(default_factory=ScoringBreakdown)
+    #: PR-2: the state a reader needs when no verdict could be signed. ``adjudicated`` when
+    #: evidence decided the report, ``material_registered`` when material was filed but no
+    #: evidence could be signed on it, ``nothing_recognized`` when neither happened. It is
+    #: an additive field: every existing key keeps its meaning.
+    recognition: RecognitionState = "adjudicated"
     engine: EngineInfo
     disclaimer: str
     generated_at: datetime = Field(default_factory=utcnow)

@@ -139,7 +139,12 @@ def test_material_does_not_become_a_boundary_or_a_verdict() -> None:
     boundary = ANALYZER.analyze_text("她说不要再联系我", mode="normal")
     assert "zh.direct_rejection" in _ids("她说不要再联系我")
     assert boundary.verdict.code == "ned.direct_rejection"
-    assert boundary.materials == []
+    # PR-2 registers the stated no-contact shape in the contact/access family, so that
+    # "别再联系我了" and "不想联系我了" are heard the same way. A material record is not
+    # evidence: the boundary verdict above is untouched, and the material stays material.
+    assert boundary.materials
+    assert all(item.origin_rule_id.startswith("zh.event.") for item in boundary.materials)
+    assert [span.rule_id for span in boundary.evidence] == ["zh.direct_rejection"]
 
 
 def test_the_coupling_shape_registers_material() -> None:

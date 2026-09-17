@@ -233,6 +233,10 @@ SITUATION_SELF_DISCOUNT_ONLY = "self_discount_only"
 SITUATION_STARTED_AGAIN = "started_again"
 SITUATION_POSITIVE = "positive"
 SITUATION_NO_SIGNAL = "no_signal"
+#: PR-2: the input was understood well enough to file material, and nothing in it can be
+#: adjudicated by this release. It is a different state from "no material recognised", and
+#: the distinction comes from the result's own recognition state, never from string matching.
+SITUATION_MATERIAL_ONLY = "material_only"
 #: The reader submitted their own explanation of material the input reports.
 SITUATION_EXPLANATION_AUDIT = "explanation_audit"
 #: Stage 2: the input reports several materials, each kept on its own page.
@@ -527,8 +531,10 @@ COMEDY_PACKS: dict[str, ComedyPack] = {
     "gift": ComedyPack(
         title="MATERIAL TRANSFER LOGGED",
         lines=(
-            "卷宗中出现了一杯奶茶。",
-            "饮品已进入证据链，爱情尚未进入。👍",
+            # PR-2: no invented item. The screen names the category and keeps the joke, so a
+            # reader who reported breakfast is never told about a milk tea.
+            "卷宗中出现了一份具体付出。",
+            "付出已进入证据链，爱情尚未进入。👍",
         ),
         hypotheses=(
             ("奶茶属于液体，暂不具备出庭证明爱情的法律资格。", "standing", 79.0),
@@ -559,7 +565,9 @@ COMEDY_PACKS: dict[str, ComedyPack] = {
         title="LONG SESSION LOGGED",
         lines=(
             "长时间互动记录已入档。",
-            "凌晨三点只能证明：双方当时都没有睡。👍",
+            # PR-2: no invented hour. Whatever the clock said, the log only proves that
+            # nobody slept through it.
+            "聊到几点，都只能证明当时双方都没有睡。👍",
         ),
         hypotheses=(
             ("凌晨三点不是爱情单位。", "units", 79.5),
@@ -1460,13 +1468,15 @@ FIRST_SCREEN: dict[str, dict[str, dict[str, FirstScreen]]] = {
         "normal": _bi(
             _screen(
                 "MINIMAL RESPONSE LOGGED",
-                ("一个「嗯」是有信息的。", "但还不够给整段关系写讣告。👍"),
+                # PR-2: the copy must not put a concrete detail in the reader's mouth. The
+                # screen names the category, never an example the input may not contain.
+                ("一次简短回复是有信息的。", "但还不够给整段关系写讣告。👍"),
                 "一次简短回复描述的是这一次互动，不足以概括整段关系。",
             ),
             _screen(
                 "MINIMAL RESPONSE LOGGED",
                 (
-                    'A single "mm" does carry information.',
+                    "A single short reply does carry information.",
                     "It is not enough to write the obituary of a relationship. 👍",
                 ),
                 "One short reply describes one interaction, not the whole relationship.",
@@ -1865,20 +1875,44 @@ FIRST_SCREEN: dict[str, dict[str, dict[str, FirstScreen]]] = {
     SITUATION_NO_SIGNAL: _fixed(
         _bi(
             _screen(
-                "NO CLASSIFIABLE SIGNAL",
-                ("来件已收悉，暂无可分类信号。", "本机构暂时不知道该送哪个窗口。👍"),
-                "本次输入没有命中 NED 当前支持的信号类型。这不代表输入本身没有意义，"
-                "只表示当前规则没有给出可解释的分类。",
+                "NO RECOGNIZED MATERIAL",
+                ("来件已收悉，这一版没有识别到可登记的材料。", "本机构暂时不知道该送哪个窗口。👍"),
+                "本次输入没有命中 NED 当前支持的信号类型，也没有登记到材料。这不代表输入本身"
+                "没有意义，只表示当前规则没有给出可解释的分类。",
             ),
             _screen(
-                "NO CLASSIFIABLE SIGNAL",
+                "NO RECOGNIZED MATERIAL",
                 (
-                    "Submission received. No classifiable signal was found.",
+                    "Submission received. This release recognised no material in it.",
                     "This agency currently has no window to route it to. 👍",
                 ),
-                "This input did not match any signal type NED currently supports. That does not "
-                "mean the input itself is meaningless; it means the current rules produced no "
-                "interpretable classification.",
+                "This input did not match any signal type NED currently supports, and no material "
+                "was filed either. That does not mean the input itself is meaningless; it means "
+                "the current rules produced no interpretable classification.",
+            ),
+        )
+    ),
+    SITUATION_MATERIAL_ONLY: _fixed(
+        _bi(
+            _screen(
+                "MATERIAL ON FILE \u2014 NO VERDICT",
+                (
+                    "{materials} 已登记。",
+                    "材料是「输入报告了什么」，不是本机构核实过的事实，也不是裁决。👍",
+                ),
+                "这件材料单独不足以支撑一个关系结论，所以本机构拒绝签发——不是因为没听见。"
+                "登记内容逐字取自你的输入。",
+            ),
+            _screen(
+                "MATERIAL ON FILE \u2014 NO VERDICT",
+                (
+                    "{materials} is on file.",
+                    "A material record is what the input reports, not a verified fact and not a "
+                    "verdict. 👍",
+                ),
+                "On its own this material cannot carry a relationship conclusion, so this agency "
+                "declines to issue one - not because nothing was heard. The record quotes your "
+                "input verbatim.",
             ),
         )
     ),
@@ -1959,8 +1993,9 @@ def first_screen(
             reality=screen.reality,
         )
 
-    if situation == SITUATION_MULTIPLE_ASPECTS:
-        # the pages are named in the input's own words, in the input's own order
+    if situation in (SITUATION_MULTIPLE_ASPECTS, SITUATION_MATERIAL_ONLY):
+        # Both screens name what was filed, verbatim and in input order: the pages of a
+        # two-sided report, or the material records of an input that cannot be adjudicated.
         return FirstScreen(
             title=screen.title,
             lines=fill_materials(screen.lines, materials, language),

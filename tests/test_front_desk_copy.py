@@ -84,7 +84,11 @@ LEGACY_DIGESTS = {
     "boundary_situations": "ecb9ba9ac7a04d69",
     "clause_separators": "38c3028c45d8c064",
     "comedy_by_rule": "57927ada31f096ff",
-    "comedy_packs": "a3d68173fda4b574",
+    # PR-2 changed two values on purpose: the first-screen table gained the material-registered
+    # state and its fallback copy now names what was not recognised, and three comedy-pack lines
+    # stopped naming a concrete item the input may not contain (a milk tea, an invented hour, an
+    # invented "mm"). Every other key keeps the digest it had.
+    "comedy_packs": "0f090a98c6b4809a",
     "comparison_reason_verdicts": "dcf655e6a52c16da",
     "display_repairs": "0c85798b360cae47",
     "duration_artifacts": "6280be706771d8e3",
@@ -93,7 +97,7 @@ LEGACY_DIGESTS = {
     "fact_fixed": "8a91dc777c8e26a9",
     "fact_from_observed": "4fa517ba814a6f40",
     "fact_signal_types": "ba3275bfc9079256",
-    "first_screen": "8c8b7922998baf13",
+    "first_screen": "04395410649ad588",
     "fnbp": "7994bf15041ee88d",
     "forbidden_emoji": "481b2746fd57ccc6",
     "greeting_one_off_fact": "50c73d562e214552",

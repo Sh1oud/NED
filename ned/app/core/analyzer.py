@@ -14,8 +14,10 @@ from typing import Any
 
 from ned.app.core import aspects as material_aspects
 from ned.app.core import audit as explanation_audit
+from ned.app.core import events as event_registry
 from ned.app.core import material as observed_materials
 from ned.app.core import parser as text_parser
+from ned.app.core import recognition
 from ned.app.core.asymmetry import EvidenceAsymmetryDetector
 from ned.app.core.fnbp import NotificationBranchPredictor
 from ned.app.core.models import (
@@ -183,6 +185,13 @@ class NedAnalyzer:
         )
         eggs = book.egg_hits(text, mode, language, pos_mass)
 
+        # What the input reports: the material registry (attitude reports) plus the bounded
+        # event registry (state changes, access changes, acts, reported evaluations). Both
+        # are material, never evidence, and both quote the input verbatim.
+        materials = observed_materials.register_materials(
+            text, book=self.book
+        ) + event_registry.register_events(text, book=self.book)
+
         return AnalysisResult(
             input=text,
             mode=mode,
@@ -217,7 +226,8 @@ class NedAnalyzer:
             asymmetry=asymmetry,
             interpretation_audit=explanation_audit.build(spans, text=text),
             material_aspects=material_aspects.build(spans, text=text),
-            materials=observed_materials.register_materials(text, book=self.book),
+            materials=materials,
+            recognition=recognition.state_for(spans, materials),
             easter_eggs=eggs,
             breakdown=ScoringBreakdown(
                 positive_mass=round(pos_mass, 4),
