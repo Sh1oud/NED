@@ -32,6 +32,7 @@ from ned.app.core.models import (
 )
 from ned.app.ui.personality import (
     ASPECT_CARD_SITUATIONS,
+    AUDIT_COPY,
     BOUNDARY_SITUATIONS,
     FORBIDDEN_EMOJI,
     GREETING_RULE,
@@ -360,10 +361,9 @@ def render_epistemic_breakdown(result: AnalysisResult, situation: str, out: Cons
         Panel(
             Group(
                 body,
-                Text(
-                    "材料是输入报告的材料，不是本机构核实过的事实。",
-                    style="dim italic",
-                ),
+                # The restraint sentence is the audit card's own copy; reading it here
+                # instead of repeating it keeps one source for the sentence.
+                Text(AUDIT_COPY["disclaimer"], style="dim italic"),
             ),
             title="Epistemic Breakdown",
             border_style="cyan",
