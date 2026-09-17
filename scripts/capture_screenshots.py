@@ -120,6 +120,20 @@ class DevTools:
             await asyncio.sleep(0.25)
         return False
 
+    async def require_ready(self, expression: str, what: str, timeout: float = 20.0) -> None:
+        """Wait for a real readiness signal and refuse to shoot without one.
+
+        A gate that can never become true must fail loudly. The asymmetry gate used to
+        wait on ``#asym-score-value``, an element the served page no longer contains, so
+        it timed out for twenty seconds and the screenshot was taken anyway, unverified.
+        """
+
+        if not await self.wait_for(expression, timeout=timeout):
+            raise SystemExit(
+                f"readiness gate for {what} never became true within {timeout:.0f}s, "
+                f"so the screenshot was not taken: {expression}"
+            )
+
     async def screenshot(self, path: Path) -> None:
         metrics = await self.send("Page.getLayoutMetrics")
         size = metrics.get("cssContentSize") or metrics.get("contentSize") or {}
@@ -231,34 +245,50 @@ async def capture(base_url: str, out_dir: Path, port: int, browser: str, cli_onl
                     "  document.getElementById('analyze-submit').click();"
                     "})()"
                 )
-                await devtools.wait_for(
+                await devtools.require_ready(
                     "(() => { const r = document.getElementById('analyze-results');"
                     " return r && !r.hidden && !r.classList.contains('is-loading')"
                     " && (document.getElementById('verdict-text')||{}).textContent"
                     " && document.getElementById('verdict-text').textContent.trim()"
-                    " !== '\u2014'; })()"
+                    " !== '\u2014'; })()",
+                    "the analysis report",
                 )
                 await devtools.screenshot(out_dir / "analysis.png")
 
                 # 2. asymmetry detector
                 await devtools.evaluate("document.getElementById('tab-asymmetry').click()")
                 await devtools.evaluate("document.getElementById('asym-submit').click()")
-                await devtools.wait_for(
+                # The comparison report is ready when its own screen title and verdict
+                # sentence are populated; ``#asym-score-value`` no longer exists in the
+                # served page, so waiting on it could never succeed.
+                await devtools.require_ready(
                     "(() => { const r = document.getElementById('asym-results');"
+                    " const title = document.getElementById('asym-screen-title');"
+                    " const verdict = document.getElementById('asym-verdict-text');"
                     " return r && !r.hidden && !r.classList.contains('is-loading')"
-                    " && (document.getElementById('asym-score-value')||{}).textContent"
-                    " && document.getElementById('asym-score-value').textContent.trim()"
-                    " !== '\u2014'; })()"
+                    " && title && title.textContent.trim()"
+                    " && title.textContent.trim() !== '\u2014'"
+                    " && verdict && verdict.textContent.trim()"
+                    " && verdict.textContent.trim() !== '\u2014'; })()",
+                    "the asymmetry report",
                 )
                 await devtools.screenshot(out_dir / "asymmetry.png")
 
                 # 3. FNBP lab
                 await devtools.evaluate("document.getElementById('tab-lab').click()")
                 await devtools.evaluate("document.getElementById('fnbp-submit').click()")
-                await devtools.wait_for(
+                # ``renderFnbp`` writes the trace into ``#fnbp-log`` as text, so the old
+                # child-element count could never become true; the report is ready when its
+                # verdict sentence is populated and the trace has text.
+                await devtools.require_ready(
                     "(() => { const r = document.getElementById('fnbp-results');"
-                    " return r && !r.hidden && document.querySelectorAll("
-                    "  '#fnbp-log tr, #fnbp-log li, #fnbp-log div').length > 0; })()"
+                    " const verdict = document.getElementById('fnbp-verdict-text');"
+                    " const log = document.getElementById('fnbp-log');"
+                    " return r && !r.hidden && !r.classList.contains('is-loading')"
+                    " && verdict && verdict.textContent.trim()"
+                    " && verdict.textContent.trim() !== '\u2014'"
+                    " && log && (log.textContent || '').trim().length > 0; })()",
+                    "the FNBP report",
                 )
                 await devtools.screenshot(out_dir / "fnbp-lab.png")
 
@@ -274,7 +304,12 @@ async def capture(base_url: str, out_dir: Path, port: int, browser: str, cli_onl
                 + json.dumps(cli_harness_html())
                 + "); document.close();"
             )
-            await asyncio.sleep(0.5)
+            await devtools.require_ready(
+                "document.readyState === 'complete'"
+                " && !!document.querySelector('pre')"
+                " && document.querySelector('pre').textContent.trim().length > 0",
+                "the rendered CLI capture page",
+            )
             await devtools.screenshot(out_dir / "cli-extreme.png")
         return 0
     finally:

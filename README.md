@@ -133,19 +133,21 @@ whichever department the evidence belongs to.** 👍
 
 | View | Image | Status |
 | --- | --- | --- |
-| Web UI — analysis | [`docs/screenshots/analysis.png`](docs/screenshots/analysis.png) | **historical** — predates the front-desk renewal; re-capture pending |
-| Web UI — asymmetry detector | [`docs/screenshots/asymmetry.png`](docs/screenshots/asymmetry.png) | **historical** — predates the front-desk renewal; re-capture pending |
-| Web UI — FNBP lab | [`docs/screenshots/fnbp-lab.png`](docs/screenshots/fnbp-lab.png) | **historical** — predates the front-desk renewal; re-capture pending |
-| CLI — extreme mode | [`docs/screenshots/cli-extreme.png`](docs/screenshots/cli-extreme.png) | **historical** — captured at 0.1.9; re-capture pending |
+| Web UI — analysis | [`docs/screenshots/analysis.png`](docs/screenshots/analysis.png) | **current** — re-captured from the 0.1.10 UI |
+| Web UI — asymmetry detector | [`docs/screenshots/asymmetry.png`](docs/screenshots/asymmetry.png) | **current** — re-captured from the 0.1.10 UI |
+| Web UI — FNBP lab | [`docs/screenshots/fnbp-lab.png`](docs/screenshots/fnbp-lab.png) | **current** — re-captured from the 0.1.10 UI |
+| CLI — extreme mode | [`docs/screenshots/cli-extreme.png`](docs/screenshots/cli-extreme.png) | **historical** — the 0.1.9 capture; its source `docs/cli-extreme.txt` is an input to the capture script, so it is not regenerated here |
 
 All four views are exercised by the test suite (`tests/test_api.py`,
 `tests/test_cli.py`) and were captured from the real local UI/CLI. The engine
 version each image was captured from is printed inside the image itself, so an
 image always shows its own capture version — which is exactly why it has to be
 re-captured after a UI change or a version bump instead of being assumed current.
-At this commit the three web images predate the front-desk renewal and all four
-predate 0.1.10, so they are marked historical above until re-captured. Re-capture
-with:
+The three web images were re-captured from the 0.1.10 UI: the front desk is the
+renewed one, and each shot was taken only after its own readiness gate proved the
+report had rendered. The CLI image is still the 0.1.9 capture, because the script
+renders it from the committed `docs/cli-extreme.txt` rather than producing that
+file, so regenerating it is a separate change. Re-capture with:
 
 ```bash
 ned serve --port 8742                          # terminal 1
