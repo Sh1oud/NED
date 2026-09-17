@@ -31,6 +31,15 @@ change verdict — always an existing situation giving way to another existing s
 score, and no REST or CLI contract change: the shape of the output is the same, and the
 answers differ where attribution was wrong.
 
+**Core inference maintenance.** Speaker and owner attribution is decided structurally rather
+than by noun or reporting-verb lists, so a statement someone else made is registered as
+reported material instead of being read as the reader's own conclusion (Chinese side; the
+English limitation stays disclosed below), and boundary ownership follows the same rule.
+A boundary now contains the positive fragment it negates, and the reported-material registry
+and its report frame hold across the render, API and CLI paths. Verdict, REST and CLI
+compatibility is preserved — `API_VERSION` stays `1` and the payload shape does not change —
+so the only verdict migrations are the ones measured above.
+
 ### Added
 - Front-desk shell, intake window, staged material registry, review-record rhythm,
   serious presentation register and issuance stamp for the local web page (FD-1..FD-6);
