@@ -1,7 +1,9 @@
 services:
   ned:
     build: .
-    image: ned:0.1.0
+    # A version-independent local tag on purpose: the image is built from this
+    # checkout, so tying it to a release number only makes it go stale.
+    image: ned:local
     container_name: ned
     ports:
       # Bound to localhost on purpose: NED is a local-first tool, not a service

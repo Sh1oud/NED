@@ -174,6 +174,13 @@ from calm cyan to "Industrial-grade denial" magenta.
   boundary signal with a high information content, and NED neither de-weights them
   nor invents an escape for them. Uncertainty is not the same as denying clear
   evidence.
+- **The primary slot is not the verdict.** NED keeps one *primary* evidence slot for
+  the positive signal that PED exists to de-weight, and tracks a stated boundary
+  beside it rather than inside it. The verdict — and the observed fact a screen
+  prints — follow the evidence that actually settled the case, not whichever signal
+  happened to lead the classification. So an explicit boundary is never rewritten as
+  a stretch of the positive evidence sitting in the primary slot; when the boundary
+  decides the screen, Technical Details still lists every span.
 - **Alternative Explanation Audit.** When you supply your own discount of real
   positive evidence, NED audits *that* explanation too: it is filed with its
   attachments counted, the material it is about is quoted back verbatim, and the
@@ -198,7 +205,9 @@ from calm cyan to "Industrial-grade denial" magenta.
 - **Web UI, REST API and CLI** over the same engine, plus `/docs` (OpenAPI).
 - **Configurable rule packs:** every judgement NED makes lives in JSON, not Python.
 - **Bilingual:** Chinese and English inputs both work, with localized labels, verdicts
-  and reality checks.
+  and reality checks. The gap is presentation, not recognition: the Stage 1
+  Alternative Explanation Audit still prints its own first-screen lines and its
+  breakdown card in Chinese (disclosed in `CHANGELOG.md` under v0.1.8).
 - **No network, ever.** A test asserts the CLI cannot even open a socket.
 
 ---
@@ -636,8 +645,8 @@ python scripts/verify_http.py 8742  # terminal 2: every endpoint + the rendered 
 ## Docker
 
 ```bash
-docker build -t ned:0.1.0 .
-docker run --rm -p 127.0.0.1:8000:8000 ned:0.1.0
+docker build -t ned:local .
+docker run --rm -p 127.0.0.1:8000:8000 ned:local
 # UI: http://127.0.0.1:8000/   docs: http://127.0.0.1:8000/docs
 ```
 

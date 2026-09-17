@@ -744,11 +744,15 @@ Technical Details ▸
 
 ### 11.1 环境
 
-- 工作树：`D:\NED v0.1.6`
-- `HEAD = 4f69a01 chore(release): v0.1.6`
-- 三层语义实现：工作区**未提交**改动（`wip/three-layer-contract` = `3cd474f`，parent `4f69a01`）
-- 解释器：`D:\NED v0.1.6\.venv\Scripts\python.exe`
-- 门禁（候选点上）：`pytest -p no:cacheprovider` **406 passed**；`ruff check .` 通过；`ruff format --check .` 56 files；`mypy ned` 干净；真实 `app.js` 渲染检查 **20/20**
+> **历史快照（v0.1.6 时点，保留作溯源）**：下面的工作树、HEAD、分支与门禁数字记录的是
+> 本文档那一轮定稿时的状态，**不是当前状态**。当前版本、测试数与门禁结果以仓库当前的
+> `HEAD` 与 `CHANGELOG.md` 为准；这一节不随每次提交更新，也**不得**当作事实基准引用。
+
+- 工作树：`D:\NED v0.1.6`（历史）
+- `HEAD = 4f69a01 chore(release): v0.1.6`（历史）
+- 三层语义实现：当时为工作区**未提交**改动（`wip/three-layer-contract` = `3cd474f`，parent `4f69a01`）；该三层现已落地并有常驻测试
+- 解释器：`D:\NED v0.1.6\.venv\Scripts\python.exe`（历史）
+- 门禁（当时候选点上）：`pytest -p no:cacheprovider` **406 passed**；`ruff check .` 通过；`ruff format --check .` 56 files；`mypy ned` 干净；真实 `app.js` 渲染检查 **20/20**
 
 ### 11.2 探针输入 → 已验证输出
 
@@ -799,6 +803,21 @@ Technical Details ▸
 实现约束：`ned/app/core/audit.py` 只整理用户额外提交的解释及其材料状态；
 `ned/app/core/aspects.py` 只选择“需要分别保留展示”的现有 EvidenceSpan，不做聚合、不做关系推断、
 不存第二份证据数值（等级从 `evidence[evidence_index]` 派生）。两层都不得成为推理引擎。
+
+### 12.1 引用片段政策（fragment policy）
+
+前台任何“把用户的话引回来”的地方——Explanation Audit 的「你提交的解释」、屏幕上的
+quote slot、以及将来任何引用行——都走**同一条政策**，唯一真源是
+`ned/app/core/audit.py` 的 `CLAUSE_SEPARATORS` 与 `complete_fragment()`：
+
+1. **逐字**：引号里出现的必须是输入里的**原样子串**。不改写、不补全、不纠正、不润色。
+2. **补到从句末尾**：规则只匹配它认得的形状，span 可能停在从句中间（例如 `记得我爱`），
+   因此片段一律**延伸到所在从句的结束符**为止，再 `.strip()`。
+3. **定位失败就退回**：span 越界、顺序颠倒或不在输入里时返回空串，调用方退回**原始 match**，
+   而不是引用一句空话或空白。
+4. **拿不到可靠片段就不引用**：宁可整屏换成不带引号的版本，也不用不可靠的引用（§5 的 quote slot 规则）。
+5. **只有一份列表**：payload 与屏幕共用同一个 `CLAUSE_SEPARATORS`，
+   所以**数据与屏幕不可能对“从句在哪里结束”有不同意见**；禁止在展示层另立分句符表。
 
 ---
 

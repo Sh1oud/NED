@@ -1829,7 +1829,7 @@ FIRST_SCREEN: dict[str, dict[str, dict[str, FirstScreen]]] = {
         "scientific": _bi(
             _screen(
                 "REVIEW COMMENT PRE-FILED",
-                ("稿件尚未收到。", "审稿意见已提前提交：可能只是人好。"),
+                ("稿件尚未收到。", "折扣申请已经递到窗口了。"),
                 "现在只有你自己给出的降权解释，没有一条可供降权的正向证据。"
                 "降权说明是一个解释，不是现实证据。",
             ),
@@ -1837,7 +1837,7 @@ FIRST_SCREEN: dict[str, dict[str, dict[str, FirstScreen]]] = {
                 "REVIEW COMMENT PRE-FILED",
                 (
                     "Manuscript not received.",
-                    "Reviewer comment already submitted: probably just being nice.",
+                    "The discount request has already reached the counter.",
                 ),
                 "There is only a discount you supplied, and no positive evidence to discount. "
                 "The discount is an interpretation, not evidence.",
@@ -1846,7 +1846,7 @@ FIRST_SCREEN: dict[str, dict[str, dict[str, FirstScreen]]] = {
         "extreme": _bi(
             _screen(
                 "PREEMPTIVE DENIAL",
-                ("你甚至还没提交正向证据。", "「人好」已经在等着了。👍"),
+                ("你甚至还没提交正向证据。", "折扣申请已经递到窗口了。"),
                 "现在只有你自己给出的降权解释，没有一条可供降权的正向证据。"
                 "降权说明是一个解释，不是现实证据。",
             ),
@@ -1854,7 +1854,7 @@ FIRST_SCREEN: dict[str, dict[str, dict[str, FirstScreen]]] = {
                 "PREEMPTIVE DENIAL",
                 (
                     "You have not even submitted positive evidence.",
-                    '"Being nice" is already waiting. 👍',
+                    "The discount request has already reached the counter.",
                 ),
                 "There is only a discount you supplied, and no positive evidence to discount. "
                 "The discount is an interpretation, not evidence.",

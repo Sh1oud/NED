@@ -1209,7 +1209,23 @@ def test_f_the_cli_prints_the_lone_discount_screen() -> None:
     assert result.exit_code == 0
     assert "PREEMPTIVE DENIAL" in result.stdout
     assert "你甚至还没提交正向证据。" in result.stdout
-    assert "「人好」已经在等着了。👍" in result.stdout
+    assert "折扣申请已经递到窗口了。" in result.stdout
+
+
+@pytest.mark.parametrize("mode", p.MODES)
+def test_f_the_lone_discount_screen_names_no_rationale(analyzer: NedAnalyzer, mode: str) -> None:
+    """``DISCOUNT_ONLY`` reads 可能只是人好; the screen may not name it back at the reader.
+
+    The screen answers the discount the reader filed. Which rationale they filed it
+    under is the reader's sentence, and inventing one for them is exactly the kind of
+    putting-words-in-their-mouth the first screen exists to avoid.
+    """
+
+    result = analyzer.analyze_text(DISCOUNT_ONLY, mode=mode)  # type: ignore[arg-type]
+    assert situation_of(result) == p.SITUATION_SELF_DISCOUNT_ONLY
+    blob = screen_blob(result)
+    for invented in ("人好", "礼貌", "善良"):
+        assert invented not in blob, (mode, invented, blob)
 
 
 def test_g_technical_details_is_still_collapsed(structure: _Structure) -> None:

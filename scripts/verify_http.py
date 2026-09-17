@@ -29,7 +29,8 @@ def main() -> None:
     status, body = req("GET", "/api/health")
     checks.append(("GET /api/health", status, json.loads(body)["status"]))
     status, body = req("GET", "/api/version")
-    checks.append(("GET /api/version", status, json.loads(body)["version"]))
+    served_version = json.loads(body)["version"]
+    checks.append(("GET /api/version", status, served_version))
     status, body = req("GET", "/api/modes")
     checks.append(("GET /api/modes", status, str(len(json.loads(body)))))
     status, body = req("GET", "/api/examples")
@@ -127,6 +128,8 @@ def main() -> None:
     for name, code, info in checks:
         print(f"{code:4d}  {name:34s} {info}")
 
+    # The UI must show the version the API reported, so this check cannot go stale
+    # the way a hard-coded release number does.
     required = [
         "Nov1ce Evidence Denier",
         "Systematically explaining away good news since 2026.",
@@ -141,9 +144,9 @@ def main() -> None:
         "Reality Check",
         "Final Verdict",
         "Negative Evidence Amplifier",
-        "Evidence Asymmetry Detector",
+        "Evidence Comparison",
         "Run Branch Predictor",
-        "0.1.0",
+        served_version,
     ]
     print("UI strings missing:", [item for item in required if item not in ui])
     print("unresolved jinja:", "{{" in ui or "{%" in ui)
