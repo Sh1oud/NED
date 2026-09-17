@@ -69,7 +69,7 @@ $ ned analyze "我想你了"
 Final Verdict (ned.no_signal)
   未检测到明显情感证据。NED 无事可做。👍
 
-engine ned-local-rules v0.1.9 (provider=local-rule, offline=True)
+engine ned-local-rules v0.1.10 (provider=local-rule, offline=True)
 ```
 
 `我想你了` is the reader's own longing, so NED never reads it as the other
@@ -133,16 +133,19 @@ whichever department the evidence belongs to.** 👍
 
 | View | Image | Status |
 | --- | --- | --- |
-| Web UI — analysis | [`docs/screenshots/analysis.png`](docs/screenshots/analysis.png) | captured from the current UI |
-| Web UI — asymmetry detector | [`docs/screenshots/asymmetry.png`](docs/screenshots/asymmetry.png) | captured from the current UI |
-| Web UI — FNBP lab | [`docs/screenshots/fnbp-lab.png`](docs/screenshots/fnbp-lab.png) | captured from the current UI |
-| CLI — extreme mode | [`docs/screenshots/cli-extreme.png`](docs/screenshots/cli-extreme.png) | captured from the current CLI |
+| Web UI — analysis | [`docs/screenshots/analysis.png`](docs/screenshots/analysis.png) | **historical** — predates the front-desk renewal; re-capture pending |
+| Web UI — asymmetry detector | [`docs/screenshots/asymmetry.png`](docs/screenshots/asymmetry.png) | **historical** — predates the front-desk renewal; re-capture pending |
+| Web UI — FNBP lab | [`docs/screenshots/fnbp-lab.png`](docs/screenshots/fnbp-lab.png) | **historical** — predates the front-desk renewal; re-capture pending |
+| CLI — extreme mode | [`docs/screenshots/cli-extreme.png`](docs/screenshots/cli-extreme.png) | **historical** — captured at 0.1.9; re-capture pending |
 
 All four views are exercised by the test suite (`tests/test_api.py`,
-`tests/test_cli.py`) and captured here from the real local UI/CLI. The engine
-version each image was captured from is printed inside the image itself, so this
-table never needs a hand-maintained version bump. Re-capture them after any UI
-change with:
+`tests/test_cli.py`) and were captured from the real local UI/CLI. The engine
+version each image was captured from is printed inside the image itself, so an
+image always shows its own capture version — which is exactly why it has to be
+re-captured after a UI change or a version bump instead of being assumed current.
+At this commit the three web images predate the front-desk renewal and all four
+predate 0.1.10, so they are marked historical above until re-captured. Re-capture
+with:
 
 ```bash
 ned serve --port 8742                          # terminal 1
@@ -206,10 +209,16 @@ from calm cyan to "Industrial-grade denial" magenta.
   it runs out of explanations, then say so.
 - **Web UI, REST API and CLI** over the same engine, plus `/docs` (OpenAPI).
 - **Configurable rule packs:** every judgement NED makes lives in JSON, not Python.
-- **Bilingual:** Chinese and English inputs both work, with localized labels, verdicts
-  and reality checks. The gap is presentation, not recognition: the Stage 1
-  Alternative Explanation Audit still prints its own first-screen lines and its
-  breakdown card in Chinese (disclosed in `CHANGELOG.md` under v0.1.8).
+- **Bilingual input, narrower recognition on the English side:** Chinese and English
+  inputs both work, with localized labels, verdicts and reality checks, and the
+  remaining presentation gap is disclosed (the Stage 1 Alternative Explanation Audit
+  still prints its own first-screen lines and its breakdown card in Chinese, see
+  `CHANGELOG.md` under v0.1.8). The **reported-material layer is a Chinese-side
+  capability**: the material registry, and the report-frame that keeps a reported
+  statement out of the reader-conclusion rule, are wired for Chinese rules only.
+  An English reported negative (`She told me she does not like me`) is therefore read
+  as the reader's own conclusion instead of being registered as material — measured,
+  and recorded as a known boundary under 0.1.10 in `CHANGELOG.md`.
 - **No network, ever.** A test asserts the CLI cannot even open a socket.
 
 ---
@@ -320,7 +329,7 @@ ned fnbp --expected Fuyuki --actual 张三 --actual 李四 --count 5
 
 ```bash
 curl -s http://127.0.0.1:8000/api/health
-# {"status":"ok","version":"0.1.9","uptime_seconds":12.3,"local_only":true,"engine":"ned-local-rules"}
+# {"status":"ok","version":"0.1.10","uptime_seconds":12.3,"local_only":true,"engine":"ned-local-rules"}
 ```
 
 ```bash
@@ -354,13 +363,13 @@ curl -s -X POST http://127.0.0.1:8000/api/analyze \
   "evidence": [],
   "interpretation_audit": null,
   "material_aspects": null,
-  "engine": { "name": "ned-local-rules", "version": "0.1.9", "provider": "local-rule", "offline": true, "escapes_used": 0 }
+  "engine": { "name": "ned-local-rules", "version": "0.1.10", "provider": "local-rule", "offline": true, "escapes_used": 0 }
 }
 ```
 
 Trimmed for readability (`breakdown`, `mode_notes`, `easter_eggs` and `disclaimer` are
 omitted). Every value shown is what the current build returns — including
-`engine.version`, which stays `0.1.9` until the next version bump. `interpretation_audit`
+`engine.version`, which reports the version this build ships (`0.1.10`). `interpretation_audit`
 and `material_aspects` are `null` here; they carry data when the reader supplies their own
 explanation, or when the input reports several material pages.
 

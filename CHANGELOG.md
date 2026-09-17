@@ -15,6 +15,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Web UI i18n.
 - Saved report export.
 
+## 0.1.10 — unreleased (prepared, not yet published)
+
+The version string, the tag and the compare link are added at release time; nothing
+here claims a publication date or a published artefact.
+
+**NED v0.1.10 — Front Desk Renewal**
+
+The local page now reads as a service hall, and every label the hall uses comes from
+the one shared catalogue. Presentation is the bulk of it; exactly one judgement-layer
+defect was fixed, and nothing else in that layer moved: no new verdict, no new signal
+family, no new score, no REST or CLI contract change.
+
+### Added
+- Front-desk shell, intake window, staged material registry, review-record rhythm,
+  serious presentation register and issuance stamp for the local web page (FD-1..FD-6);
+  geometry, spacing and typography only.
+- Five hall labels in the shared personality catalogue (`front_desk.*`), rendered at
+  runtime from the embedded catalogue in both languages while the served markup keeps
+  the strings it always shipped.
+- Permanent pins for the front-desk copy contract, the responsive/accessibility
+  contract, the serious register, and the quoted-boundary behaviour.
+
+### Fixed
+- An explicit boundary written inside the corner brackets `「」` / `『』` is
+  recognised again: the boundary firewall's quote set and the boundary rule's own quote
+  class now cover the corner brackets, so the boundary screen is reached and the fragment
+  the boundary negates no longer leaks back as a positive page. Unquoted and curly-quoted
+  behaviour is unchanged, and the 9819-input corpus, the ownership matrices and the CLI
+  JSON contract are byte-identical.
+
+### Changed
+- The README's current-version samples read 0.1.10, the bilingual claim is scoped to what
+  is measured, and the screenshot table marks its images as historical captures instead of
+  current ones.
+
+### Known boundaries (not fixed in this release)
+- **English has no reported-material layer.** The material registry and the report-frame
+  that suppresses the reader-conclusion rule for reported speech are wired for Chinese
+  rules only, so an English reported negative (`She told me she does not like me`) is read
+  as the reader's own conclusion rather than registered as material. English input,
+  labels, verdicts and reality checks all work; this one layer does not.
+- Quote perspective (`AS2-QUOTE-1`), report-act expansion
+  (`MATERIAL-REPORT-ACT-EXPANSION-CANDIDATE`) and the reader-firewall whitespace residue
+  (`READER-WS-FIREWALL-1`) stay registered and unfixed.
+- The compatibility shim `MATERIAL-SPEECH-VERBS-SCHEMA-COMPAT-1` is kept on purpose, and
+  `COMPOSITE-CONCAT-1` stays at its pinned baseline of 18.
+
+### Verification
+- 1981 tests, ruff (check and format), mypy, the front-desk, serious-register, responsive
+  and quoted-boundary pins, and the campaign's semantic gates (9819-input corpus,
+  ownership matrices, AS-2, material rewire, report-head eligibility, CLI JSON contract)
+  are green at this commit. The real-browser front-desk evidence and the extended
+  validation runs live with the batch evidence, not in the test suite.
+
 ## [0.1.9] - 2026-09-15
 
 **NED v0.1.9 — Hard-line Maintenance**
