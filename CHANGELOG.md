@@ -59,8 +59,30 @@ family, no new score, no REST or CLI contract change.
 - Quote perspective (`AS2-QUOTE-1`), report-act expansion
   (`MATERIAL-REPORT-ACT-EXPANSION-CANDIDATE`) and the reader-firewall whitespace residue
   (`READER-WS-FIREWALL-1`) stay registered and unfixed.
-- The compatibility shim `MATERIAL-SPEECH-VERBS-SCHEMA-COMPAT-1` is kept on purpose, and
-  `COMPOSITE-CONCAT-1` stays at its pinned baseline of 18.
+- **A bare imperative is not her boundary.** `别烦我`, `滚出去` and `Do not contact me again`
+  name no speaker, so POLICY A assigns them to the reader and they do not certify a stated
+  boundary; the framed forms (`她让我滚出去别烦他了`, `她说别再联系我了`,
+  `He told me to leave him alone`) do. English boundary phrasing is narrower than the Chinese
+  side: leave-me-alone style wording only.
+- **The compatibility items are deliberate.** `MATERIAL-SPEECH-VERBS-SCHEMA-COMPAT-1` is a
+  rule-pack schema shim kept on purpose for existing packs - not leftover dead code - and
+  `COMPOSITE-CONCAT-1` is a **fixed compatibility baseline**: the belief/relay-prefixed
+  composite rows stay at 18, which is neither 18 new regressions nor a claim that the family
+  cannot improve.
+- **There is no automated real-browser regression suite.** pytest covers the page structurally
+  (pins over the shipped template, script and catalogue) and through the served HTML, API and
+  CLI; the real-UI evidence is per-batch browser runs plus the release capture script, so a
+  regression in `app.js`, `index.html` or `style.css` is not caught automatically.
+- **Capture tooling debts remain open.** The readiness hooks are fixed in this release (two of
+  them could never succeed), but `--out-dir` must still be an absolute in-repo path (a relative
+  or out-of-repo path writes the image and then raises), the three web images share one canvas
+  height (shorter views keep black space below the content), and the script's own status note is
+  stale.
+- **Front-desk cosmetic observations.** At 380/460 the window directory scrolls horizontally, so
+  the third window needs a swipe and the second tab label clips at the container edge; the label
+  register (`.label`, `.field-label`, the spec strip, chip modes) renders at 10.2-10.6 px at every
+  width; the nested disclosures inside the review record have a 26 px high hit area. Recorded,
+  not fixed; none of them blocks the main flow.
 
 ### Verification
 - 1981 tests, ruff (check and format), mypy, the front-desk, serious-register, responsive

@@ -202,3 +202,41 @@ boundary is recognised so that a positive or comedic screen cannot cover it.
 | Not part of this preparation | commit, push, tag creation, artifact upload, release publication |
 
 Release name: **NED v0.1.9 — Hard-line Maintenance**
+
+## 13. v0.1.10 Release Preparation
+
+Front Desk Renewal plus one judgement-layer fix. The local page reads as a service hall whose
+copy comes from the shared catalogue (shell, intake window, staged material registry, review
+record, serious register, issuance stamp), and an explicit boundary written inside the corner
+brackets `「」`/`『』` is recognised again instead of dropping out of the boundary family and
+leaking the fragment it negates as a positive page. The version source moves to `0.1.10`;
+`API_VERSION` stays `1` because no REST contract changed.
+
+| Check | Result |
+| --- | --- |
+| Version identity | `__version__ = "0.1.10"`; `/api/health`, `/api/version` and the web badge report it |
+| Version pin | `tests/test_packaging.py` asserts the single-source version, updated with the bump |
+| Front-desk commits | `9dc776d` shell/intake, `625218a` staged registry, `08d6f24` dossier rhythm, `74accbd` serious register, `47cbd95` terminal verdict, `1ab2c13` responsive/accessibility, `8c0188d` catalogue copy, `a0ea854` quoted-boundary fix |
+| Production surface | `ned/app/static/{app.js,style.css}`, `ned/app/templates/index.html`, `ned/app/ui/personality.py`, `ned/app/core/boundary.py`, `ned/app/rules/signals.json`; the boundary fix touches only the quote set and the boundary rule's own quote class |
+| Full gates | pytest 1981, ruff check, ruff format --check (90 files), mypy, release-hygiene, docs checks, README claims, reference audit all clean |
+| Semantic gates | 9819-input corpus `0/9471` unchanged, ownership matrices 0 changed (240 core 0, COMPOSITE-CONCAT-1 = 18), AS-2 0, material rewire 50/0, report-head eligibility 0, CLI JSON contract 0/0 |
+| Documentation truthfulness | version samples read 0.1.10; the bilingual claim is scoped to what is measured; every screenshot row states its capture status; the 0.1.10 changelog entry carries no date and claims no publication |
+| Release evidence | the three web screenshots were re-captured from the 0.1.10 UI with each readiness gate verified before the shot; the CLI image is still the 0.1.9 capture because the script renders it from a committed input |
+| Not part of this preparation | commit, push, tag creation, artifact upload, release publication, regenerating the CLI capture, and any deferred capability work |
+
+### Deferred and compatibility boundaries recorded for this release
+
+| Item | Status |
+| --- | --- |
+| English reported-material / report-frame layer | **Unsupported** (deferred); an English reported negative is read as the reader's own conclusion |
+| Quote perspective (`AS2-QUOTE-1`) | Registered, not fixed |
+| Report-act expansion (`MATERIAL-REPORT-ACT-EXPANSION-CANDIDATE`) | Registered, not fixed (capability) |
+| Reader-firewall whitespace residue (`READER-WS-FIREWALL-1`) | Registered, not fixed |
+| `MATERIAL-SPEECH-VERBS-SCHEMA-COMPAT-1` | **Deliberately kept** rule-pack schema shim, not dead code |
+| `COMPOSITE-CONCAT-1 = 18` | **Fixed compatibility baseline**, not 18 new regressions |
+| Bare imperatives (`别烦我`, `滚出去`, `Do not contact me again`) | POLICY A: no speaker, so they belong to the reader; only framed refusals certify her boundary |
+| Automated real-browser regression | **None**; real-UI evidence is per-batch browser runs plus the capture script |
+| Capture tooling debts | Readiness hooks fixed; out-dir / canvas padding / status note open |
+| Front-desk cosmetics | Mobile directory swipe, 10.2-10.6 px label register, 26 px nested disclosure hit area: recorded, not fixed |
+
+Release name: **NED v0.1.10 — Front Desk Renewal** (prepared, not yet published)

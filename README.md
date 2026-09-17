@@ -176,11 +176,13 @@ from calm cyan to "Industrial-grade denial" magenta.
   does not independently prove love. 👍"
 - **Evidence Asymmetry Detector.** Measures the double standard directly: how heavily
   you discount good news versus how fast you accept bad news. Produces a 0–100 score.
-- **Explicit boundary detection.** A direct refusal is not ambiguous evidence:
-  `别烦我`, `不要再联系我`, `滚出去` and their English equivalents are reported as a
-  boundary signal with a high information content, and NED neither de-weights them
-  nor invents an escape for them. Uncertainty is not the same as denying clear
-  evidence.
+- **Explicit boundary detection.** A refusal the input reports is not ambiguous
+  evidence: `她让我滚出去别烦他了`, `她说别再联系我了` and `He told me to leave him alone` are
+  reported as a boundary signal with a high information content, and NED neither
+  de-weights them nor invents an escape for them. Two limits are deliberate. A **bare**
+  imperative names no speaker, so `别烦我`, `滚出去` and `Do not contact me again` belong to
+  the reader and do not certify her boundary; and English boundary phrasing is currently
+  narrower than the Chinese side. Uncertainty is not the same as denying clear evidence.
 - **The primary slot is not the verdict.** NED keeps one *primary* evidence slot for
   the positive signal that PED exists to de-weight, and tracks a stated boundary
   beside it rather than inside it. The verdict — and the observed fact a screen
