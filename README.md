@@ -55,11 +55,11 @@ reach, and prints a verdict.
 ```
 $ ned analyze "我想你了"
 
-┌───────────────────────────────── MATERIALS RECEIVED ─────────────────────────────────┐
+┌─────────────────────────────── NO CLASSIFIABLE SIGNAL ───────────────────────────────┐
 │   Observed evidence    输入中没有检测到可分类的情感信号。NED                         │
 │                        无法在不存在的证据上工作。                                    │
 │                                                                                      │
-│ 材料已收悉。                                                                         │
+│ 来件已收悉，暂无可分类信号。                                                         │
 │ 本机构暂时不知道该送哪个窗口。👍                                                     │
 │                                                                                      │
 │ 本次输入没有命中 NED                                                                 │
@@ -446,10 +446,10 @@ Inputs and their classic outcomes (all available as `ned examples`):
 
 | Input | Mode | Outcome |
 | --- | --- | --- |
-| `我想你了` | normal | `未检测到明显情感证据。NED 无事可做。👍` (screen: MATERIALS RECEIVED) |
-| `我想你了` | extreme | `未检测到明显情感证据。NED 无事可做。👍` (screen: MATERIALS RECEIVED) |
+| `我想你了` | normal | `未检测到明显情感证据。NED 无事可做。👍` (screen: NO CLASSIFIABLE SIGNAL) |
+| `我想你了` | extreme | `未检测到明显情感证据。NED 无事可做。👍` (screen: NO CLASSIFIABLE SIGNAL) |
 | `她说喜欢我` | extreme | reaching 76.7 (Industrial-grade denial) → `证据不足，建议扩大样本量。👍` |
-| `我们已经结婚了` | extreme | `婚姻属于法律关系，不能单独证明爱情。👍` |
+| `我们已经结婚了` | extreme | `证据不足，建议扩大样本量。👍` |
 | `她主动找我聊了两个小时，但五分钟没回复` | normal | MULTIPLE ASPECTS DETECTED — `「她主动找我聊了两个小时」、「五分钟没回复」已分别入档。` 然后 `两项各自成页。本机构拒绝把它们相加。👍` |
 | `消息发出去五分钟没回复` | normal | `Reject. 5 分钟未回复不构成证据。👍` |
 | `今天开会开了三个小时` | normal | `未检测到明显情感证据。NED 无事可做。👍` |
