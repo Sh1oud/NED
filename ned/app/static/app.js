@@ -1390,6 +1390,37 @@
       .then(function () { button.disabled = false; });
   }
 
+  /* ------------------------------------------------------------- hall copy */
+
+  // The hall's own labels are copy, not data: every one of them is looked up in the
+  // catalogue the server embeds, so this file carries no wording of its own and no
+  // fallback sentence. The document language picks the catalogue variant; when an
+  // entry is absent the shipped markup text is simply left standing.
+  function hallLanguage() {
+    var declared = document.documentElement
+      ? String(document.documentElement.getAttribute("lang") || "")
+      : "";
+    return declared.toLowerCase().indexOf("zh") === 0 ? "zh" : "en";
+  }
+
+  function frontDeskText(key) {
+    var entry = obj(catalogueObj("front_desk")[key]);
+    var text = entry[hallLanguage()];
+    return typeof text === "string" ? text : "";
+  }
+
+  function renderFrontDeskCopy() {
+    [["hall-title", "hall_title"],
+     ["intake-heading", "intake_heading"],
+     ["analyze-submit", "submit_label"],
+     ["records-heading", "records_heading"],
+     ["issuance-heading", "issuance_heading"]].forEach(function (pair) {
+      var node = $(pair[0]);
+      var text = frontDeskText(pair[1]);
+      if (node && text) { node.textContent = text; }
+    });
+  }
+
   /* ------------------------------------------------------------------ init */
 
   function onKeydown(event) {
@@ -1408,6 +1439,7 @@
     initMode();
     initExamples();
     initCopy();
+    renderFrontDeskCopy();
     var analyzeBtn = $("analyze-submit");
     var asymBtn = $("asym-submit");
     var fnbpBtn = $("fnbp-submit");

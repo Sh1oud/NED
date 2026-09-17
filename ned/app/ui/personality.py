@@ -2035,6 +2035,37 @@ def emoji_discipline(situation: str, text: str) -> str:
     return " ".join(cleaned.split())
 
 
+#: The service hall's own chrome: the bureau's name plate, the intake window's
+#: heading and its submit label, the review record's heading, and the issuance
+#: heading. These label the hall, not an input: they name no stage, promise no
+#: progress, and state no approval, rejection or issuance outcome. The product has
+#: no such status anywhere -- neither the payload nor the client derives one -- so
+#: none is invented here. The page reads every one of these out of this catalogue at
+#: runtime, which is why the template and the script carry no second copy of them.
+FRONT_DESK_COPY: dict[str, dict[str, str]] = {
+    "hall_title": {
+        "zh": "NED 不确定性审查局 · 网上办事大厅",
+        "en": "NED Uncertainty Review Bureau · Online Service Hall",
+    },
+    "intake_heading": {
+        "zh": "请提交待审查材料",
+        "en": "Submit material for review",
+    },
+    "submit_label": {
+        "zh": "提交审查",
+        "en": "Submit for review",
+    },
+    "records_heading": {
+        "zh": "审查记录",
+        "en": "Review record",
+    },
+    "issuance_heading": {
+        "zh": "签发状态",
+        "en": "Issuance status",
+    },
+}
+
+
 # --------------------------------------------------------------------------- #
 # Serialized catalogue (display only; never part of an API response)
 # --------------------------------------------------------------------------- #
@@ -2116,6 +2147,7 @@ def web_personality_catalog() -> dict[str, object]:
         "audit_flavours": {key: list(lines) for key, lines in AUDIT_FLAVOURS.items()},
         "audit_default_lines": list(AUDIT_DEFAULT_LINES),
         "audit_copy": AUDIT_COPY,
+        "front_desk": {key: dict(value) for key, value in FRONT_DESK_COPY.items()},
     }
 
 
@@ -2144,6 +2176,7 @@ __all__ = [
     "FNBP_HIT_FEEDBACK",
     "FNBP_MISS_FEEDBACK",
     "FORBIDDEN_EMOJI",
+    "FRONT_DESK_COPY",
     "GREETING_RULE",
     "MATERIALS_FALLBACK",
     "MATERIALS_SLOT",
