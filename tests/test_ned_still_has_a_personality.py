@@ -1389,7 +1389,8 @@ def test_d_a_the_fallback_screen_names_neds_own_limit(analyzer: NedAnalyzer, tex
     assert result.verdict.code == "ned.no_signal", text
     screen = screen_for(result)
     blob = " ".join([screen.title, *screen.lines, screen.reality])
-    assert screen.title == "MATERIALS RECEIVED"
+    assert screen.title == "NO CLASSIFIABLE SIGNAL"
+    assert "暂无可分类信号" in blob
     assert "不知道该送哪个窗口" in blob
     assert CAPABILITY in blob
     assert "不代表输入本身没有意义" in blob

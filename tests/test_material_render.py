@@ -381,12 +381,16 @@ def test_the_card_carries_no_forbidden_copy(text: str) -> None:
 
 
 def test_the_card_does_not_use_the_no_signal_heading() -> None:
-    """``MATERIALS RECEIVED`` belongs to the no-signal screen; the card differs."""
+    """The registry card is not the no-signal screen, so their wording must differ."""
 
     heading = p.MATERIAL_REGISTRY_COPY["zh"]["card_title"]
-    assert heading != "MATERIALS RECEIVED"
-    for other in ("材料已收悉", "Materials received"):
-        assert other not in heading
+    for language in ("zh", "en"):
+        screen = p.first_screen(p.SITUATION_NO_SIGNAL, "normal", language)
+        assert heading != screen.title, language
+        for line in screen.lines:
+            assert heading != line, (language, line)
+    for word in ("材料已收悉", "来件已收悉", "Materials received.", "Submission received."):
+        assert word not in heading, word
 
 
 def test_the_card_names_no_qualification_state() -> None:

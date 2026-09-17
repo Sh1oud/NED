@@ -1128,9 +1128,10 @@ ASPECT_CARD_SITUATIONS: tuple[str, ...] = (SITUATION_MULTIPLE_ASPECTS, SITUATION
 #: The registry card's own copy. This is a different card from the filing card
 #: above: the filing card files *evidence pages*, while this one registers the
 #: reported statements the material layer actually recorded. The two never share a
-#: row and never merge into one "combined material" view. Its title is deliberately
-#: not "MATERIALS RECEIVED": that heading already belongs to the no-signal screen,
-#: where it means "no classifiable signal was found", which is a different fact.
+#: row and never merge into one "combined material" view. Nor is it the no-signal
+#: screen ("NO CLASSIFIABLE SIGNAL" / "来件已收悉，暂无可分类信号。"): that screen
+#: reports the absence of a classifiable signal, while this card lists reports that
+#: were found and registered. Different facts, so different wording.
 MATERIAL_REGISTRY_COPY: dict[str, dict[str, str]] = {
     "zh": {
         "card_title": "材料登记",
@@ -1864,14 +1865,17 @@ FIRST_SCREEN: dict[str, dict[str, dict[str, FirstScreen]]] = {
     SITUATION_NO_SIGNAL: _fixed(
         _bi(
             _screen(
-                "MATERIALS RECEIVED",
-                ("材料已收悉。", "本机构暂时不知道该送哪个窗口。👍"),
+                "NO CLASSIFIABLE SIGNAL",
+                ("来件已收悉，暂无可分类信号。", "本机构暂时不知道该送哪个窗口。👍"),
                 "本次输入没有命中 NED 当前支持的信号类型。这不代表输入本身没有意义，"
                 "只表示当前规则没有给出可解释的分类。",
             ),
             _screen(
-                "MATERIALS RECEIVED",
-                ("Materials received.", "This agency currently has no window to route it to. 👍"),
+                "NO CLASSIFIABLE SIGNAL",
+                (
+                    "Submission received. No classifiable signal was found.",
+                    "This agency currently has no window to route it to. 👍",
+                ),
                 "This input did not match any signal type NED currently supports. That does not "
                 "mean the input itself is meaningless; it means the current rules produced no "
                 "interpretable classification.",
