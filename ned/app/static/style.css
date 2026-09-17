@@ -1285,6 +1285,60 @@ textarea.input { min-height: 84px; }
   .hero-title-main { letter-spacing: 0.1em; }
 }
 
+/* ------------------------------------- front desk: narrow screen and access  */
+
+/* FRONT DESK RENEWAL-5. Presentation only. Every rule is geometry, spacing or a
+   tap-target floor: no copy, no forced motion, no behaviour, and the native
+   <details> focus model is left exactly as the platform implements it. */
+
+@media (max-width: 720px) {
+  .hall-directory .tab,
+  .btn,
+  .chip {
+    min-height: 44px;
+  }
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .audit-rows {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 460px) {
+  .spec-strip {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+  .window-card > .card-head {
+    padding-right: 38px;
+  }
+  #final-verdict .verdict-text {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .app {
+    padding: 12px 10px 36px;
+  }
+  .hero-title-main {
+    letter-spacing: 0.08em;
+  }
+  .window-plate {
+    display: none;
+  }
+  .window-card > .card-head {
+    padding-right: 0;
+  }
+  #final-verdict::after {
+    width: 18px;
+    height: 18px;
+    right: 9px;
+    bottom: 9px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
