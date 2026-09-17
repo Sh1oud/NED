@@ -147,7 +147,16 @@
           </section>
 
           <!-- Everything the engine actually computed. Folded by default. -->
-          <details class="technical-details" id="technical-details">
+                          <section class="card card-wide stage-card" id="material-registry" hidden>
+                  <div class="label" id="material-registry-title"></div>
+                  <div class="stack">
+                    <p class="note" id="material-registry-intro"></p>
+                    <dl class="audit-rows" id="material-registry-rows"></dl>
+                    <p class="note" id="material-registry-disclaimer"></p>
+                    <p class="note" id="material-registry-isolation"></p>
+                  </div>
+                </section>
+<details class="technical-details" id="technical-details">
             <summary>Technical Details</summary>
             <div class="technical-body">
               <p class="legacy-note">This block explains the screen above. It never changes it. Legacy composite fields (<code>asymmetry_score</code>, <code>asymmetry_label</code>, sub-scores) are compatibility-only and are deprecated.</p>
@@ -220,15 +229,6 @@
                 <!-- The registry card: the reported statements the material layer
                      registered. Every string here is filled from the personality
                      catalogue, so this page holds no copy of its own. -->
-                <section class="card card-wide" id="material-registry" hidden>
-                  <div class="label" id="material-registry-title"></div>
-                  <div class="stack">
-                    <p class="note" id="material-registry-intro"></p>
-                    <dl class="audit-rows" id="material-registry-rows"></dl>
-                    <p class="note" id="material-registry-disclaimer"></p>
-                    <p class="note" id="material-registry-isolation"></p>
-                  </div>
-                </section>
 
                 <section class="card card-wide">
                   <div class="label">Hypotheses</div>
