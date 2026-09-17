@@ -1,20 +1,27 @@
 # Screenshots
 
-The README references four images captured from the real NED v0.1.0 UI and CLI.
-They are release evidence, not mockups. Re-capture them whenever the UI changes and
+The README references four images captured from the real NED UI and CLI; each
+image prints the engine version it was captured from. They are release evidence,
+not mockups. Re-capture them whenever the UI changes and
 check them against [`../../RELEASE_CHECKLIST.md`](../../RELEASE_CHECKLIST.md) section 2.
 
 ## What to capture
 
 | File | Tab / command | State to capture |
 | --- | --- | --- |
-| `analysis.png` | Analyze | `她说喜欢我`, mode **Nov1ce Extreme**, after Analyse — shows signal, discount, reaching level and verdict |
-| `asymmetry.png` | Asymmetry Detector | defaults (`她主动找我聊了两个小时` vs `五分钟没回复`) — shows the 19% vs 90% weights, the thresholds and the 81.8 score |
+| `analysis.png` | Analyze | `她说喜欢我`, mode **Nov1ce Extreme**, after Analyse — the first screen, with signal, discount, reaching level and verdict inside the folded **Technical Details** |
+| `asymmetry.png` | Asymmetry Detector | defaults (`她主动找我聊了两个小时` vs `五分钟没回复`) — the comparison first screen; the treated weights (11.5% / 90.0%) are inside the folded **Technical Details** |
 | `fnbp-lab.png` | Lab (FNBP) | defaults, after Run Branch Predictor — shows the pipeline log and `怎么又不是她效应` |
 | `cli-extreme.png` | CLI | `ned analyze "她说喜欢我" --mode extreme`, the full report |
 
 Suggested size: **1440 × 1000** (or a 2× device scale factor for crisp text). Use a
 dark background — the UI is dark by default.
+
+Both web reports keep their rigorous blocks behind the folded **Technical Details**,
+so a screenshot of a settled view shows the first screen plus the folded headers.
+The Asymmetry page deliberately shows neither an asymmetry score nor admission
+thresholds while the input carries no reader judgement; that absence is pinned by
+`tests/test_comparability.py` and must not be captured around.
 
 ## How to capture
 

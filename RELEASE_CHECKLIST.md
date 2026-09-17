@@ -22,7 +22,8 @@ project file.
 
 ## 2. Screenshots
 
-Four images are referenced by the README and captured from the real v0.1.0 UI/CLI.
+Four images are referenced by the README and captured from the real UI/CLI; each
+image prints the engine version it was captured from.
 
 ```bash
 ned serve --port 8742                       # terminal 1

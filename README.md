@@ -133,14 +133,16 @@ whichever department the evidence belongs to.** 👍
 
 | View | Image | Status |
 | --- | --- | --- |
-| Web UI — analysis | [`docs/screenshots/analysis.png`](docs/screenshots/analysis.png) | captured from the v0.1.0 UI |
-| Web UI — asymmetry detector | [`docs/screenshots/asymmetry.png`](docs/screenshots/asymmetry.png) | captured from the v0.1.0 UI |
-| Web UI — FNBP lab | [`docs/screenshots/fnbp-lab.png`](docs/screenshots/fnbp-lab.png) | captured from the v0.1.0 UI |
-| CLI — extreme mode | [`docs/screenshots/cli-extreme.png`](docs/screenshots/cli-extreme.png) | captured from the v0.1.0 CLI |
+| Web UI — analysis | [`docs/screenshots/analysis.png`](docs/screenshots/analysis.png) | captured from the current UI |
+| Web UI — asymmetry detector | [`docs/screenshots/asymmetry.png`](docs/screenshots/asymmetry.png) | captured from the current UI |
+| Web UI — FNBP lab | [`docs/screenshots/fnbp-lab.png`](docs/screenshots/fnbp-lab.png) | captured from the current UI |
+| CLI — extreme mode | [`docs/screenshots/cli-extreme.png`](docs/screenshots/cli-extreme.png) | captured from the current CLI |
 
 All four views are exercised by the test suite (`tests/test_api.py`,
-`tests/test_cli.py`) and captured here from the real local UI/CLI. Re-capture them
-after any UI change with:
+`tests/test_cli.py`) and captured here from the real local UI/CLI. The engine
+version each image was captured from is printed inside the image itself, so this
+table never needs a hand-maintained version bump. Re-capture them after any UI
+change with:
 
 ```bash
 ned serve --port 8742                          # terminal 1
