@@ -1189,6 +1189,31 @@ textarea.input { min-height: 84px; }
   #technical-details > .review-region-start { margin-top: 18px; padding-top: 12px; }
 }
 
+/* ------------------------------------------- front desk: serious register  */
+
+/* FRONT DESK RENEWAL-4A. Presentation only. The result root already carries the
+   client-derived `data-situation`, so the serious register is a closed CSS switch
+   over that existing state: no business state, no new copy, no verdict chrome. */
+
+#analyze-results[data-situation="boundary"],
+#analyze-results[data-situation="timeline_boundary"] {
+  border-color: var(--line-strong);
+  box-shadow: inset 3px 0 0 0 var(--text-dim);
+}
+
+#analyze-results[data-situation="boundary"] .satire-line,
+#analyze-results[data-situation="timeline_boundary"] .satire-line {
+  color: var(--text-faint);
+  font-style: normal;
+}
+
+#analyze-results[data-situation="boundary"] #material-registry,
+#analyze-results[data-situation="timeline_boundary"] #material-registry,
+#analyze-results[data-situation="boundary"] #verdict-emoji,
+#analyze-results[data-situation="timeline_boundary"] #verdict-emoji {
+  display: none;
+}
+
 /* ------------------------------------------------------------ responsive  */
 
 @media (max-width: 900px) {
