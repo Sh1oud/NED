@@ -13,6 +13,7 @@
 
     <header class="hero">
       <div class="hero-glow" aria-hidden="true"></div>
+      <div class="hall-awning" aria-hidden="true"></div>
       <div class="hero-body">
         <div class="hero-meta">
           <span class="badge badge-state" id="health-pill" data-state="pending">
@@ -60,11 +61,13 @@
       </div>
     </header>
 
-    <nav class="tabs" role="tablist" aria-label="NED modules">
-      <button type="button" class="tab is-active" id="tab-analyze" role="tab" aria-selected="true" aria-controls="panel-analyze" tabindex="0" data-tab="analyze">Analyze Evidence</button>
-      <button type="button" class="tab" id="tab-asymmetry" role="tab" aria-selected="false" aria-controls="panel-asymmetry" tabindex="-1" data-tab="asymmetry">Asymmetry Detector</button>
-      <button type="button" class="tab" id="tab-lab" role="tab" aria-selected="false" aria-controls="panel-lab" tabindex="-1" data-tab="lab">Lab (FNBP)</button>
-    </nav>
+    <div class="hall-directory">
+      <nav class="tabs" role="tablist" aria-label="NED modules">
+        <button type="button" class="tab is-active" id="tab-analyze" role="tab" aria-selected="true" aria-controls="panel-analyze" tabindex="0" data-tab="analyze">Analyze Evidence</button>
+        <button type="button" class="tab" id="tab-asymmetry" role="tab" aria-selected="false" aria-controls="panel-asymmetry" tabindex="-1" data-tab="asymmetry">Asymmetry Detector</button>
+        <button type="button" class="tab" id="tab-lab" role="tab" aria-selected="false" aria-controls="panel-lab" tabindex="-1" data-tab="lab">Lab (FNBP)</button>
+      </nav>
+    </div>
 
     <main class="main">
       <noscript>
@@ -73,7 +76,8 @@
 
       <!-- ============================ ANALYZE ============================ -->
       <section class="panel" id="panel-analyze" role="tabpanel" aria-labelledby="tab-analyze" tabindex="0">
-        <div class="card">
+        <div class="card window-card">
+          <div class="window-plate" aria-hidden="true"></div>
           <div class="card-head">
             <h2 class="label">Evidence Intake</h2>
             <p class="hint">Paste a chat message, or describe what actually happened. NED will look for positive-affection signals and then, with great rigor, explain them away.</p>
