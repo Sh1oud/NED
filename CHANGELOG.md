@@ -23,9 +23,13 @@ here claims a publication date or a published artefact.
 **NED v0.1.10 — Front Desk Renewal**
 
 The local page now reads as a service hall, and every label the hall uses comes from
-the one shared catalogue. Presentation is the bulk of it; exactly one judgement-layer
-defect was fixed, and nothing else in that layer moved: no new verdict, no new signal
-family, no new score, no REST or CLI contract change.
+the one shared catalogue. The cycle this version ships also carries the boundary-ownership
+and material-layer corrections merged after `v0.1.9`, so the judgement layer does move
+against that tag: 6,050 of the 9,471 corpus inputs answer differently, and 1,982 of those
+change verdict — always an existing situation giving way to another existing situation
+(measured in `RELEASE_CHECKLIST.md` §13). No new verdict, no new signal family, no new
+score, and no REST or CLI contract change: the shape of the output is the same, and the
+answers differ where attribution was wrong.
 
 ### Added
 - Front-desk shell, intake window, staged material registry, review-record rhythm,
@@ -46,9 +50,20 @@ family, no new score, no REST or CLI contract change.
   JSON contract are byte-identical.
 
 ### Changed
-- The README's current-version samples read 0.1.10, the bilingual claim is scoped to what
-  is measured, and the screenshot table marks its images as historical captures instead of
-  current ones.
+- Boundary ownership is decided structurally rather than by person nouns or reporting-verb
+  lists: a bare imperative (`不要再联系我`) names no speaker and no longer certifies a stated
+  boundary, a receiver-framed refusal (`她跟我说还是当朋友比较好`) does, and a boundary now
+  contains the positive fragment it negates instead of letting a positive page sit on top of
+  it.
+- Self-discount coverage follows the reader's own language: `她只是善良` is recognised, while
+  a third party telling the reader not to overthink (`她让我别想太多`) no longer counts as the
+  reader discounting herself.
+- Response latency can now be insufficient evidence on its own, so `我给她发消息她隔天才回`
+  reaches the latency screen instead of no signal.
+- The README's current-version samples read 0.1.10, the bilingual claim is scoped to what is
+  measured, and all four screenshot rows are marked current for this version: the three web
+  images were re-captured from the 0.1.10 UI, and the CLI capture was regenerated from the
+  0.1.10 CLI before its image was re-rendered.
 
 ### Known boundaries (not fixed in this release)
 - **English has no reported-material layer.** The material registry and the report-frame

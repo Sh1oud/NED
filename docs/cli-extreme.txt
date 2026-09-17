@@ -58,5 +58,5 @@ Technical Details ────────────────────�
 NED cannot determine whether someone likes you. Humans are not APIs. No amount of text analysis
 can replace direct communication and context. Every alternative explanation here is generated
 satire, not a psychological finding.
-engine ned-local-rules v0.1.9 (provider=local-rule, offline=True)
+engine ned-local-rules v0.1.10 (provider=local-rule, offline=True)
 

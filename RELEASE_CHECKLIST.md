@@ -205,12 +205,13 @@ Release name: **NED v0.1.9 — Hard-line Maintenance**
 
 ## 13. v0.1.10 Release Preparation
 
-Front Desk Renewal plus one judgement-layer fix. The local page reads as a service hall whose
-copy comes from the shared catalogue (shell, intake window, staged material registry, review
-record, serious register, issuance stamp), and an explicit boundary written inside the corner
-brackets `「」`/`『』` is recognised again instead of dropping out of the boundary family and
-leaking the fragment it negates as a positive page. The version source moves to `0.1.10`;
-`API_VERSION` stays `1` because no REST contract changed.
+Front Desk Renewal, the boundary-ownership and material-layer corrections merged after `v0.1.9`,
+and one quoted-boundary fix. The local page reads as a service hall whose copy comes from the
+shared catalogue (shell, intake window, staged material registry, review record, serious
+register, issuance stamp), and an explicit boundary written inside the corner brackets
+`「」`/`『』` is recognised again instead of dropping out of the boundary family and leaking the
+fragment it negates as a positive page. The version source moves to `0.1.10`; `API_VERSION`
+stays `1` because no REST contract changed.
 
 | Check | Result |
 | --- | --- |
@@ -219,10 +220,13 @@ leaking the fragment it negates as a positive page. The version source moves to 
 | Front-desk commits | `9dc776d` shell/intake, `625218a` staged registry, `08d6f24` dossier rhythm, `74accbd` serious register, `47cbd95` terminal verdict, `1ab2c13` responsive/accessibility, `8c0188d` catalogue copy, `a0ea854` quoted-boundary fix |
 | Production surface | `ned/app/static/{app.js,style.css}`, `ned/app/templates/index.html`, `ned/app/ui/personality.py`, `ned/app/core/boundary.py`, `ned/app/rules/signals.json`; the boundary fix touches only the quote set and the boundary rule's own quote class |
 | Full gates | pytest 1981, ruff check, ruff format --check (90 files), mypy, release-hygiene, docs checks, README claims, reference audit all clean |
-| Semantic gates | 9819-input corpus `0/9471` unchanged, ownership matrices 0 changed (240 core 0, COMPOSITE-CONCAT-1 = 18), AS-2 0, material rewire 50/0, report-head eligibility 0, CLI JSON contract 0/0 |
-| Documentation truthfulness | version samples read 0.1.10; the bilingual claim is scoped to what is measured; every screenshot row states its capture status; the 0.1.10 changelog entry carries no date and claims no publication |
-| Release evidence | the three web screenshots were re-captured from the 0.1.10 UI with each readiness gate verified before the shot; the CLI image is still the 0.1.9 capture because the script renders it from a committed input |
-| Not part of this preparation | commit, push, tag creation, artifact upload, release publication, regenerating the CLI capture, and any deferred capability work |
+| Semantic gates (RH-4 range) | against the RH-3 tip: 9819-input corpus `0/9471` unchanged, ownership matrices 0 changed (240 core 0, COMPOSITE-CONCAT-1 = 18), AS-2 0, material rewire 50/0, report-head eligibility 0, CLI JSON contract 0/0 |
+| Release delta vs `v0.1.9` | contract: `engine.version` on every case plus one semantic case (`她只是善良`, `ned.no_signal` -> `ned.self_discount_noted`); `matrix_all` 29/77 rows move, every one a self-discount verdict; corpus 6,050/9,471 rows differ and every row is accounted for by the engine's own taxonomy — 3,433 copy-only, 1,983 situation transitions, 99 boundary-span extensions, 5 contained-fragment removals, 530 same-situation re-scores (measured this preparation; the full row-by-row evidence is kept with the batch records) |
+| Documentation truthfulness | version samples read 0.1.10; the bilingual claim is scoped to what is measured; all four screenshot rows are current for 0.1.10; the 0.1.10 changelog entry carries no date, claims no publication, and states the measured judgement-layer delta against `v0.1.9` |
+| Release evidence | all four images are current at 0.1.10: the three web screenshots were re-captured from the 0.1.10 UI with each readiness gate verified before the shot, and the CLI capture was regenerated from the 0.1.10 CLI (release width, LF, trailing whitespace stripped — environment-only) before its image was re-rendered and placed |
+| Release executor | `_rc/rh4/release_0110_execute.py` with stages `local / artifact / smoke / remote / rehearse` (read-only, all executed) and `main / push-main / tag / push-tag / release / verify` (implemented, not executed); runbook `_rc/rh4/RELEASE_RUNBOOK_v0.1.10.md` |
+| Source archive | built from the release commit, verified entry-for-entry and byte-for-byte against that commit's tree, reproduced twice with identical sha256; facts recorded in `_rc/rh4/artifact_0110.json` |
+| Not part of this preparation | commit, push, tag creation, artifact upload, release publication, and any deferred capability work |
 
 ### Deferred and compatibility boundaries recorded for this release
 

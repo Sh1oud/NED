@@ -136,18 +136,19 @@ whichever department the evidence belongs to.** 👍
 | Web UI — analysis | [`docs/screenshots/analysis.png`](docs/screenshots/analysis.png) | **current** — re-captured from the 0.1.10 UI |
 | Web UI — asymmetry detector | [`docs/screenshots/asymmetry.png`](docs/screenshots/asymmetry.png) | **current** — re-captured from the 0.1.10 UI |
 | Web UI — FNBP lab | [`docs/screenshots/fnbp-lab.png`](docs/screenshots/fnbp-lab.png) | **current** — re-captured from the 0.1.10 UI |
-| CLI — extreme mode | [`docs/screenshots/cli-extreme.png`](docs/screenshots/cli-extreme.png) | **historical** — the 0.1.9 capture; its source `docs/cli-extreme.txt` is an input to the capture script, so it is not regenerated here |
+| CLI — extreme mode | [`docs/screenshots/cli-extreme.png`](docs/screenshots/cli-extreme.png) | **current** — re-captured from the 0.1.10 CLI |
 
 All four views are exercised by the test suite (`tests/test_api.py`,
 `tests/test_cli.py`) and were captured from the real local UI/CLI. The engine
 version each image was captured from is printed inside the image itself, so an
 image always shows its own capture version — which is exactly why it has to be
 re-captured after a UI change or a version bump instead of being assumed current.
-The three web images were re-captured from the 0.1.10 UI: the front desk is the
-renewed one, and each shot was taken only after its own readiness gate proved the
-report had rendered. The CLI image is still the 0.1.9 capture, because the script
-renders it from the committed `docs/cli-extreme.txt` rather than producing that
-file, so regenerating it is a separate change. Re-capture with:
+All four images now show 0.1.10. The three web images were re-captured from the
+0.1.10 UI: the front desk is the renewed one, and each shot was taken only after its
+own readiness gate proved the report had rendered. The CLI image was re-captured in
+two documented steps — `docs/cli-extreme.txt` was regenerated from the 0.1.10 CLI at
+the release width, then the image was re-rendered from it — so the version printed
+inside that image is the released one as well. Re-capture with:
 
 ```bash
 ned serve --port 8742                          # terminal 1
@@ -156,7 +157,9 @@ python scripts/capture_screenshots.py          # terminal 2
 
 The raw CLI output for the fourth shot is committed as
 [`docs/cli-extreme.txt`](docs/cli-extreme.txt), so the image can be re-taken from a
-known-good capture at any time. See [`docs/screenshots/README.md`](docs/screenshots/README.md).
+known-good capture at any time; the recipe for regenerating that capture, and the
+environment-only normalisation it needs, is written down in
+[`docs/screenshots/README.md`](docs/screenshots/README.md).
 
 The web UI is designed to look like a clinical instrument panel: dark, hairline
 borders, monospace read-outs, one accent colour, and progress bars that escalate

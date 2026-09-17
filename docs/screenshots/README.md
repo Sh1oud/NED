@@ -37,6 +37,29 @@ working Chrome or Edge installation; see the script header for flags.
 Manually is fine too: open the URL, click through the three tabs, screenshot the
 viewport, and render `docs/cli-extreme.txt` in your terminal for the fourth.
 
+## Regenerating the CLI capture
+
+`cli-extreme.png` is rendered *from* `docs/cli-extreme.txt`, so a version bump makes
+that image stale until the capture behind it is regenerated. Two steps:
+
+```bash
+# 1. regenerate the raw capture from the real CLI, at the width the box is drawn for
+ned analyze "她说喜欢我" --mode extreme        # run in a 99-column terminal
+# 2. re-render only the image, from the committed text
+python scripts/capture_screenshots.py --cli-only --out-dir <absolute-path>
+```
+
+Step 1 is a terminal capture, so the committed file carries three *environment*
+normalisations and nothing else: CRLF is written as LF, trailing whitespace on each
+line is stripped (the renderer pads some lines), and the box is drawn for a 99-column
+terminal (98-character rules, 62 lines). Nothing else about the capture is edited — the
+report text itself is exactly what the CLI printed. Step 2 needs an absolute `--out-dir`;
+a relative or out-of-repo path writes the image first and then raises.
+
+The image is evidence of the version it was captured from, so after any version bump
+both steps have to be repeated; the engine version printed inside the image is the
+check.
+
 ## Rules
 
 1. Never commit a mockup, a redrawn UI, or a doctored image. The screenshots are
