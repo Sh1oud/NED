@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from functools import lru_cache
 
-from ned.app.core import attribution, boundary
+from ned.app.core import attribution, boundary, polarity
 from ned.app.core.models import Duration, EvidenceSpan, Language, Polarity, SignalType
 from ned.app.core.rules import RuleBook
 
@@ -377,8 +377,36 @@ def detect(text: str, book: RuleBook) -> list[EvidenceSpan]:
         )
 
     spans = _drop_boundary_contained_positives(spans)
+    spans = _drop_non_positive_intent_claims(spans, text)
     spans.sort(key=lambda span: (-span.base_strength, span.start))
     return spans
+
+
+def _drop_non_positive_intent_claims(spans: list[EvidenceSpan], text: str) -> list[EvidenceSpan]:
+    """Drop a relationship-intent phrase that the clause does not affirm.
+
+    "她暂时不想谈恋爱" and "她妈妈不同意我们在一起" both contain a relationship-intent
+    phrase, and before PR-1 both were offered as positive evidence. Pattern matching
+    cannot tell the difference: ``我们在一起`` looks the same in all three sentences
+
+        我们在一起              affirmed  -> evidence
+        我不想我们在一起        negated  -> not evidence
+        她妈妈不同意我们在一起  opposed  -> not evidence, and not her boundary either
+
+    so the proposition's polarity is asked separately (:mod:`ned.app.core.polarity`) and
+    only the positive span is removed here. This function never adds a span: an objection
+    from a third party stays an objection instead of being promoted into her refusal.
+    """
+
+    return [
+        span
+        for span in spans
+        if not (
+            span.polarity == "positive"
+            and span.signal_type.value in polarity.RELATIONSHIP_INTENT_SIGNAL_TYPES
+            and not polarity.relationship_intent_polarity(text, span.start, span.end).positive
+        )
+    ]
 
 
 def _drop_boundary_contained_positives(spans: list[EvidenceSpan]) -> list[EvidenceSpan]:

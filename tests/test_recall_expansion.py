@@ -176,7 +176,9 @@ def test_only_the_two_families_gained_patterns(rules: dict[str, dict[str, Any]])
             assert construction in patterns, (rule_id, construction)
     # v0.1.8 Stage 1 added exactly one pattern elsewhere, and only one
     assert "(想|要|愿意|希望)?和我做男女朋友" in rules["zh.commitment_offer"]["patterns"]
-    assert len(rules["zh.commitment_offer"]["patterns"]) == 8
+    # PR-1 added the two affirmative relationship-intent shapes (想和我在一起 /
+    # 要不要在一起); the pack itself did not grow a rule.
+    assert len(rules["zh.commitment_offer"]["patterns"]) == 10
 
 
 def test_the_rule_pack_did_not_grow(rules: dict[str, dict[str, Any]]) -> None:

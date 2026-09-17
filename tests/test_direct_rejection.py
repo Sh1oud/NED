@@ -760,9 +760,14 @@ SUBJECT_GAP = "[^。！？!?，,我]{0,5}"
 #: speaking. The quote branch needs a speech verb, so it cannot reach
 #: "我跟她说我只想当普通朋友", and the anchor may not follow a conjunction.
 #: The class carries every Chinese quotation style - curly, straight, and the corner
-#: brackets - so the gate is about a quotation, not about one typography.
+#: brackets - plus the report colon (the ownership layer's own QUOTE_OPENERS already
+#: counts "：" and ":" as opening reported speech), so the gate is about *a report
+#: marker*, not about one typography.
+#: PR-1 added the bounded adverb window after the pronoun: an adverb inside her own
+#: quote ("她说“我现在不想谈恋爱”") may not decide whether the refusal is recognised.
 QUOTE_BRANCH = (
-    "(?:[^。！？!?，,我]{0,2}(?:说|讲|表示|称|回复|答))[^。！？!?，,]{0,1}[“\"'「『](?:我|咱)"
+    "(?:[^。！？!?，,我]{0,2}(?:说|讲|表示|称|回复|答))[^。！？!?，,]{0,1}"
+    "[“\"'「『：:](?:我|咱)[^。！？!?，,]{0,4}"
 )
 
 ANCHOR = "(?<![和跟与对向给])(她|他|对方)"

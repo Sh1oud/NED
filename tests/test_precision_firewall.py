@@ -44,6 +44,11 @@ FROZEN_PATTERNS: dict[str, list[str]] = {
         "处对象",
         "交往吧",
         "你愿意(和我在一?起|做我)",
+        # PR-1 (relationship-intent polarity): the two affirmative shapes PR-0 showed were
+        # missing. Both carry a positional guard so they only fire when the phrase ends the
+        # proposition, and both are subject to the polarity layer.
+        "(想|要|愿意|希望)(和|跟|与)(我|你|您)在一起(?=$|[。！？!?，,；;、 ]|了|吧|吗)",
+        "要不要(和|跟|与)?(我|你|您)?在一起(?=$|[。！？!?，,；;、 ]|了|吧|吗)",
     ],
     "zh.care": [
         "记得我(爱|喜欢|不吃|不能吃|胃|过敏|怕|讨厌)",

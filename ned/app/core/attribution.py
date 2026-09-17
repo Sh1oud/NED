@@ -201,6 +201,24 @@ MARKERS = tuple(
             "\u4f46",
             "\u800c",
             "\u6216",
+            # Temporal / degree adverbs belong to the same closed class. Without them
+            # the walk falls through to one-character "content" tokens, and a stance
+            # like 她暂时不想谈恋爱 stops looking like hers (PR-1 root cause A).
+            "\u6682\u65f6",  # 暂时
+            "\u76ee\u524d",  # 目前
+            "\u77ed\u671f\u5185",  # 短期内
+            "\u73b0\u9636\u6bb5",  # 现阶段
+            "\u6682\u65f6\u6027",  # 暂时性
+            "\u6682\u65f6\u5148",  # 暂时先
+            "\u8fd1\u671f",  # 近期
+            "\u77ed\u65f6\u95f4\u5185",  # 短时间内
+            "\u8fd9\u9635\u5b50",  # 这阵子
+            "\u8fd9\u4e00\u9635",  # 这一阵
+            "\u4e00\u65f6",  # 一时
+            "\u773c\u4e0b",  # 眼下
+            "\u575a\u51b3",  # 坚决
+            "\u7edd\u5bf9",  # 绝对
+            "\u6b7b\u6d3b",  # 死活
         ),
         key=len,
         reverse=True,
