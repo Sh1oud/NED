@@ -759,8 +759,10 @@ SUBJECT_GAP = "[^。！？!?，,我]{0,5}"
 #: ... with one exception, and only one: a quotation, where 我 is the person
 #: speaking. The quote branch needs a speech verb, so it cannot reach
 #: "我跟她说我只想当普通朋友", and the anchor may not follow a conjunction.
+#: The class carries every Chinese quotation style - curly, straight, and the corner
+#: brackets - so the gate is about a quotation, not about one typography.
 QUOTE_BRANCH = (
-    "(?:[^。！？!?，,我]{0,2}(?:说|讲|表示|称|回复|答))[^。！？!?，,]{0,1}[“\"'](?:我|咱)"
+    "(?:[^。！？!?，,我]{0,2}(?:说|讲|表示|称|回复|答))[^。！？!?，,]{0,1}[“\"'「『](?:我|咱)"
 )
 
 ANCHOR = "(?<![和跟与对向给])(她|他|对方)"

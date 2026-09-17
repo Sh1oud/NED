@@ -180,7 +180,23 @@ DELIVERY = ("\u6d88\u606f", "\u4fe1\u606f", "\u5fae\u4fe1", "\u8bed\u97f3", "\u7
 
 #: Aspect particles and quote marks: they carry no author.
 ASPECT = ("\u8fc7", "\u4e86", "\u7740")
-QUOTES = ("\u201c", "\u201d", '"', "'", "\u2018", "\u2019", "\uff1a", ":")
+#: Every Chinese quotation style carries no author, so a boundary inside one is still
+#: hers. The corner brackets "\u300c\u300d"/"\u300e\u300f" are as common as the curly form in
+#: chat and print; without them a quoted boundary carried no author and was dropped.
+QUOTES = (
+    "\u201c",
+    "\u201d",
+    '"',
+    "'",
+    "\u2018",
+    "\u2019",
+    "\u300c",
+    "\u300d",
+    "\u300e",
+    "\u300f",
+    "\uff1a",
+    ":",
+)
 PARTICLES = (
     "\u7684",
     "\u4e86",
