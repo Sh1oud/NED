@@ -1347,3 +1347,184 @@ textarea.input { min-height: 84px; }
     scroll-behavior: auto !important;
   }
 }
+
+/* ==========================================================================
+   FRONT DESK 2.0 (PR-3) — the dossier as a four-stage service counter
+   --------------------------------------------------------------------------
+   Reading order on purpose: issuance strip (did they sign?) -> stage rail ->
+   (1) submitted material -> (2) material registration -> (3) review opinion ->
+   (4) issuance decision -> technical archive. The archive is collapsed and holds
+   every developer surface (engine, provider, api, reaching bands, raw payload).
+   ========================================================================== */
+
+.stage-stack { display: flex; flex-direction: column; gap: 18px; }
+
+/* ---- the stage rail ---------------------------------------------------- */
+.stage-rail {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.stage {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.015);
+}
+.stage.is-done { border-color: var(--accent-2); background: rgba(94, 234, 212, 0.06); }
+.stage.is-active { border-color: var(--accent); background: rgba(94, 234, 212, 0.1); }
+.stage.is-empty { opacity: 0.62; }
+.stage-no {
+  font: 600 0.68rem/1.2 ui-monospace, Consolas, monospace;
+  color: var(--text-faint);
+  letter-spacing: 0.16em;
+}
+.stage-name { font-size: 0.82rem; color: var(--text); }
+.stage-state { font-size: 0.7rem; color: var(--text-faint); }
+.stage.is-done .stage-state { color: var(--accent); }
+.stage.is-active .stage-state { color: var(--accent); }
+
+/* ---- issuance strip: the first thing a reader checks ------------------- */
+.issuance-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.15));
+}
+.issuance-strip[data-recognition="nothing_recognized"] { border-style: dashed; }
+.issuance-strip[data-recognition="material_registered"] {
+  box-shadow: inset 3px 0 0 var(--accent-2);
+}
+.issuance-strip[data-situation="boundary"] {
+  border-color: var(--sev-reject, #f87171);
+  box-shadow: inset 3px 0 0 var(--sev-reject, #f87171);
+}
+.issuance-stamp {
+  flex: 0 0 auto;
+  min-width: 54px;
+  padding: 8px 10px;
+  border: 2px solid var(--accent);
+  border-radius: 6px;
+  transform: rotate(-4deg);
+  font: 700 0.92rem/1 ui-monospace, Consolas, monospace;
+  letter-spacing: 0.08em;
+  text-align: center;
+  color: var(--accent);
+}
+.issuance-strip[data-recognition="nothing_recognized"] .issuance-stamp {
+  border-color: var(--text-faint);
+  color: var(--text-faint);
+}
+.issuance-strip[data-situation="boundary"] .issuance-stamp {
+  border-color: var(--sev-reject, #f87171);
+  color: var(--sev-reject, #f87171);
+}
+.issuance-line { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1 1 240px; }
+.issuance-kicker {
+  font: 600 0.66rem/1.2 ui-monospace, Consolas, monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.issuance-value { font-size: 1.02rem; color: var(--text); }
+.issuance-sub { font-size: 0.76rem; color: var(--text-faint); }
+.issuance-strip .report-tools { margin-left: auto; }
+
+/* ---- stage blocks ------------------------------------------------------ */
+.stage-block { display: flex; flex-direction: column; gap: 10px; }
+.stage-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+.stage-title .stage-no { color: var(--accent-2); }
+.stage-hint { font-size: 0.74rem; color: var(--text-faint); }
+.stage-lead { margin: 0; font-size: 0.78rem; color: var(--text-faint); }
+.stage-empty {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.012);
+  font-size: 0.86rem;
+  color: var(--text-dim);
+}
+.stage-kicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  font: 600 0.68rem/1.2 ui-monospace, Consolas, monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.review-relation {
+  margin: 0;
+  padding: 10px 14px;
+  border-left: 3px solid var(--accent-2);
+  border-radius: 0 10px 10px 0;
+  background: rgba(94, 234, 212, 0.05);
+  font-size: 0.86rem;
+  color: var(--text-dim);
+}
+
+/* ---- examples guide: a leaflet, not the main event --------------------- */
+.examples-guide { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
+.examples-guide > summary {
+  cursor: pointer;
+  font-size: 0.76rem;
+  color: var(--text-faint);
+  letter-spacing: 0.04em;
+}
+.examples-guide[open] > summary { color: var(--text-dim); }
+.examples-guide .chip { max-width: 100%; }
+
+/* ---- the demoted developer surfaces ----------------------------------- */
+#technical-details { margin-top: 6px; }
+#technical-details .spec-strip { margin-bottom: 12px; }
+#system-strip { opacity: 0.7; }
+
+/* ---- tabs: one counter, two side windows ------------------------------ */
+.tab-group-label {
+  align-self: center;
+  margin-left: 6px;
+  font: 600 0.64rem/1.2 ui-monospace, Consolas, monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.tab-secondary { opacity: 0.78; font-size: 0.78rem; }
+
+/* ---- language toggle -------------------------------------------------- */
+.btn-lang { margin-left: auto; min-height: 34px; padding: 6px 10px; }
+
+/* ---- responsive: the four stages stack, the rail stays readable ------- */
+@media (max-width: 900px) {
+  .stage-rail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 460px) {
+  .stage-rail { grid-template-columns: 1fr; gap: 6px; }
+  .stage { flex-direction: row; align-items: baseline; gap: 8px; padding: 8px 10px; }
+  .stage-state { margin-left: auto; }
+  .issuance-strip { padding: 12px; gap: 10px; }
+  .issuance-strip .report-tools { margin-left: 0; width: 100%; }
+  .issuance-stamp { transform: none; }
+  .review-grid { grid-template-columns: 1fr; }
+  #analyze-submit { width: 100%; min-height: 48px; }
+}

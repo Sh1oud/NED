@@ -959,6 +959,162 @@
     setText("screen-quality", quality || DASH);
   }
 
+  /* ------------------------------------------------------------------ front desk 2.0
+     The dossier is read in four stages: submitted material, material registration, review
+     opinion, issuance. Everything a reader sees here is driven by the payload's own
+     recognition state and the screen situation; nothing is inferred from copy. */
+
+  function resetDossier() {
+    var report = $("analyze-results");
+    if (!report) { return; }
+    ["stage-submit-state", "stage-material-state", "stage-review-state", "stage-issuance-state"]
+      .forEach(function (id) { setText(id, "\u2014"); });
+    ["issuance-value", "issuance-sub", "material-count", "review-relation",
+     "screen-title", "screen-fact", "screen-quality", "screen-reality",
+     "verdict-text", "verdict-code", "verdict-severity", "verdict-emoji",
+     "reaching-value", "reaching-label", "reality-check-text", "nea-observed",
+     "nea-amplified", "nea-framing", "raw-interpretation", "sc-signal-type",
+     "sc-signal-label", "sc-language", "result-mode", "result-language",
+     "result-signal-type", "result-generated-at"].forEach(function (id) { setText(id, "\u2014"); });
+    ["reaching-bar", "evidence-strength-bar", "discount-bar", "amplification-bar"]
+      .forEach(function (id) { setBar(id, null); });
+    ["material-registry-rows", "audit-rows", "aspect-rows", "evidence-rows", "breakdown-rows",
+     "mode-notes", "egg-list"].forEach(function (id) {
+       var node = $(id);
+       if (node) { while (node.firstChild) { node.removeChild(node.firstChild); } }
+     });
+    var hypotheses = $("hypotheses-list");
+    if (hypotheses) { while (hypotheses.firstChild) { hypotheses.removeChild(hypotheses.firstChild); } }
+    setHidden("material-registry", false);
+    setHidden("material-empty", true);
+    setHidden("screen-quality-row", true);
+    setHidden("nea-block", true);
+    setHidden("epistemic-breakdown", true);
+    setHidden("aspect-breakdown", true);
+    setHidden("analyze-asymmetry", true);
+    setHidden("engine-notes-block", true);
+    setHidden("egg-list", true);
+    setHidden("reaching-alert", true);
+    setHidden("reaching-personality", true);
+    ["stage-submit", "stage-material", "stage-review", "stage-issuance"].forEach(function (id) {
+      var node = $(id);
+      if (node) { node.className = "stage"; }
+    });
+    var strip = $("issuance-strip");
+    if (strip) {
+      strip.setAttribute("data-recognition", "none");
+      strip.setAttribute("data-situation", "neutral");
+    }
+    var stamp = $("issuance-stamp");
+    if (stamp) { stamp.textContent = "\u672a\u7b7e"; }
+    var details = $("technical-details");
+    if (details) { details.open = false; }
+  }
+
+  function stageNode(id) { return $(id); }
+
+  function markStage(id, state, tone) {
+    var node = stageNode(id);
+    if (!node) { return; }
+    node.className = "stage" + (tone ? " is-" + tone : "");
+  }
+
+  function renderStageRail(d, situation, recognition) {
+    var materials = (d.materials && d.materials.length) || 0;
+    var hasEvidence = !!(d.evidence && d.evidence.length);
+    setText("stage-submit-state", deskCopy("stage_submit_state"));
+    markStage("stage-submit", "", "done");
+
+    if (recognition === "nothing_recognized") {
+      setText("stage-material-state", deskCopy("stage_material_none"));
+      markStage("stage-material", "", "empty");
+    } else if (materials > 0) {
+      setText("stage-material-state", deskCopy("stage_material_count").replace("{n}", String(materials)));
+      markStage("stage-material", "", "done");
+    } else {
+      setText("stage-material-state", deskCopy("stage_material_none"));
+      markStage("stage-material", "", "empty");
+    }
+
+    if (hasEvidence) {
+      setText("stage-review-state", deskCopy("stage_review_done"));
+      markStage("stage-review", "", "done");
+    } else if (materials > 0) {
+      setText("stage-review-state", deskCopy("stage_review_unsignable"));
+      markStage("stage-review", "", "empty");
+    } else {
+      setText("stage-review-state", deskCopy("stage_review_none"));
+      markStage("stage-review", "", "empty");
+    }
+
+    if (recognition === "adjudicated") {
+      setText("stage-issuance-state", deskCopy("stage_issuance_signed"));
+      markStage("stage-issuance", "", "active");
+    } else if (recognition === "material_registered") {
+      setText("stage-issuance-state", deskCopy("stage_issuance_material"));
+      markStage("stage-issuance", "", "empty");
+    } else {
+      setText("stage-issuance-state", deskCopy("stage_issuance_none"));
+      markStage("stage-issuance", "", "empty");
+    }
+  }
+
+  function renderIssuanceStrip(d, situation, recognition) {
+    var strip = $("issuance-strip");
+    var stamp = $("issuance-stamp");
+    var value = $("issuance-value");
+    var sub = $("issuance-sub");
+    if (!strip || !stamp || !value || !sub) { return; }
+    strip.setAttribute("data-recognition", recognition || "none");
+    strip.setAttribute("data-situation", situation || "neutral");
+
+    var signed = recognition === "adjudicated";
+    var boundary = situation === "boundary" || situation === "timeline_boundary";
+    stamp.textContent = boundary ? "\u8fb9\u754c" : (signed ? "\u5df2\u7b7e" : "\u672a\u7b7e");
+
+    var verdict = obj(d.verdict);
+    if (boundary) {
+      value.textContent = deskCopy("issuance_boundary");
+      sub.textContent = txt(verdict.text) || deskCopy("issuance_boundary_sub");
+      return;
+    }
+    if (signed) {
+      value.textContent = deskCopy("issuance_signed");
+      sub.textContent = txt(verdict.text) || "\u2014";
+      return;
+    }
+    if (recognition === "material_registered") {
+      value.textContent = deskCopy("issuance_material");
+      sub.textContent = deskCopy("issuance_material_sub");
+      return;
+    }
+    value.textContent = deskCopy("issuance_none");
+    sub.textContent = deskCopy("issuance_none_sub");
+  }
+
+  function renderReviewRelation(d, recognition) {
+    var materials = (d.materials && d.materials.length) || 0;
+    var hasEvidence = !!(d.evidence && d.evidence.length);
+    var key = "review_relation_none";
+    if (hasEvidence && materials > 0) { key = "review_relation_evidence_and_material"; }
+    else if (hasEvidence) { key = "review_relation_evidence_only"; }
+    else if (materials > 0) { key = "review_relation_material_only"; }
+    setText("review-relation", deskCopy(key).replace("{n}", String(materials)));
+  }
+
+  function renderMaterialStage(d, recognition) {
+    var materials = (d.materials && d.materials.length) || 0;
+    if (recognition === "nothing_recognized" || materials === 0) {
+      setText("material-count", deskCopy("material_count_none"));
+      setHidden("material-registry", true);
+      setHidden("material-empty", false);
+      return;
+    }
+    setHidden("material-empty", true);
+    setHidden("material-registry", false);
+    setText("material-count", deskCopy("material_count").replace("{n}", String(materials)));
+  }
+
   function renderAnalyze(data) {
     var report = $("analyze-results");
     if (!report) { return; }
@@ -973,10 +1129,17 @@
     var situation = displaySituation(baseSituation, d.evidence, d);
     var basis = basisFromSignals(d.evidence) || Boolean(attached && attached.reading_present);
 
+    var recognition = txt(d.recognition) || (
+      (d.evidence && d.evidence.length) ? "adjudicated"
+        : ((d.materials && d.materials.length) ? "material_registered" : "nothing_recognized")
+    );
+
+    resetDossier();
     report.hidden = false;
     report.classList.remove("is-loading");
     report.setAttribute("data-severity", severityOf(v.severity));
     report.setAttribute("data-situation", situation);
+    report.setAttribute("data-recognition", recognition);
 
     renderAnalyzeScreen(d, situation, basis);
 
@@ -1017,6 +1180,13 @@
     renderNEA(d);
     renderNotes(d.mode_notes, d.easter_eggs);
 
+    // The four-stage dossier: what was submitted, what was registered, what this agency
+    // thinks of it, and whether anything was signed.
+    renderStageRail(d, situation, recognition);
+    renderIssuanceStrip(d, situation, recognition);
+    renderMaterialStage(d, recognition);
+    renderReviewRelation(d, recognition);
+
     setHidden("analyze-asymmetry", !asym);
     if (asym) {
       var treatment = obj(asym.ned_treatment);
@@ -1055,14 +1225,30 @@
       return;
     }
     button.disabled = true;
-    setStatus("analyze-status", "Running NED...", "is-busy");
+    setStatus("analyze-status", deskCopy("submit_pending") || "Running NED...", "is-busy");
     if (report) { report.hidden = false; report.classList.add("is-loading"); }
 
     postJson("/api/analyze", { text: text, mode: currentMode() })
       .then(function (data) {
         state.analyze = data;
         renderAnalyze(data);
-        setStatus("analyze-status", "Analysis complete \u00b7 " + txt(data.generated_at), null);
+        setStatus(
+          "analyze-status",
+          (deskCopy("submit_done") || "Done") + " \u00b7 " + txt(data.generated_at),
+          null
+        );
+        var dossier = $("analyze-results");
+        if (dossier && dossier.scrollIntoView) {
+          // Bring the new case into view: the reader should not have to hunt for it. Wait two
+          // frames so the report has been laid out, or the jump lands short.
+          var jump = function () { dossier.scrollIntoView({ block: "start" }); };
+          if (typeof requestAnimationFrame === "function") {
+            requestAnimationFrame(function () { requestAnimationFrame(jump); });
+          }
+          // Belt and braces: one more jump after layout, so the landing is deterministic.
+          if (typeof setTimeout === "function") { setTimeout(jump, 60); }
+        }
+        if (input && input.focus) { input.focus(); }
       })
       .catch(function (err) {
         if (report) {
@@ -1390,6 +1576,27 @@
       .then(function () { button.disabled = false; });
   }
 
+  // PR-3: the dossier's own chrome - the four counters, their titles, the issuance kicker and
+  // the satire line - is catalogue copy read here, kept out of the hall-label block so that
+  // block stays what it is (labels only, no status machine).
+  function renderStageChrome() {
+    [["stage-kicker-submit", "stage_kicker_submit"],
+     ["stage-name-submit", "stage_name_submit"],
+     ["stage-name-material", "stage_name_material"],
+     ["stage-name-review", "stage_name_review"],
+     ["stage-name-issuance", "stage_name_issuance"],
+     ["stage-title-material", "stage_name_material"],
+     ["stage-title-review", "stage_name_review"],
+     ["stage-title-issuance", "stage_name_issuance"],
+     ["issuance-kicker", "issuance_kicker"],
+     ["satire-line", "satire_line"]].forEach(function (pair) {
+      var node = $(pair[0]);
+      var text = frontDeskText(pair[1]);
+      if (node && text) { node.textContent = text; }
+    });
+  }
+
+
   /* ------------------------------------------------------------- hall copy */
 
   // The hall's own labels are copy, not data: every one of them is looked up in the
@@ -1403,6 +1610,10 @@
     return declared.toLowerCase().indexOf("zh") === 0 ? "zh" : "en";
   }
 
+  // PR-3: the four-stage dossier reads its wording from the same catalogue, so the
+  // client still carries no sentence of its own.
+  function deskCopy(key) { return frontDeskText(key); }
+
   function frontDeskText(key) {
     var entry = obj(catalogueObj("front_desk")[key]);
     var text = entry[hallLanguage()];
@@ -1410,6 +1621,9 @@
   }
 
   function renderFrontDeskCopy() {
+    var toggle = $("lang-toggle");
+    var toggleText = frontDeskText("language_toggle");
+    if (toggle && toggleText) { toggle.textContent = toggleText; }
     [["hall-title", "hall_title"],
      ["intake-heading", "intake_heading"],
      ["analyze-submit", "submit_label"],
@@ -1440,6 +1654,20 @@
     initExamples();
     initCopy();
     renderFrontDeskCopy();
+    renderStageChrome();
+    var langBtn = $("lang-toggle");
+    if (langBtn) {
+      langBtn.addEventListener("click", function () {
+        // Presentation only: the document language drives the catalogue variant, and the
+        // analysis itself is unchanged. English and Chinese both keep working.
+        var next = hallLanguage() === "zh" ? "en" : "zh-CN";
+        if (document.documentElement) { document.documentElement.setAttribute("lang", next); }
+        renderFrontDeskCopy();
+    renderStageChrome();
+        if (state.analyze) { renderAnalyze(state.analyze); }
+      });
+    }
+
     var analyzeBtn = $("analyze-submit");
     var asymBtn = $("asym-submit");
     var fnbpBtn = $("fnbp-submit");

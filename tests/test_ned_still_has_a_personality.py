@@ -70,8 +70,10 @@ INTERNAL_FIELDS = (
 )
 
 #: Element ids that only ever belong to the folded technical block.
+#: PR-3 moved the verdict itself out of it: the issuance card is stage (4) of the dossier,
+#: so the verdict readouts are pinned as an issuance stage instead (see
+#: ``test_h_the_verdict_is_the_issuance_stage``).
 INTERNAL_IDS = (
-    "verdict-code",
     "evidence-strength-value",
     "discount-value",
     "amplification-value",
@@ -338,6 +340,17 @@ def test_h_the_internal_readouts_live_inside_technical_details(structure: _Struc
     for internal_id in INTERNAL_IDS:
         assert internal_id in structure.by_id, internal_id
         assert contains(details, internal_id) or contains(asym_details, internal_id), internal_id
+
+
+def test_h_the_verdict_is_the_issuance_stage(structure: _Structure) -> None:
+    """PR-3: the verdict left the archive and became stage (4) of the dossier."""
+
+    issuance = structure.by_id["final-verdict"]
+    details = structure.by_id["technical-details"]
+    for verdict_id in ("verdict-text", "verdict-code", "verdict-severity", "verdict-emoji"):
+        assert verdict_id in structure.by_id, verdict_id
+        assert contains(issuance, verdict_id), verdict_id
+        assert not contains(details, verdict_id), verdict_id
 
 
 def test_h_no_internal_readout_is_inside_a_first_screen(structure: _Structure) -> None:

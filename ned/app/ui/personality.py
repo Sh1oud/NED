@@ -2091,12 +2091,81 @@ FRONT_DESK_COPY: dict[str, dict[str, str]] = {
         "en": "Submit for review",
     },
     "records_heading": {
-        "zh": "审查记录",
-        "en": "Review record",
+        "zh": "技术档案 · Technical archive",
+        "en": "Technical archive",
     },
     "issuance_heading": {
         "zh": "签发状态",
         "en": "Issuance status",
+    },
+    # PR-3: the four-stage dossier. These name the stages of the counter and the state of
+    # the reader's own submission; none of them invents a workflow, a progress figure or an
+    # outcome the payload did not produce. Every value is filled at runtime from the
+    # payload's own recognition state, evidence list and material list.
+    "stage_material_count": {"zh": "已登记 {n} 项", "en": "{n} on file"},
+    "stage_material_none": {"zh": "未识别到材料", "en": "no material recognised"},
+    "stage_review_done": {"zh": "已出具意见", "en": "opinion issued"},
+    "stage_review_unsignable": {"zh": "材料不足，未出具", "en": "material only, no opinion"},
+    "stage_review_none": {"zh": "无材料可审", "en": "nothing to review"},
+    "stage_issuance_signed": {"zh": "已签发", "en": "signed"},
+    "stage_issuance_material": {"zh": "未签发 · 材料不足", "en": "not signed · material only"},
+    "stage_issuance_none": {"zh": "未签发 · 未识别到材料", "en": "not signed · no material"},
+    "issuance_signed": {"zh": "本局已签发结论", "en": "This agency signed a conclusion"},
+    "issuance_boundary": {
+        "zh": "本局确认：这是明确边界",
+        "en": "This agency confirms: a stated boundary",
+    },
+    "issuance_boundary_sub": {
+        "zh": "对方把边界说出口了。本局不对这条证据降权。",
+        "en": "The boundary was stated out loud. This agency does not discount it.",
+    },
+    "issuance_material": {"zh": "本局未签发结论", "en": "This agency signed nothing"},
+    "issuance_material_sub": {
+        "zh": "材料已登记，但不足以单独签发结论。",
+        "en": "Material is on file, but it cannot carry a conclusion on its own.",
+    },
+    "issuance_none": {"zh": "本局未签发结论", "en": "This agency signed nothing"},
+    "issuance_none_sub": {
+        "zh": "本版未识别到可登记材料。",
+        "en": "This release recognised no material in the submission.",
+    },
+    "material_count": {"zh": "已登记材料 {n} 项", "en": "{n} material item(s) on file"},
+    "material_count_none": {"zh": "无可登记材料", "en": "no material on file"},
+    "review_relation_evidence_and_material": {
+        "zh": "材料已登记，其中 {n} 项与本次命中的证据相关；证据本身仍不足以无限外推。",
+        "en": "{n} material item(s) are on file; the matched evidence still cannot be "
+        "extrapolated.",
+    },
+    "review_relation_evidence_only": {
+        "zh": "本次未登记材料，审查意见直接来自输入命中的证据。",
+        "en": "No material was filed; this opinion rests on the evidence the input matched.",
+    },
+    "review_relation_material_only": {
+        "zh": "材料已入卷，但不足以单独签发该结论。",
+        "en": "Material is on file, but it cannot sign that conclusion on its own.",
+    },
+    "review_relation_none": {
+        "zh": "本版没有登记到材料，也没有可裁决的证据。",
+        "en": "This release filed no material and found no adjudicable evidence.",
+    },
+    "language_toggle": {"zh": "EN", "en": "中文"},
+    # PR-3: the four counters of the dossier. Names only - the state beside each one comes
+    # from the payload (recognition, evidence, materials), never from these strings.
+    "stage_name_submit": {"zh": "提交材料", "en": "Submitted material"},
+    "stage_name_material": {"zh": "材料登记", "en": "Material registration"},
+    "stage_name_review": {"zh": "审查意见", "en": "Review opinion"},
+    "stage_name_issuance": {"zh": "签发状态", "en": "Issuance"},
+    "issuance_kicker": {"zh": "签发状态 · Issuance", "en": "Issuance status"},
+    "stage_kicker_submit": {"zh": "第一步 · 提交材料", "en": "Step one - submit material"},
+    "stage_submit_state": {"zh": "已提交", "en": "submitted"},
+    "submit_pending": {
+        "zh": "正在提交，等待本机引擎响应…",
+        "en": "Submitting; waiting for the local engine…",
+    },
+    "submit_done": {"zh": "已出具", "en": "Opinion issued"},
+    "satire_line": {
+        "zh": "本输出是讽刺作品，不测量任何人的感情。",
+        "en": "This output is satire. It does not measure anyone's feelings.",
     },
 }
 

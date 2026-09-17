@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -21,6 +21,7 @@
           </span>
           <span class="badge mono" id="version-badge">v{{ version }}</span>
           <span class="badge badge-quiet" id="privacy-note">{{ privacy_note }}</span>
+          <button type="button" class="btn btn-ghost btn-lang" id="lang-toggle" aria-label="Switch interface language">EN</button>
         </div>
 
         <h1 class="hero-title">
@@ -29,44 +30,18 @@
           <span class="hero-title-sub" id="hall-title"></span>
         </h1>
 
-        <p class="hero-tagline">Systematically explaining away good news since 2026.</p>
-
-        <blockquote class="hero-quote">
-          When reality becomes suspiciously positive, NED restores uncertainty.
-        </blockquote>
-
-        <p class="hero-motto">Everything may be affection. Everything may also be 人好. 👍</p>
-
-        <dl class="spec-strip">
-          <div class="spec">
-            <dt>Engine</dt>
-            <dd class="mono">ned-local-rules</dd>
-          </div>
-          <div class="spec">
-            <dt>Modes</dt>
-            <dd class="mono">{{ modes|length }}</dd>
-          </div>
-          <div class="spec">
-            <dt>Reaching bands</dt>
-            <dd class="mono">{{ reaching_labels|length }}</dd>
-          </div>
-          <div class="spec">
-            <dt>Provider</dt>
-            <dd class="mono">local</dd>
-          </div>
-          <div class="spec">
-            <dt>API</dt>
-            <dd class="mono">/api/analyze</dd>
-          </div>
-        </dl>
+        <p class="hero-purposes" id="institution-purpose">把可疑的好消息重新变成不确定。本局只审查材料的证据资格，不猜对方的心意。</p>
+        <p class="hero-quote" id="hero-slogan">When reality becomes suspiciously positive, NED restores uncertainty.</p>
+        <p class="hero-tagline">Systematically explaining away good news since 2026. · 自 2026 年起，系统性解释掉好消息。</p>
       </div>
     </header>
 
     <div class="hall-directory">
       <nav class="tabs" role="tablist" aria-label="NED modules">
-        <button type="button" class="tab is-active" id="tab-analyze" role="tab" aria-selected="true" aria-controls="panel-analyze" tabindex="0" data-tab="analyze">Analyze Evidence</button>
-        <button type="button" class="tab" id="tab-asymmetry" role="tab" aria-selected="false" aria-controls="panel-asymmetry" tabindex="-1" data-tab="asymmetry">Asymmetry Detector</button>
-        <button type="button" class="tab" id="tab-lab" role="tab" aria-selected="false" aria-controls="panel-lab" tabindex="-1" data-tab="lab">Lab (FNBP)</button>
+        <button type="button" class="tab is-active" id="tab-analyze" role="tab" aria-selected="true" aria-controls="panel-analyze" tabindex="0" data-tab="analyze">交材料 · Review intake</button>
+        <span class="tab-group-label">其它窗口</span>
+        <button type="button" class="tab tab-secondary" id="tab-asymmetry" role="tab" aria-selected="false" aria-controls="panel-asymmetry" tabindex="-1" data-tab="asymmetry">证据对比（专项服务）</button>
+        <button type="button" class="tab tab-secondary" id="tab-lab" role="tab" aria-selected="false" aria-controls="panel-lab" tabindex="-1" data-tab="lab">通知分支实验室（工程功能）</button>
       </nav>
     </div>
 
@@ -77,201 +52,140 @@
 
       <!-- ============================ ANALYZE ============================ -->
       <section class="panel" id="panel-analyze" role="tabpanel" aria-labelledby="tab-analyze" tabindex="0">
-        <div class="card window-card">
-          <div class="window-plate" aria-hidden="true"></div>
-          <div class="card-head">
-            <h2 class="label" id="intake-heading">Evidence Intake</h2>
-            <p class="hint">Paste a chat message, or describe what actually happened. NED will look for positive-affection signals and then, with great rigor, explain them away.</p>
-          </div>
+        <div class="stage-stack">
 
-          <label class="field-label" for="analyze-input">Message or event</label>
-          <textarea id="analyze-input" class="input" rows="5" placeholder="Paste a message or describe what happened..." spellcheck="false"></textarea>
-
-          <div class="row-inline">
-            <div class="field">
-              <label class="field-label" for="mode-select">Analysis mode</label>
-              <select id="mode-select" class="input select">
-                {% for m in modes %}
-                <option value="{{ m.id }}" data-blurb="{{ m.blurb }}"{% if m.id == modes_default %} selected{% endif %}>{{ m.label }}</option>
-                {% endfor %}
-              </select>
-              <p class="mode-blurb" id="mode-blurb">{% for m in modes %}{% if m.id == modes_default %}{{ m.blurb }}{% endif %}{% endfor %}</p>
-            </div>
-            <div class="field field-actions">
-              <button type="button" class="btn btn-primary" id="analyze-submit">Analyze Evidence</button>
-              <p class="status" id="analyze-status" role="status" aria-live="polite"></p>
-            </div>
-          </div>
-
-          <div class="chips-wrap">
-            <div class="label">Example cases</div>
-            <div class="chips" id="example-chips">
-              {% for ex in examples %}
-              <button type="button" class="chip" data-text="{{ ex.text }}" data-mode="{{ ex.mode }}"{% if ex.note %} title="{{ ex.note }}"{% endif %}>
-                <span class="chip-text">{{ ex.text }}</span>
-                <span class="chip-foot">
-                  {% if ex.note %}<span class="chip-note">{{ ex.note }}</span>{% endif %}
-                  <span class="chip-mode mono">{{ ex.mode }}</span>
-                </span>
-              </button>
-              {% endfor %}
-            </div>
-          </div>
-        </div>
-
-        <section class="report" id="analyze-results" data-severity="info" hidden aria-live="polite">
-          <div class="report-head">
-            <div>
-              <div class="label">Analysis Report</div>
-              <p class="satire-line">This output is satire. It does not measure anyone's feelings.</p>
-            </div>
-            <div class="report-tools">
-              <div class="report-meta">
-                <span class="meta-item">mode <b class="mono" id="result-mode">—</b></span>
-                <span class="meta-item">lang <b class="mono" id="result-language">—</b></span>
-                <span class="meta-item">signal <b class="mono" id="result-signal-type">—</b></span>
+          <!-- (1) SUBMIT MATERIAL ------------------------------------------------ -->
+          <section class="stage-block stage-submit" id="stage-block-submit" data-stage="submit">
+            <div class="card window-card intake-card">
+              <div class="window-plate" aria-hidden="true"></div>
+              <div class="card-head">
+                <p class="stage-kicker"><span class="stage-no">01</span> <span class="stage-kicker-text" id="stage-kicker-submit"></span></p>
+                <h2 class="label" id="intake-heading">Evidence Intake · 提交待审查材料</h2>
+                <p class="hint" id="intake-purpose">粘贴一句话，或描述发生了什么。本局不猜对方的心意，只审查你手上的材料。</p>
               </div>
-              <button type="button" class="btn btn-ghost" id="copy-json">Copy JSON</button>
-            </div>
-          </div>
 
-          <!-- The 30-second screen. Facts, plain-language quality, NED's line. -->
-          <section class="first-screen" id="first-screen" data-situation="neutral" aria-label="NED result">
-            <h2 class="screen-title" id="screen-title">—</h2>
-            <p class="screen-fact" id="screen-fact">—</p>
-            <p class="screen-quality-row" id="screen-quality-row" hidden>
-              <span class="screen-quality-label" id="screen-quality-label">Evidence quality</span>
-              <span class="screen-quality" id="screen-quality">—</span>
-            </p>
-            <div class="screen-lines" id="screen-lines"></div>
-            <p class="screen-reality" id="screen-reality">—</p>
+              <label class="field-label" for="analyze-input">Message or event · 材料原文</label>
+              <textarea id="analyze-input" class="input" rows="4" placeholder="Paste a message or describe what happened… · 粘贴消息，或描述发生了什么…" spellcheck="false"></textarea>
+
+              <div class="row-inline">
+                <div class="field">
+                  <label class="field-label" for="mode-select">Analysis mode · 审查模式</label>
+                  <select id="mode-select" class="input select">
+                    {% for m in modes %}
+                    <option value="{{ m.id }}" data-blurb="{{ m.blurb }}"{% if m.id == modes_default %} selected{% endif %}>{{ m.label }}</option>
+                    {% endfor %}
+                  </select>
+                  <p class="mode-blurb" id="mode-blurb">{% for m in modes %}{% if m.id == modes_default %}{{ m.blurb }}{% endif %}{% endfor %}</p>
+                </div>
+                <div class="field field-actions">
+                  <button type="button" class="btn btn-primary" id="analyze-submit">Analyze Evidence</button>
+                  <p class="status" id="analyze-status" role="status" aria-live="polite"></p>
+                </div>
+              </div>
+
+              <details class="examples-guide" id="examples-guide">
+                <summary id="examples-heading">办事指南 · Example cases</summary>
+                <div class="chips-wrap">
+                  <div class="label">Example cases</div>
+                  <div class="chips" id="example-chips">
+                    {% for ex in examples %}
+                    <button type="button" class="chip" data-text="{{ ex.text }}" data-mode="{{ ex.mode }}"{% if ex.note %} title="{{ ex.note }}"{% endif %}>
+                      <span class="chip-text">{{ ex.text }}</span>
+                      <span class="chip-foot">
+                        {% if ex.note %}<span class="chip-note">{{ ex.note }}</span>{% endif %}
+                        <span class="chip-mode mono">{{ ex.mode }}</span>
+                      </span>
+                    </button>
+                    {% endfor %}
+                  </div>
+                </div>
+              </details>
+            </div>
           </section>
 
-          <!-- Everything the engine actually computed. Folded by default. -->
-                          <section class="card card-wide stage-card" id="material-registry" hidden>
-                  <div class="label" id="material-registry-title"></div>
-                  <div class="stack">
-                    <p class="note" id="material-registry-intro"></p>
-                    <dl class="audit-rows" id="material-registry-rows"></dl>
-                    <p class="note" id="material-registry-disclaimer"></p>
-                    <p class="note" id="material-registry-isolation"></p>
-                  </div>
-                </section>
-<details class="technical-details" id="technical-details">
-            <summary id="records-heading">Technical Details</summary>
-            <div class="technical-body">
-              <p class="legacy-note">This block explains the screen above. It never changes it. Legacy composite fields (<code>asymmetry_score</code>, <code>asymmetry_label</code>, sub-scores) are compatibility-only and are deprecated.</p>
+          <!-- THE DOSSIER ------------------------------------------------------- -->
+          <section class="report" id="analyze-results" data-severity="info" data-recognition="none" hidden aria-live="polite">
 
-              <div class="grid">
+            <!-- (4) ISSUANCE, FIRST GLANCE: did this agency sign anything? -->
+            <div class="issuance-strip" id="issuance-strip" data-recognition="none" data-situation="neutral">
+              <div class="issuance-stamp" id="issuance-stamp">未签</div>
+              <div class="issuance-line">
+                <span class="issuance-kicker" id="issuance-kicker"></span>
+                <strong class="issuance-value" id="issuance-value">—</strong>
+                <span class="issuance-sub" id="issuance-sub">—</span>
+              </div>
+              <div class="report-tools">
+                <div class="report-meta">
+                  <span class="meta-item">mode <b class="mono" id="result-mode">—</b></span>
+                  <span class="meta-item">lang <b class="mono" id="result-language">—</b></span>
+                  <span class="meta-item">signal <b class="mono" id="result-signal-type">—</b></span>
+                </div>
+                <button type="button" class="btn btn-ghost" id="copy-json">Copy JSON</button>
+              </div>
+            </div>
+
+            <!-- THE FOUR-STAGE RAIL -->
+            <ol class="stage-rail" id="stage-rail" aria-label="办理流程">
+              <li class="stage is-done" id="stage-submit" data-stage="submit">
+                <span class="stage-no">01</span>
+                <span class="stage-name" id="stage-name-submit"></span>
+                <span class="stage-state" id="stage-submit-state">已提交</span>
+              </li>
+              <li class="stage" id="stage-material" data-stage="material">
+                <span class="stage-no">02</span>
+                <span class="stage-name" id="stage-name-material"></span>
+                <span class="stage-state" id="stage-material-state">—</span>
+              </li>
+              <li class="stage" id="stage-review" data-stage="review">
+                <span class="stage-no">03</span>
+                <span class="stage-name" id="stage-name-review"></span>
+                <span class="stage-state" id="stage-review-state">—</span>
+              </li>
+              <li class="stage" id="stage-issuance" data-stage="issuance">
+                <span class="stage-no">04</span>
+                <span class="stage-name" id="stage-name-issuance"></span>
+                <span class="stage-state" id="stage-issuance-state">—</span>
+              </li>
+            </ol>
+            <p class="satire-line" id="satire-line"></p>
+
+            <!-- (2) MATERIAL REGISTRATION -------------------------------------- -->
+            <section class="stage-block" id="stage-block-material" data-stage="material">
+              <h3 class="stage-title"><span class="stage-no">02</span> <span id="stage-title-material"></span> <span class="stage-hint" id="material-count">—</span></h3>
+              <p class="stage-lead" id="material-lead">本机构到底听到了什么。</p>
+              <section class="card card-wide stage-card" id="material-registry">
+                <div class="label" id="material-registry-title"></div>
+                <div class="stack">
+                  <p class="note" id="material-registry-intro"></p>
+                  <dl class="audit-rows" id="material-registry-rows"></dl>
+                  <p class="note" id="material-registry-disclaimer"></p>
+                  <p class="note" id="material-registry-isolation"></p>
+                </div>
+              </section>
+              <p class="stage-empty" id="material-empty" hidden>本版未识别到可登记材料。 · No material was recognised in this submission.</p>
+            </section>
+
+            <!-- (3) REVIEW OPINION --------------------------------------------- -->
+            <section class="stage-block" id="stage-block-review" data-stage="review">
+              <h3 class="stage-title"><span class="stage-no">03</span> <span id="stage-title-review"></span></h3>
+              <p class="stage-lead" id="review-lead">这些材料能不能支持你准备下的那个结论。</p>
+
+              <section class="first-screen" id="first-screen" data-situation="neutral" aria-label="NED result">
+                <h2 class="screen-title" id="screen-title">—</h2>
+                <p class="screen-fact" id="screen-fact">—</p>
+                <p class="screen-quality-row" id="screen-quality-row" hidden>
+                  <span class="screen-quality-label" id="screen-quality-label">Evidence quality</span>
+                  <span class="screen-quality" id="screen-quality">—</span>
+                </p>
+                <div class="screen-lines" id="screen-lines"></div>
+                <p class="screen-reality" id="screen-reality">—</p>
+              </section>
+
+              <p class="review-relation" id="review-relation">—</p>
+
+              <div class="review-grid">
                 <section class="card">
-                  <div class="label">Signal Classification</div>
-                  <div id="signal-classification" class="kv review-region-start">
-                    <div class="kv-row"><span class="kv-k">Signal type</span><span class="kv-v mono" id="sc-signal-type">—</span></div>
-                    <div class="kv-row"><span class="kv-k">Label</span><span class="kv-v" id="sc-signal-label">—</span></div>
-                    <div class="kv-row"><span class="kv-k">Language</span><span class="kv-v mono" id="sc-language">—</span></div>
-                  </div>
-                </section>
-
-                <section class="card">
-                  <div class="label">Evidence Strength</div>
-                  <div id="evidence-strength" class="stack">
-                    <div class="readout">
-                      <span class="readout-value mono" id="evidence-strength-value">—</span>
-                      <span class="readout-unit">signal strength</span>
-                    </div>
-                    <div class="bar" role="progressbar" aria-label="Evidence strength" aria-valuemin="0" aria-valuemax="100">
-                      <span class="bar-fill" id="evidence-strength-bar"></span>
-                    </div>
-                  </div>
-                </section>
-
-                <section class="card">
-                  <div class="label">Discount</div>
-                  <div id="discount-block" class="stack">
-                    <div class="bar-meta">
-                      <span class="bar-label">Positive evidence discount</span>
-                      <span class="bar-value mono" id="discount-value">—</span>
-                    </div>
-                    <div class="bar" role="progressbar" aria-label="Positive evidence discount" aria-valuemin="0" aria-valuemax="100">
-                      <span class="bar-fill sev-warning" id="discount-bar"></span>
-                    </div>
-                  </div>
-                </section>
-
-                <section class="card">
-                  <div class="label">Amplification</div>
-                  <div id="amplification-block" class="stack">
-                    <div class="bar-meta">
-                      <span class="bar-label">Negative evidence amplification</span>
-                      <span class="bar-value mono" id="amplification-value">—</span>
-                    </div>
-                    <div class="bar" role="progressbar" aria-label="Negative evidence amplification" aria-valuemin="0" aria-valuemax="100">
-                      <span class="bar-fill sev-reject" id="amplification-bar"></span>
-                    </div>
-                  </div>
-                </section>
-
-                <section class="card card-wide review-region-start" id="epistemic-breakdown" hidden>
-                  <div class="label">Epistemic Breakdown</div>
-                  <div class="stack">
-                    <h3 class="subhead">Alternative Explanation Audit</h3>
-                    <dl class="audit-rows" id="audit-rows"></dl>
-                  </div>
-                </section>
-
-                <section class="card card-wide review-region-start" id="aspect-breakdown" hidden>
-                  <div class="label">Multiple Aspects Breakdown</div>
-                  <div class="stack">
-                    <h3 class="subhead">Materials on file</h3>
-                    <dl class="audit-rows" id="aspect-rows"></dl>
-                  </div>
-                </section>
-
-                <!-- The registry card: the reported statements the material layer
-                     registered. Every string here is filled from the personality
-                     catalogue, so this page holds no copy of its own. -->
-
-                <section class="card card-wide">
-                  <div class="label">Hypotheses</div>
-                  <div id="alternative-hypotheses" class="stack review-region-start">
-                    <h3 class="subhead">Alternative Hypotheses</h3>
-                    <p class="note">These are alternative hypotheses, not findings. Each one exists to re-open the possibility that 可能只是人好。👍</p>
-                    <ol class="hypo-list" id="hypotheses-list">
-                      <li class="hypo hypo-empty">No alternative hypotheses computed yet.</li>
-                    </ol>
-                  </div>
-                </section>
-
-                <section class="card card-wide">
-                  <div class="label">NED Reaching Level</div>
-                  <div id="reaching-block" class="stack">
-                    <div class="readout readout-lg">
-                      <span class="readout-value mono" id="reaching-value">—</span>
-                      <span class="readout-label" id="reaching-label">—</span>
-                      <span class="reaching-alert" id="reaching-alert" hidden>NED is currently reaching.</span>
-                    </div>
-                    <div class="personality-feedback" id="reaching-personality" hidden aria-live="polite">
-                      <div class="label">NED Message</div>
-                      <p id="reaching-personality-technical">—</p>
-                      <p id="reaching-personality-zh">—</p>
-                      <p class="personality-en" id="reaching-personality-en">—</p>
-                    </div>
-                    <div class="bar bar-lg" id="reaching-track" data-state="contained" role="progressbar" aria-label="NED reaching level" aria-valuemin="0" aria-valuemax="100">
-                      <span class="bar-fill" id="reaching-bar"></span>
-                    </div>
-                    <ul class="legend" id="reaching-legend">
-                      {% for band in reaching_labels %}
-                      <li class="legend-item" data-min="{{ band.min }}" data-max="{{ band.max }}">
-                        <span class="legend-range mono">{{ band.min }}–{{ band.max }}</span>
-                        <span class="legend-label">{{ band.label }}</span>
-                      </li>
-                      {% endfor %}
-                    </ul>
-                  </div>
-                </section>
-
-                <section class="card">
-                  <div class="label">Reality Check</div>
+                  <div class="label">Reality Check · 现实核对</div>
                   <div id="reality-check" class="stack">
                     <h3 class="subhead">Reality Check</h3>
                     <p class="prose" id="reality-check-text">—</p>
@@ -279,7 +193,7 @@
                 </section>
 
                 <section class="card card-wide review-region-start" id="nea-block" hidden>
-                  <div class="label">Negative Evidence Amplifier</div>
+                  <div class="label">Negative Evidence Amplifier · 负面证据放大器</div>
                   <div class="stack">
                     <h3 class="subhead">Observed evidence vs amplified reading</h3>
                     <div class="kv">
@@ -297,91 +211,232 @@
                   </div>
                 </section>
 
-                <section class="card verdict-card">
-                  <div class="label" id="issuance-heading">Verdict</div>
-                  <div id="final-verdict" class="stack">
-                    <h3 class="subhead">Final Verdict</h3>
-                    <p class="verdict-line">
-                      <span class="verdict-emoji" id="verdict-emoji" aria-hidden="true"></span>
-                      <span class="verdict-text" id="verdict-text">—</span>
-                    </p>
-                    <div class="chip-row">
-                      <span class="severity-chip mono" id="verdict-severity">—</span>
-                      <span class="code-chip mono" id="verdict-code">—</span>
-                    </div>
+                <section class="card card-wide">
+                  <div class="label">Hypotheses · 替代解释</div>
+                  <div id="alternative-hypotheses" class="stack review-region-start">
+                    <h3 class="subhead">Alternative Hypotheses</h3>
+                    <p class="note">These are alternative hypotheses, not findings. Each one exists to re-open the possibility that 可能只是人好。👍</p>
+                    <ol class="hypo-list" id="hypotheses-list">
+                      <li class="hypo hypo-empty">No alternative hypotheses computed yet.</li>
+                    </ol>
                   </div>
                 </section>
 
-                <section class="card card-wide review-region-start" id="analyze-asymmetry" hidden>
-                  <div class="label">Attached Evidence Comparison</div>
-                  <div class="kv">
-                    <div class="kv-row"><span class="kv-k">Evidence comparable</span><span class="kv-v mono" id="analyze-asym-comparable">—</span></div>
-                    <div class="kv-row"><span class="kv-k">NED treatment gap</span><span class="kv-v mono" id="analyze-asym-score">—</span></div>
-                    <div class="kv-row"><span class="kv-k">Your reading</span><span class="kv-v mono" id="analyze-asym-label">—</span></div>
-                  </div>
-                  <div class="bar" role="progressbar" aria-label="NED treatment gap" aria-valuemin="0" aria-valuemax="100">
-                    <span class="bar-fill sev-chaos" id="analyze-asym-bar"></span>
-                  </div>
-                  <p class="note" id="analyze-asym-reality">—</p>
-                </section>
-
-                <section class="card card-wide review-region-start" id="engine-notes-block" hidden>
-                  <div class="label">Engine Notes</div>
+                <section class="card card-wide review-region-start" id="epistemic-breakdown" hidden>
+                  <div class="label">Epistemic Breakdown · 解释审计</div>
                   <div class="stack">
-                    <ul class="notes" id="mode-notes"></ul>
-                    <ul class="notes notes-eggs" id="egg-list" hidden></ul>
+                    <h3 class="subhead">Alternative Explanation Audit</h3>
+                    <dl class="audit-rows" id="audit-rows"></dl>
+                  </div>
+                </section>
+
+                <section class="card card-wide review-region-start" id="aspect-breakdown" hidden>
+                  <div class="label">Multiple Aspects Breakdown · 多面材料</div>
+                  <div class="stack">
+                    <h3 class="subhead">Materials on file</h3>
+                    <dl class="audit-rows" id="aspect-rows"></dl>
                   </div>
                 </section>
               </div>
+            </section>
 
-              <details class="disclosure">
-                <summary>Raw interpretation &amp; matched evidence</summary>
-                <div class="disclosure-body">
-                  <div class="label">Raw Interpretation</div>
-                  <p class="prose" id="raw-interpretation">—</p>
-                  <div class="label">Evidence Rows</div>
-                  <div class="table-wrap">
-                    <table class="table" id="evidence-table">
-                      <thead>
-                        <tr>
-                          <th>Rule ID</th>
-                          <th>Evidence text</th>
-                          <th>Signal</th>
-                          <th>Polarity</th>
-                          <th class="num">Base</th>
-                          <th class="num">Info</th>
-                          <th>Matched keywords</th>
-                        </tr>
-                      </thead>
-                      <tbody id="evidence-rows">
-                        <tr><td colspan="7" class="muted">No evidence rows.</td></tr>
-                      </tbody>
-                    </table>
+            <!-- (4) ISSUANCE, THE DECISION ------------------------------------- -->
+            <section class="stage-block" id="stage-block-issuance" data-stage="issuance">
+              <h3 class="stage-title"><span class="stage-no">04</span> <span id="stage-title-issuance"></span></h3>
+              <p class="stage-lead" id="issuance-lead">本机构这次究竟签没签。</p>
+              <section class="card verdict-card" id="issuance-card">
+                <div class="label" id="issuance-heading">Verdict</div>
+                <div id="final-verdict" class="stack">
+                  <h3 class="subhead">Final Verdict</h3>
+                  <p class="verdict-line">
+                    <span class="verdict-emoji" id="verdict-emoji" aria-hidden="true"></span>
+                    <span class="verdict-text" id="verdict-text">—</span>
+                  </p>
+                  <div class="chip-row">
+                    <span class="severity-chip mono" id="verdict-severity">—</span>
+                    <span class="code-chip mono" id="verdict-code">—</span>
                   </div>
                 </div>
-              </details>
+              </section>
+            </section>
 
-              <details class="disclosure disclosure-legacy">
-                <summary>Legacy composite sub-scores (deprecated, compatibility only)</summary>
-                <div class="disclosure-body">
-                  <div class="table-wrap">
-                    <table class="table table-kv" id="breakdown">
-                      <tbody id="breakdown-rows">
-                        <tr><th scope="row" class="mono">—</th><td class="mono">—</td></tr>
-                      </tbody>
-                    </table>
+            <!-- TECHNICAL ARCHIVE: everything a case officer does not need ---- -->
+            <details class="technical-details" id="technical-details">
+              <summary id="records-heading">Technical Details</summary>
+              <div class="technical-body">
+                <dl class="spec-strip" id="system-strip">
+                  <div class="spec">
+                    <dt>Engine</dt>
+                    <dd class="mono">ned-local-rules</dd>
                   </div>
-                </div>
-              </details>
-            </div>
-          </details>
+                  <div class="spec">
+                    <dt>Modes</dt>
+                    <dd class="mono">{{ modes|length }}</dd>
+                  </div>
+                  <div class="spec">
+                    <dt>Reaching bands</dt>
+                    <dd class="mono">{{ reaching_labels|length }}</dd>
+                  </div>
+                  <div class="spec">
+                    <dt>Provider</dt>
+                    <dd class="mono">local</dd>
+                  </div>
+                  <div class="spec">
+                    <dt>API</dt>
+                    <dd class="mono">/api/analyze</dd>
+                  </div>
+                </dl>
 
-          <footer class="report-foot">
-            <p class="engine-line">Engine <b class="mono" id="engine-name">—</b> · provider <b class="mono" id="engine-provider">—</b> · escapes used <b class="mono" id="engine-escapes">—</b></p>
-            <p class="disclaimer" id="result-disclaimer">{{ disclaimer }}</p>
-            <p class="foot-meta mono" id="result-generated-at">—</p>
-          </footer>
-        </section>
+                <p class="legacy-note">This archive explains the dossier above. It never changes it. Legacy composite fields (<code>asymmetry_score</code>, <code>asymmetry_label</code>, sub-scores) are compatibility-only and are deprecated.</p>
+
+                <div class="grid">
+                  <section class="card">
+                    <div class="label">Signal Classification</div>
+                    <div id="signal-classification" class="kv review-region-start">
+                      <div class="kv-row"><span class="kv-k">Signal type</span><span class="kv-v mono" id="sc-signal-type">—</span></div>
+                      <div class="kv-row"><span class="kv-k">Label</span><span class="kv-v" id="sc-signal-label">—</span></div>
+                      <div class="kv-row"><span class="kv-k">Language</span><span class="kv-v mono" id="sc-language">—</span></div>
+                    </div>
+                  </section>
+
+                  <section class="card">
+                    <div class="label">Evidence Strength</div>
+                    <div id="evidence-strength" class="stack">
+                      <div class="readout">
+                        <span class="readout-value mono" id="evidence-strength-value">—</span>
+                        <span class="readout-unit">signal strength</span>
+                      </div>
+                      <div class="bar" role="progressbar" aria-label="Evidence strength" aria-valuemin="0" aria-valuemax="100">
+                        <span class="bar-fill" id="evidence-strength-bar"></span>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="card">
+                    <div class="label">Discount</div>
+                    <div id="discount-block" class="stack">
+                      <div class="bar-meta">
+                        <span class="bar-label">Positive evidence discount</span>
+                        <span class="bar-value mono" id="discount-value">—</span>
+                      </div>
+                      <div class="bar" role="progressbar" aria-label="Positive evidence discount" aria-valuemin="0" aria-valuemax="100">
+                        <span class="bar-fill sev-warning" id="discount-bar"></span>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="card">
+                    <div class="label">Amplification</div>
+                    <div id="amplification-block" class="stack">
+                      <div class="bar-meta">
+                        <span class="bar-label">Negative evidence amplification</span>
+                        <span class="bar-value mono" id="amplification-value">—</span>
+                      </div>
+                      <div class="bar" role="progressbar" aria-label="Negative evidence amplification" aria-valuemin="0" aria-valuemax="100">
+                        <span class="bar-fill sev-reject" id="amplification-bar"></span>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="card card-wide">
+                    <div class="label">NED Reaching Level</div>
+                    <div id="reaching-block" class="stack">
+                      <div class="readout readout-lg">
+                        <span class="readout-value mono" id="reaching-value">—</span>
+                        <span class="readout-label" id="reaching-label">—</span>
+                        <span class="reaching-alert" id="reaching-alert" hidden>NED is currently reaching.</span>
+                      </div>
+                      <div class="personality-feedback" id="reaching-personality" hidden aria-live="polite">
+                        <div class="label">NED Message</div>
+                        <p id="reaching-personality-technical">—</p>
+                        <p id="reaching-personality-zh">—</p>
+                        <p class="personality-en" id="reaching-personality-en">—</p>
+                      </div>
+                      <div class="bar bar-lg" id="reaching-track" data-state="contained" role="progressbar" aria-label="NED reaching level" aria-valuemin="0" aria-valuemax="100">
+                        <span class="bar-fill" id="reaching-bar"></span>
+                      </div>
+                      <ul class="legend" id="reaching-legend">
+                        {% for band in reaching_labels %}
+                        <li class="legend-item" data-min="{{ band.min }}" data-max="{{ band.max }}">
+                          <span class="legend-range mono">{{ band.min }}–{{ band.max }}</span>
+                          <span class="legend-label">{{ band.label }}</span>
+                        </li>
+                        {% endfor %}
+                      </ul>
+                    </div>
+                  </section>
+
+                  <section class="card card-wide review-region-start" id="analyze-asymmetry" hidden>
+                    <div class="label">Attached Evidence Comparison</div>
+                    <div class="kv">
+                      <div class="kv-row"><span class="kv-k">Evidence comparable</span><span class="kv-v mono" id="analyze-asym-comparable">—</span></div>
+                      <div class="kv-row"><span class="kv-k">NED treatment gap</span><span class="kv-v mono" id="analyze-asym-score">—</span></div>
+                      <div class="kv-row"><span class="kv-k">Your reading</span><span class="kv-v mono" id="analyze-asym-label">—</span></div>
+                    </div>
+                    <div class="bar" role="progressbar" aria-label="NED treatment gap" aria-valuemin="0" aria-valuemax="100">
+                      <span class="bar-fill sev-chaos" id="analyze-asym-bar"></span>
+                    </div>
+                    <p class="note" id="analyze-asym-reality">—</p>
+                  </section>
+
+                  <section class="card card-wide review-region-start" id="engine-notes-block" hidden>
+                    <div class="label">Engine Notes</div>
+                    <div class="stack">
+                      <ul class="notes" id="mode-notes"></ul>
+                      <ul class="notes notes-eggs" id="egg-list" hidden></ul>
+                    </div>
+                  </section>
+                </div>
+
+                <details class="disclosure">
+                  <summary>Raw interpretation &amp; matched evidence</summary>
+                  <div class="disclosure-body">
+                    <div class="label">Raw Interpretation</div>
+                    <p class="prose" id="raw-interpretation">—</p>
+                    <div class="label">Evidence Rows</div>
+                    <div class="table-wrap">
+                      <table class="table" id="evidence-table">
+                        <thead>
+                          <tr>
+                            <th>Rule ID</th>
+                            <th>Evidence text</th>
+                            <th>Signal</th>
+                            <th>Polarity</th>
+                            <th class="num">Base</th>
+                            <th class="num">Info</th>
+                            <th>Matched keywords</th>
+                          </tr>
+                        </thead>
+                        <tbody id="evidence-rows">
+                          <tr><td colspan="7" class="muted">No evidence rows.</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </details>
+
+                <details class="disclosure disclosure-legacy">
+                  <summary>Legacy composite sub-scores (deprecated, compatibility only)</summary>
+                  <div class="disclosure-body">
+                    <div class="table-wrap">
+                      <table class="table table-kv" id="breakdown">
+                        <tbody id="breakdown-rows">
+                          <tr><th scope="row" class="mono">—</th><td class="mono">—</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </details>
+              </div>
+            </details>
+
+            <footer class="report-foot">
+              <p class="engine-line">Engine <b class="mono" id="engine-name">—</b> · provider <b class="mono" id="engine-provider">—</b> · escapes used <b class="mono" id="engine-escapes">—</b></p>
+              <p class="disclaimer" id="result-disclaimer">{{ disclaimer }}</p>
+              <p class="foot-meta mono" id="result-generated-at">—</p>
+            </footer>
+          </section>
+        </div>
       </section>
 
       <!-- ============================ ASYMMETRY ============================ -->

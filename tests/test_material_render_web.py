@@ -43,12 +43,22 @@ FLAGSHIP = "她说她讨厌我"
 BOUNDARY_COLLISION = "她跟我说她讨厌我，但她说我们还是做朋友吧。"
 
 
-def section_html() -> str:
-    """The shipped markup of the registry card."""
+def section_html(node_id: str = SECTION) -> str:
+    """The shipped markup of one element, nested elements included."""
 
-    match = re.search(rf'<section[^>]*id="{SECTION}".*?</section>', TEMPLATE_TEXT, re.DOTALL)
-    assert match is not None, "the registry section is missing from the template"
-    return match.group(0)
+    opening = re.search(rf'<([a-z]+)[^>]*\bid="{node_id}"', TEMPLATE_TEXT)
+    assert opening is not None, f"{node_id} is missing from the template"
+    tag = opening.group(1)
+    depth = 0
+    for token in re.finditer(rf"</?{tag}\b", TEMPLATE_TEXT[opening.start() :]):
+        if token.group(0).startswith("</"):
+            depth -= 1
+            if depth == 0:
+                end = TEMPLATE_TEXT.find(">", opening.start() + token.end())
+                return TEMPLATE_TEXT[opening.start() : end + 1]
+        else:
+            depth += 1
+    raise AssertionError(f"{node_id} is not closed")
 
 
 def function_body(name: str) -> str:
@@ -73,7 +83,10 @@ def code_lines(body: str) -> str:
 def test_the_template_has_a_registry_section() -> None:
     markup = section_html()
     assert f'id="{SECTION}"' in markup
-    assert "hidden" in markup.split(">", 1)[0]
+    # PR-3: the registry is stage (2) of the dossier, on the main path, so it is no longer
+    # shipped hidden; the client shows or hides it from the real material list.
+    details = section_html("technical-details")
+    assert f'id="{SECTION}"' not in details, "the registry belongs to the dossier, not the archive"
     for hook in HOOKS:
         assert f'id="{hook}"' in markup, hook
 

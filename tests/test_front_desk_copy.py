@@ -44,7 +44,8 @@ FRONT_DESK = {
     ),
     "intake_heading": ("请提交待审查材料", "Submit material for review"),
     "submit_label": ("提交审查", "Submit for review"),
-    "records_heading": ("审查记录", "Review record"),
+    # PR-3: the folded block became the dossier's technical archive, so its heading says so.
+    "records_heading": ("技术档案 · Technical archive", "Technical archive"),
     "issuance_heading": ("签发状态", "Issuance status"),
 }
 
@@ -158,11 +159,49 @@ def screens() -> list[str]:
 
 
 def test_the_hall_has_exactly_the_five_frozen_labels() -> None:
+    """The five hall labels keep their wording; PR-3 added stage chrome beside them."""
+
     catalog = p.web_personality_catalog()
     assert catalog["front_desk"] == p.FRONT_DESK_COPY
-    assert set(catalog["front_desk"]) == set(FRONT_DESK)
+    # the five frozen labels are still all there, with the frozen wording
+    assert set(FRONT_DESK) <= set(catalog["front_desk"])
     for key, wording in FRONT_DESK.items():
         assert catalog["front_desk"][key] == {"zh": wording[0], "en": wording[1]}, key
+    # PR-3's dossier chrome lives in the same block, and nothing else does
+    assert set(catalog["front_desk"]) == set(FRONT_DESK) | {
+        "stage_material_count",
+        "stage_material_none",
+        "stage_review_done",
+        "stage_review_unsignable",
+        "stage_review_none",
+        "stage_issuance_signed",
+        "stage_issuance_material",
+        "stage_issuance_none",
+        "issuance_signed",
+        "issuance_boundary",
+        "issuance_boundary_sub",
+        "issuance_material",
+        "issuance_material_sub",
+        "issuance_none",
+        "issuance_none_sub",
+        "material_count",
+        "material_count_none",
+        "review_relation_evidence_and_material",
+        "review_relation_evidence_only",
+        "review_relation_material_only",
+        "review_relation_none",
+        "language_toggle",
+        "stage_name_submit",
+        "stage_name_material",
+        "stage_name_review",
+        "stage_name_issuance",
+        "issuance_kicker",
+        "stage_kicker_submit",
+        "satire_line",
+        "submit_pending",
+        "submit_done",
+        "stage_submit_state",
+    }
 
 
 @pytest.mark.parametrize("key", sorted(FRONT_DESK))
