@@ -55,21 +55,22 @@ reach, and prints a verdict.
 ```
 $ ned analyze "我想你了"
 
-┌─────────────────────────────── NO CLASSIFIABLE SIGNAL ───────────────────────────────┐
-│   Observed evidence    输入中没有检测到可分类的情感信号。NED                         │
-│                        无法在不存在的证据上工作。                                    │
-│                                                                                      │
-│ 来件已收悉，暂无可分类信号。                                                         │
-│ 本机构暂时不知道该送哪个窗口。👍                                                     │
-│                                                                                      │
-│ 本次输入没有命中 NED                                                                 │
-│ 当前支持的信号类型。这不代表输入本身没有意义，只表示当前规则没有给出可解释的分类。   │
-└──────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────── NO RECOGNIZED MATERIAL ─────────────────────────────────────┐
+│   Observed evidence    输入中没有检测到可分类的情感信号。NED 无法在不存在的证据上工作。         │
+│                                                                                                 │
+│ 来件已收悉，这一版没有识别到可登记的材料。                                                      │
+│ 本机构暂时不知道该送哪个窗口。👍                                                                │
+│                                                                                                 │
+│ 本次输入没有命中 NED                                                                            │
+│ 当前支持的信号类型，也没有登记到材料。这不代表输入本身没有意义，只表示当前规则没有给出可解释的  │
+│ 分类。                                                                                          │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 Final Verdict (ned.no_signal)
   未检测到明显情感证据。NED 无事可做。👍
 
 engine ned-local-rules v0.1.10 (provider=local-rule, offline=True)
+
 ```
 
 `我想你了` is the reader's own longing, so NED never reads it as the other
@@ -462,8 +463,8 @@ Inputs and their classic outcomes (all available as `ned examples`):
 
 | Input | Mode | Outcome |
 | --- | --- | --- |
-| `我想你了` | normal | `未检测到明显情感证据。NED 无事可做。👍` (screen: NO CLASSIFIABLE SIGNAL) |
-| `我想你了` | extreme | `未检测到明显情感证据。NED 无事可做。👍` (screen: NO CLASSIFIABLE SIGNAL) |
+| `我想你了` | normal | `未检测到明显情感证据。NED 无事可做。👍` (screen: NO RECOGNIZED MATERIAL) |
+| `我想你了` | extreme | `未检测到明显情感证据。NED 无事可做。👍` (screen: NO RECOGNIZED MATERIAL) |
 | `她说喜欢我` | extreme | reaching 76.7 (Industrial-grade denial) → `证据不足，建议扩大样本量。👍` |
 | `我们已经结婚了` | extreme | `证据不足，建议扩大样本量。👍` |
 | `她主动找我聊了两个小时，但五分钟没回复` | normal | MULTIPLE ASPECTS DETECTED — `「她主动找我聊了两个小时」、「五分钟没回复」已分别入档。` 然后 `两项各自成页。本机构拒绝把它们相加。👍` |
