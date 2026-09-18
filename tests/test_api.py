@@ -4,9 +4,19 @@ from __future__ import annotations
 
 import json
 import re
+import tempfile
+import uuid
+from pathlib import Path
 
+import ned
 import pytest
 from fastapi.testclient import TestClient
+from ned.app.store import (
+    CASEBOOK_ENV,
+    CASEBOOK_PATH_ENV,
+    casebook_path,
+    sidecar_paths,
+)
 from ned.app.version import __version__
 
 
@@ -302,22 +312,41 @@ def test_static_path_traversal_is_refused(client: TestClient) -> None:
     assert response.status_code in (400, 404)
 
 
-def test_api_does_not_store_input(client: TestClient) -> None:
-    """NED has no persistence layer: repeated calls leave no trace on disk."""
+def test_api_does_not_store_input(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Analysing stores nothing: no artefact in the package, and none at the path NED would use.
+
+    The casebook is off by default, so this is the analysis path a reader gets out of the box.
+    The check covers the resolved data path - the loophole the casebook audit found was that this
+    test only ever looked inside the installed package. The path is deliberately never created, so
+    the test needs no scratch directory of its own.
+    """
+
+    never_created = Path(tempfile.gettempdir()) / f"ned-casebook-off-{uuid.uuid4().hex}"
+    target = never_created / "data" / "casebook.sqlite3"
+    monkeypatch.setenv(CASEBOOK_PATH_ENV, str(target))
+    monkeypatch.delenv(CASEBOOK_ENV, raising=False)
 
     marker = "这句话不应该被保存下来-9f3a"
     response = client.post("/api/analyze", json={"text": marker})
     assert response.status_code == 200
-    # No database, no log file inside the package directory.
-    from pathlib import Path
 
-    import ned
+    # (a) the path NED would use for a casebook, its directory and its sidecars: untouched
+    assert casebook_path() == target.resolve()
+    assert not target.exists()
+    assert not target.parent.exists()
+    assert not never_created.exists()
+    assert not any(sidecar.exists() for sidecar in sidecar_paths(target))
 
+    # (b) nothing inside the installed package
     package_dir = Path(ned.__file__).resolve().parent
     for path in package_dir.rglob("*"):
         if path.is_file() and path.suffix in {".db", ".sqlite", ".log", ".jsonl"}:
             raise AssertionError(f"unexpected storage artefact: {path}")
     assert marker not in " ".join(path.name for path in package_dir.rglob("*") if path.is_file())
+
+    # (c) and wherever the store would live by default, it is outside the package
+    monkeypatch.delenv(CASEBOOK_PATH_ENV, raising=False)
+    assert package_dir not in casebook_path().parents
 
 
 def test_web_ui_fnbp_reminder_is_in_the_lab_panel(client: TestClient) -> None:
