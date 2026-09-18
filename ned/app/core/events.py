@@ -17,7 +17,10 @@ Design rules, in order of importance:
   the layer never rewrites, normalises or paraphrases it;
 * actor/reporter fields are only filled when the surface makes them certain; a family that
   cannot settle who acted is registered as low-commitment material rather than promoted to
-  evidence (nothing here is ever promoted);
+  evidence (nothing here is ever promoted). PR-6R1 makes that enforceable in two ways: a match
+  that begins inside a benefactive frame (``我给她带了早餐``) is refused outright, because the
+  slice would otherwise state that *she* brought the breakfast; and a rule may require context
+  words before it fires at all;
 * whatever a rule does not recognise stays silent.
 
 The pack lives next to the signal pack (``ned/app/rules/events.json``) and is read through the
@@ -33,6 +36,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from ned.app.core.audit import CLAUSE_SEPARATORS
 from ned.app.core.material import material_id
 from ned.app.core.models import ObservedMaterial, Polarity, SourceKind
 from ned.app.core.rules import RuleBook
@@ -58,6 +62,14 @@ class EventRule(BaseModel):
     #: rendered as the "why not" line of the material screen.
     commitment_reason: str
     patterns: tuple[str, ...] = Field(min_length=1)
+    #: Tokens that must appear somewhere in the input before this rule may fire. PR-6R1 uses it
+    #: for the tail-less opposition frame ("她妈妈不同意"): the same words in a message that is
+    #: not about the relationship ("我妈不同意我换工作") must stay silent.
+    requires_context: tuple[str, ...] = ()
+    #: The match must sit in a *later* clause of the input (a clause separator before it).
+    #: PR-6R1 uses it for the frames it added as a composite repair, so those frames do not
+    #: also become general single-clause coverage.
+    requires_later_clause: bool = False
     labels: dict[str, str] = Field(default_factory=dict)
     notes: str = ""
 
@@ -110,6 +122,29 @@ CLOSING_QUOTES = {"\u201c": "\u201d", "'": "'", "\u300c": "\u300d", "\u300e": "\
 QUOTE_WINDOW = 60
 
 
+#: Characters that make the noun phrase after them a beneficiary or an object rather than an
+#: actor: in "我给她带了早餐" the 她 belongs to 给, so "她带了早餐" is not an act of hers.
+BENEFACTIVE_FRAMES: tuple[str, ...] = (
+    "\u7ed9",
+    "\u5e2e",
+    "\u66ff",
+    "\u4e3a",
+    "\u5411",
+    "\u5bf9",
+    "\u9001",
+)
+
+
+def _in_benefactive_frame(text: str, start: int) -> bool:
+    """Does this match begin as the object of a benefactive preposition?
+
+    PR-6R1: the slice stays verbatim either way, but a record read from this position would
+    state the wrong actor - the one thing the material layer may never do.
+    """
+
+    return start > 0 and text[start - 1] in BENEFACTIVE_FRAMES
+
+
 def _complete_quote(text: str, start: int, end: int) -> int:
     """Extend ``end`` to the closing quote when the match sits inside a quotation.
 
@@ -132,6 +167,15 @@ def _complete_quote(text: str, start: int, end: int) -> int:
     return end
 
 
+def _first_match_start(rule: EventRule, text: str) -> int:
+    """Where this rule's first acceptable match begins, or the end of the input."""
+
+    for candidate in compile_event_rule(rule).finditer(text):
+        if candidate.group(0).strip() and not _in_benefactive_frame(text, candidate.start()):
+            return candidate.start()
+    return len(text)
+
+
 def register_events(text: str, *, book: RuleBook | None = None) -> list[ObservedMaterial]:
     """The events this input reports, as material records.
 
@@ -146,10 +190,22 @@ def register_events(text: str, *, book: RuleBook | None = None) -> list[Observed
 
     found: list[ObservedMaterial] = []
     for rule in rules:
-        match = compile_event_rule(rule).search(text)
-        if match is None:
+        if rule.requires_context and not any(token in text for token in rule.requires_context):
             continue
-        if not match.group(0).strip():
+        if rule.requires_later_clause and not any(
+            separator in text[: _first_match_start(rule, text)] for separator in CLAUSE_SEPARATORS
+        ):
+            continue
+        # the earliest match that is not read out of a benefactive frame
+        match = None
+        for candidate in compile_event_rule(rule).finditer(text):
+            if not candidate.group(0).strip():
+                continue
+            if _in_benefactive_frame(text, candidate.start()):
+                continue
+            match = candidate
+            break
+        if match is None:
             continue
         start, end = match.start(), _complete_quote(text, match.start(), match.end())
         found.append(

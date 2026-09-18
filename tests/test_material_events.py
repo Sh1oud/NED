@@ -152,6 +152,143 @@ def test_material_and_evidence_coexist_without_the_state_lying(analyzer: NedAnal
     assert result.recognition == "adjudicated"
 
 
+# --------------------------------------------------------------------------- #
+# PR-6R1: a second clause must not vanish, and a material may not move the actor
+# --------------------------------------------------------------------------- #
+
+#: The composite shapes the PR-6 graduation pass produced. Each one is two real clauses: a
+#: positive half and a second half the reader also wrote. The second half is not adjudicated,
+#: but it must be on file and quotable - it may not disappear because the first half was
+#: convenient.
+COMPOSITE_SECOND_CLAUSES = (
+    ("她好像很喜欢我，但她妈妈不同意我们在一起", "external_opposition", "她妈妈不同意我们在一起"),
+    ("她说她喜欢我，但她觉得我们不太合适", "reported_evaluation", "她觉得我们不太合适"),
+    ("她说她喜欢我，她室友说不希望我们走太近", "external_opposition", "她室友说不希望我们走太近"),
+    ("她说她喜欢我，但她已经跟别人在一起了", "social_interaction", "她已经跟别人在一起了"),
+    ("她说她喜欢我，但她妈妈不同意", "external_opposition", "她妈妈不同意"),
+)
+
+
+@pytest.mark.parametrize("text,kind,clause", COMPOSITE_SECOND_CLAUSES)
+def test_the_second_clause_of_a_composite_is_registered(
+    analyzer: NedAnalyzer, text: str, kind: str, clause: str
+) -> None:
+    """PR-6 found NED answering the first half and never mentioning the second."""
+
+    result = analyzer.analyze_text(text, mode="normal")
+    mine = [item for item in result.materials or [] if item.material_kind == kind]
+    assert mine, (text, [item.material_kind for item in result.materials or []])
+    filed = {item.reported_content for item in mine}
+    assert clause in filed, (text, filed)
+    # and the record is a verbatim slice of what the reader typed
+    for item in mine:
+        assert (result.input or "")[item.start : item.end] == item.reported_content
+
+
+@pytest.mark.parametrize("text,kind,clause", COMPOSITE_SECOND_CLAUSES)
+def test_a_composite_keeps_the_verdict_of_its_first_clause(
+    analyzer: NedAnalyzer, text: str, kind: str, clause: str
+) -> None:
+    """No forced mixed verdict: registering the other clause never averages the two."""
+
+    composite = analyzer.analyze_text(text, mode="normal")
+    first_half = analyzer.analyze_text(text.split("，")[0], mode="normal")
+    # the verdict is the first clause's own verdict: registering the second clause never
+    # averages the two, and never turns it into a verdict about the second
+    assert composite.verdict.code == first_half.verdict.code, text
+    # the state may only become more informative (that is the repair), never less
+    rank = {"nothing_recognized": 0, "material_registered": 1, "adjudicated": 2}
+    assert rank[composite.recognition] >= rank[first_half.recognition], text
+
+
+def test_a_third_party_objection_is_never_her_own_rejection(analyzer: NedAnalyzer) -> None:
+    for text in (
+        "她好像很喜欢我，但她妈妈不同意我们在一起",
+        "她说她喜欢我，她室友说不希望我们走太近",
+    ):
+        result = analyzer.analyze_text(text, mode="normal")
+        opposing = [
+            item for item in result.materials or [] if item.material_kind == "external_opposition"
+        ]
+        assert opposing, text
+        for item in opposing:
+            assert item.proposition_owner == "third_party", (text, item.proposition_owner)
+        assert result.verdict.code != "ned.direct_rejection", text
+
+
+def test_a_bare_objection_outside_a_relationship_stays_silent(analyzer: NedAnalyzer) -> None:
+    """The tail-less frame is context-gated, so the same words elsewhere register nothing."""
+
+    outside = analyzer.analyze_text("我妈不同意我换工作", mode="normal")
+    assert not [
+        item for item in outside.materials or [] if item.material_kind == "external_opposition"
+    ]
+    inside = analyzer.analyze_text("她说她喜欢我，但她妈妈不同意", mode="normal")
+    assert [item for item in inside.materials or [] if item.material_kind == "external_opposition"]
+
+
+def test_a_material_never_reassigns_the_actor(analyzer: NedAnalyzer) -> None:
+    """PR-6R1's B pin: 我给她带了早餐 must never be filed as 她带了早餐."""
+
+    result = analyzer.analyze_text("我给她带了早餐，她说了谢谢", mode="normal")
+    for item in result.materials or []:
+        assert not item.reported_content.startswith("她带了"), item.reported_content
+        assert item.reported_content != "她带了早餐", item.reported_content
+    # the sentence itself is not a material: nothing recognised is the honest answer
+    assert result.recognition == "nothing_recognized", result.materials
+
+    # her own act is still read, and still verbatim
+    hers = analyzer.analyze_text("她给我带了一份早餐", mode="normal")
+    kinds = [item.material_kind for item in hers.materials or []]
+    assert "memory_care_act" in kinds
+
+
+def test_no_material_slice_starts_inside_a_benefactive_frame(analyzer: NedAnalyzer) -> None:
+    """The general invariant behind the pin above, over natural sentences."""
+
+    from ned.app.core.events import BENEFACTIVE_FRAMES
+
+    sentences = (
+        "我给她带了早餐，她说了谢谢",
+        "我给她买了花，她说谢谢",
+        "我陪她去医院了，她妈妈不同意我们在一起",
+        "她给我带了一份早餐",
+        "她带了早餐给我",
+        "她记得我生日",
+        "她说她喜欢我",
+    )
+    for text in sentences:
+        result = analyzer.analyze_text(text, mode="normal")
+        for item in result.materials or []:
+            assert (result.input or "")[item.start : item.end] == item.reported_content, text
+            if item.start > 0:
+                assert (result.input or "")[item.start - 1] not in BENEFACTIVE_FRAMES, (
+                    text,
+                    item.reported_content,
+                )
+
+
+def test_a_single_positive_sentence_is_untouched(analyzer: NedAnalyzer) -> None:
+    """The control: none of this may change what one plain sentence does."""
+
+    result = analyzer.analyze_text("她说她喜欢我", mode="normal")
+    assert result.recognition == "adjudicated"
+    assert result.verdict.code == "ped.ren_hao"
+    assert not result.materials
+    assert not result.evidence or result.evidence[0].signal_type.value == "explicit_affection"
+
+
+def test_multiple_aspects_are_still_kept_side_by_side(analyzer: NedAnalyzer) -> None:
+    """The other control: two pages stay two pages, and nothing is averaged into a third."""
+
+    result = analyzer.analyze_text("她说她喜欢我，但她一直没回我消息", mode="normal")
+    pages = list(result.material_aspects.materials or []) if result.material_aspects else []
+    assert len(pages) == 2, [page.text for page in pages]
+    assert {page.text for page in pages} == {"她说她喜欢我", "她一直没回我消息"}
+    # the verdict is one side's own verdict, never a composite of the two
+    assert result.verdict.code in {"nea.you_started_again", "ped.ren_hao"}
+
+
 def test_the_first_screen_no_longer_contradicts_the_registry(analyzer: NedAnalyzer) -> None:
     """PR-0's C4: the screen said "no signal" while the registry had already filed a record."""
 

@@ -102,7 +102,8 @@
       "commitment_reason": "third_party_activity",
       "patterns": [
         "(她|他|对方)(跟|和|与)(别的|其他|另一个)?(男生|女生|男人|女人|前男友|前女友|朋友|同事|同学|人)(一起)?(出去玩|出去旅游|出去|看电影|吃饭|见面|逛街)了?",
-        "(她|他|对方)(跟|和|与)(别的|其他|另一个)?(男生|女生|男人|女人|人)(在)?一起了?"
+        "(她|他|对方)(跟|和|与)(别的|其他|另一个)?(人|男生|女生|男人|女人)(在)?一起了?",
+        "(她|他|对方)(已经|现在|可能|好像|早就|都|其实)?(跟|和|与)(别人|其他人)(在)?一起了?"
       ],
       "labels": {
         "zh": "社交互动：与第三人活动",
@@ -156,6 +157,26 @@
       "notes": "Praise that usually accompanies a refusal, and the two classic closing lines. Registered as reported speech, not as evidence and not as a boundary: the pack states the family, the reason field states why it cannot be signed."
     },
     {
+      "id": "zh.event.evaluative_speech_soft_decline",
+      "material_kind": "reported_evaluation",
+      "family": "reported_evaluation",
+      "polarity": "negative",
+      "source_kind": "attributed_report",
+      "reporter_role": "described_person",
+      "proposition_owner": "described_person",
+      "target": "reader",
+      "commitment_reason": "evaluative_speech",
+      "patterns": [
+        "(她|他|对方)(觉得|认为)[“\"'「『：:]?(我们)?(可能|也许|应该|大概)?(不太|不)(合适|适合|般配)[”\"'」』]?"
+      ],
+      "requires_later_clause": true,
+      "labels": {
+        "zh": "\u8bc4\u4ef7\u6027\u8bdd\u8bed\uff1a\u8f6f\u6027\u5408\u9002\u5224\u65ad",
+        "en": "Evaluative speech: soft fit judgement"
+      },
+      "notes": "PR-6R1: the soft form of the closing line (\"\u4f46\u5979\u89c9\u5f97\u6211\u4eec\u4e0d\u592a\u5408\u9002\"), registered only when it is the second half of a composite input \u2014 the batch repairs composites and must not become general coverage."
+    },
+    {
       "id": "zh.event.external_opposition",
       "material_kind": "external_opposition",
       "family": "external_opposition",
@@ -166,14 +187,30 @@
       "target": "relationship",
       "commitment_reason": "third_party_opposition",
       "patterns": [
-        "(她|他|我)?(的)?(妈妈|妈|爸爸|爸|父母|家里|家人|家长|姐姐|妹妹|哥哥|弟弟|亲戚|朋友|闺蜜|同事|同学)(们)?(都)?(不同意|不赞成|不支持|反对|不愿意|不肯)[^。！？!?，,]{0,4}(在一起|交往|谈恋爱|处对象|结婚|来往)",
-        "(家里|双方父母|两家人|长辈)(们)?(都)?(不同意|不赞成|不支持|反对)[^。！？!?，,]{0,4}(在一起|交往|谈恋爱|处对象|结婚|来往)"
+        "(她|他|我)?(的)?(妈妈|妈|爸爸|爸|父母|家里|家人|家长|姐姐|妹妹|哥哥|弟弟|亲戚|朋友|闺蜜|同事|同学|室友|长辈)(们)?(都)?(说|表示|跟我说|告诉我)?(都)?(不同意|不赞成|不支持|反对|不愿意|不肯|不希望|不看好)[^。！？!?，,]{0,6}(在一起|交往|谈恋爱|处对象|结婚|来往|走太近|走得太近|发展|继续)?",
+        "(家里|双方父母|两家人|长辈)(们)?(都)?(不同意|不赞成|不支持|反对|不希望|不看好)[^。！？!?，,]{0,6}(在一起|交往|谈恋爱|处对象|结婚|来往|走太近|走得太近|发展|继续)?"
+      ],
+      "requires_context": [
+        "在一起",
+        "交往",
+        "谈恋爱",
+        "处对象",
+        "结婚",
+        "来往",
+        "走太近",
+        "走得太近",
+        "发展",
+        "继续",
+        "喜欢",
+        "感情",
+        "表白",
+        "我们"
       ],
       "labels": {
         "zh": "第三方阻力",
         "en": "Third-party opposition"
       },
-      "notes": "Somebody else objects to the relationship. This is resistance, not her boundary: the family records who objects and quotes the words, and PR-1's polarity layer already makes sure it is never offered as positive evidence. Registering it here is what stops the reader being told that nothing was heard."
+      "notes": "Somebody else objects to the relationship. This is resistance, not her boundary: the family records who objects and quotes the words, and PR-1's polarity layer already makes sure it is never offered as positive evidence. Registering it here is what stops the reader being told that nothing was heard. PR-6R1 widened the frame to the spoken form (\"她室友说不希望我们走太近\") and to the tail-less one (\"但她妈妈不同意\"), and put the whole rule behind a relationship-context requirement so the same words in a message about something else (\"我妈不同意我换工作\") stay silent."
     },
     {
       "id": "zh.event.reported_dismissal",
