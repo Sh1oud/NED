@@ -7,7 +7,9 @@ rem    1. locate the project root (this file must sit next to pyproject.toml)
 rem    2. find a working Python 3.12+ ("py -3" first, then "python")
 rem    3. create a project-local .venv if it does not exist yet
 rem    4. pip install -e .                       (first run, needs internet)
-rem    5. start the CLI entry point from pyproject.toml: ned serve
+rem    5. settle the casebook startup mode. The reader picks normal mode or
+rem       casebook mode unless NED_CASEBOOK was already set explicitly.
+rem    6. start the CLI entry point from pyproject.toml: ned serve
 rem
 rem  NOTES -- please do not "fix" the following:
 rem    * ASCII ONLY. A .bat file is read using the console codepage of the
@@ -19,6 +21,10 @@ rem    * CRLF line endings are required: cmd.exe mis-parses LF-only batch
 rem      files. .gitattributes marks *.bat as "-text" so the bytes stored in
 rem      git -- and inside GitHub's "Download ZIP" -- stay CRLF.
 rem    * The CLI is always started through its absolute path, never via PATH.
+rem    * The casebook mode is set with "set" - this cmd.exe process only,
+rem      inside the setlocal below - and never with "setx". NED must not
+rem      change the Windows user or system environment, and the choice has
+rem      to die with this window.
 rem ===================================================================
 setlocal EnableExtensions
 title NED launcher
@@ -72,7 +78,7 @@ if not exist "%NED_CLI%" goto :install_package
 "%NED_CLI%" version >nul 2>nul
 if errorlevel 1 goto :install_package
 echo [NED] Local environment is ready, skipping install.
-goto :launch
+goto :startup_mode
 
 :install_package
 if exist "%NED_VPY%" goto :do_install
@@ -86,7 +92,54 @@ echo [NED] Installing NED (pip install -e ., needs internet)...
 if errorlevel 1 goto :err_install_failed
 if not exist "%NED_CLI%" goto :err_launcher_missing
 
-rem ---------- 3. start the local server ----------
+rem ---------- 3. casebook startup mode ----------
+rem The casebook is opt-in and it is only about *keeping* material: mode 2
+rem lets the reader file input into the local casebook, it never means
+rem "analyse and save everything". A plain analysis stores nothing in
+rem either mode. NED_CASEBOOK is set for this process only.
+:startup_mode
+set "NED_CASEBOOK_MODE="
+set "NED_MODE_SOURCE=menu"
+rem The product accepts a small vocabulary for this switch (see
+rem ned/app/store/paths.py). Recognise the same words, so an explicit
+rem setting is never silently overridden by the menu. An empty value
+rem counts as "not configured" and the reader is asked.
+for %%V in (on 1 true yes enable enabled) do if /i "%NED_CASEBOOK%"=="%%V" set "NED_CASEBOOK_MODE=on"
+for %%V in (off 0 false no disable disabled) do if /i "%NED_CASEBOOK%"=="%%V" set "NED_CASEBOOK_MODE=off"
+if defined NED_CASEBOOK_MODE set "NED_MODE_SOURCE=caller"
+if defined NED_CASEBOOK_MODE goto :mode_summary
+
+rem No explicit, legal NED_CASEBOOK: ask. The mode starts as "off" and
+rem only the exact answer 2 turns it on, so a mistyped key, an empty
+rem line, a closed input or an interrupt can never enable the casebook.
+set "NED_CASEBOOK_MODE=off"
+echo.
+echo [NED] Startup mode
+echo.
+echo   [1] Normal mode
+echo       Casebook off. Nothing is filed or kept.
+echo.
+echo   [2] Casebook on
+echo       You may file material into a local casebook yourself.
+echo       A plain analysis still saves nothing automatically.
+echo.
+set "NED_CHOICE="
+set /p "NED_CHOICE=Choose [1/2]: "
+if "%NED_CHOICE%"=="2" set "NED_CASEBOOK_MODE=on"
+if not "%NED_CHOICE%"=="1" if not "%NED_CHOICE%"=="2" echo [NED] Not 1 or 2 - using normal mode.
+
+:mode_summary
+if "%NED_MODE_SOURCE%"=="caller" (
+  echo [NED] Casebook: %NED_CASEBOOK_MODE% (from NED_CASEBOOK, set before startup)
+) else if "%NED_CASEBOOK_MODE%"=="on" (
+  echo [NED] Casebook: ON - you may file material into the local casebook yourself.
+  echo [NED] A plain analysis still saves nothing automatically.
+) else (
+  echo [NED] Casebook: OFF - nothing is filed or kept.
+)
+set "NED_CASEBOOK=%NED_CASEBOOK_MODE%"
+
+rem ---------- 4. start the local server ----------
 :launch
 echo.
 echo [NED] Starting local server...
