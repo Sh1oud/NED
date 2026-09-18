@@ -17,6 +17,7 @@ import pytest
 from ned.app.store import (
     MIGRATIONS,
     SCHEMA_VERSION,
+    CasebookBusyError,
     CasebookCorruptError,
     CasebookStore,
     CaseFileSnapshot,
@@ -84,6 +85,29 @@ def test_initialisation_runs_the_zero_to_current_migration(path: Path) -> None:
         assert MIGRATIONS[0][1] == SCHEMA_VERSION
     finally:
         connection.close()
+
+
+def test_overlapping_opens_do_not_race_the_schema(path: Path) -> None:
+    """Eight opens of a fresh file must not all try to create schema 1.
+
+    The version used to be read outside the write lock, so overlapping opens could both see
+    schema 0 and one of them died with "table casebooks already exists".
+    """
+
+    from concurrent.futures import ThreadPoolExecutor
+
+    def open_and_use(index: int) -> int:
+        with CasebookStore.open(path) as store:
+            store.create_casebook(f"并发-{index}")
+            return store.user_version()
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        versions = list(pool.map(open_and_use, range(8)))
+
+    assert versions == [SCHEMA_VERSION] * 8, versions
+    with CasebookStore.open(path) as store:
+        assert len(store.list_casebooks()) == 8
+        assert store.foreign_key_violations() == []
 
 
 def test_a_coarser_time_is_never_padded_into_a_finer_one(store: CasebookStore) -> None:
@@ -204,6 +228,37 @@ def test_a_failed_migration_changes_nothing(path: Path, monkeypatch: pytest.Monk
         assert "casebooks" in names
     finally:
         connection.close()
+
+
+def test_a_locked_file_is_reported_as_busy_not_corrupt(
+    path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The classification the overlapping-requests failure depended on.
+
+    A held lock is temporary and a corrupt file is not, so the store must never answer a busy
+    file with "this casebook is corrupt" - which is exactly what it used to do, because
+    ``OperationalError`` is a subclass of ``DatabaseError``.
+    """
+
+    def locked(*args: object, **kwargs: object) -> sqlite3.Connection:
+        raise sqlite3.OperationalError("database is locked")
+
+    monkeypatch.setattr(CasebookStore, "_connect", staticmethod(locked))
+    with pytest.raises(CasebookBusyError):
+        CasebookStore.open(path)
+
+
+def test_a_file_that_is_not_a_database_is_still_corrupt(
+    path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The other half of the rule: a plain ``DatabaseError`` still means corruption."""
+
+    def garbage(*args: object, **kwargs: object) -> sqlite3.Connection:
+        raise sqlite3.DatabaseError("file is not a database")
+
+    monkeypatch.setattr(CasebookStore, "_connect", staticmethod(garbage))
+    with pytest.raises(CasebookCorruptError):
+        CasebookStore.open(path)
 
 
 def test_a_corrupt_file_is_reported_as_corrupt(workdir: Path) -> None:

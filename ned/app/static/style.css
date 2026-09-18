@@ -2311,3 +2311,95 @@ body {
   #final-verdict::after { width: 34px; height: 34px; right: 9px; bottom: 9px; }
   #issuance-stamp { min-width: 54px; font-size: 0.92rem; }
 }
+
+
+/* ==========================================================================
+   PR-6M2 — THE CASEBOOK. A window, not a new product: desk cards, mono labels and
+   the same rules as everywhere else. Geometry only; no new colour, no new surface.
+   ========================================================================== */
+
+.casebook-filebox {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.casebook-filebox .field-label {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+}
+.casebook-filebox .field-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#panel-casebook {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.casebook-head .label {
+  font-family: var(--display);
+  font-size: 1.2rem;
+  letter-spacing: 0.02em;
+  color: var(--paper-100);
+}
+.casebook-head .hint { margin: 6px 0 0; }
+.casebook-head .note { margin: 6px 0 0; }
+
+.casebook-card { display: flex; flex-direction: column; gap: 8px; }
+.casebook-card .card-head { border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+.casebook-card .subhead { font-family: var(--display); font-size: 1rem; color: var(--text); }
+.casebook-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.casebook-confirm {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  border-left: 2px solid var(--seal);
+  padding-left: 10px;
+}
+.casebook-confirm .note { color: var(--seal-bright); font-size: 0.78rem; }
+
+.casebook-detail { display: flex; flex-direction: column; gap: 14px; }
+.casebook-file {
+  border-left: 3px solid var(--line-strong);
+  padding-left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.casebook-input {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 1rem;
+  color: var(--paper-100);
+}
+.casebook-entry-text {
+  display: block;
+  font-family: var(--sans);
+  color: var(--text);
+}
+.casebook-entry-meta {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+
+@media (max-width: 520px) {
+  .casebook-file { padding-left: 8px; }
+  .casebook-actions .btn { width: 100%; }
+}

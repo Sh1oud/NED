@@ -39,6 +39,7 @@
         <span class="tab-group-label" id="tabs-group-label">其它窗口</span>
         <button type="button" class="tab tab-secondary" id="tab-asymmetry" role="tab" aria-selected="false" aria-controls="panel-asymmetry" tabindex="-1" data-tab="asymmetry">证据对比</button>
         <button type="button" class="tab tab-secondary" id="tab-lab" role="tab" aria-selected="false" aria-controls="panel-lab" tabindex="-1" data-tab="lab">通知分支实验室</button>
+        <button type="button" class="tab tab-secondary" id="tab-casebook" role="tab" aria-selected="false" aria-controls="panel-casebook" tabindex="-1" data-tab="casebook">卷宗</button>
       </nav>
     </div>
 
@@ -117,7 +118,21 @@
                   <span class="meta-item">lang <b class="mono" id="result-language">—</b></span>
                   <span class="meta-item">signal <b class="mono" id="result-signal-type">—</b></span>
                 </div>
+                <button type="button" class="btn btn-ghost btn-inline" id="file-to-casebook" hidden>归入卷宗</button>
                 <button type="button" class="btn btn-ghost btn-inline" id="submit-another">继续交材料</button>
+              </div>
+              <div class="casebook-filebox" id="casebook-filebox" hidden>
+                <label class="field-label" id="casebook-file-choose" for="casebook-picker">归入哪个卷宗</label>
+                <select class="input select" id="casebook-picker"></select>
+                <input class="input" id="casebook-file-new" type="text" maxlength="80"
+                       placeholder="或新建一个卷宗名…" />
+                <label class="field-label" id="casebook-file-occurred" for="casebook-occurred">发生时间（可选）</label>
+                <input class="input" id="casebook-occurred" type="date" />
+                <div class="field-actions">
+                  <button type="button" class="btn btn-primary" id="casebook-file-confirm">确认归入</button>
+                  <button type="button" class="btn btn-ghost" id="casebook-file-cancel">取消</button>
+                </div>
+                <p class="status" id="casebook-file-status" role="status" aria-live="polite"></p>
                 <button type="button" class="btn btn-ghost" id="copy-json">复制 JSON</button>
               </div>
             </div>
@@ -437,6 +452,33 @@
         </div>
       </section>
 
+<!-- ============================ CASEBOOK ============================ -->
+      <section class="panel" id="panel-casebook" role="tabpanel" aria-labelledby="tab-casebook"
+               tabindex="0" hidden>
+        <div class="card casebook-head">
+          <h2 class="label" id="casebook-heading">卷宗</h2>
+          <p class="hint" id="casebook-intro">卷宗只保存在本机，而且只保存在你主动归入的内容。</p>
+          <p class="note" id="casebook-notice"></p>
+        </div>
+
+        <div class="card" id="casebook-create-card">
+          <div class="label" id="casebook-create-label">新建卷宗</div>
+          <div class="row-inline">
+            <div class="field">
+              <label class="field-label" id="casebook-label-field" for="casebook-label-input">卷宗名</label>
+              <input class="input" id="casebook-label-input" type="text" maxlength="80"
+                     placeholder="例如：小 A" />
+            </div>
+            <div class="field field-actions">
+              <button type="button" class="btn btn-primary" id="casebook-create">新建</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="stack" id="casebook-list"></div>
+        <p class="status" id="casebook-status" role="status" aria-live="polite"></p>
+      </section>
+
       <!-- ============================ ASYMMETRY ============================ -->
       <section class="panel" id="panel-asymmetry" role="tabpanel" aria-labelledby="tab-asymmetry" tabindex="0" hidden>
         <div class="card">
@@ -678,7 +720,7 @@
         <span class="mono footer-version">v{{ version }}</span>
       </div>
       <p class="footer-note">NED is entertainment software. It cannot determine whether someone likes you. Humans are not APIs.</p>
-      <p class="footer-meta">All input stays in this browser session and is sent only to this local server. No telemetry, no analytics, no cookies, no third-party requests.</p>
+      <p class="footer-meta" id="privacy-footer">本机运行：输入只在浏览器内存与本机服务器之间传递，分析不写入任何数据库。只有你主动「归入卷宗」的内容才会写入本机卷宗文件；分析模式偏好保存在浏览器本地存储，界面语言切换只在当前页面生效。无遥测、无分析、无 Cookie、无第三方请求。</p>
     </footer>
   </div>
 

@@ -9,8 +9,8 @@ The layer is additive and self-contained on purpose:
 * when it is on, the file lives in the platform user data directory (``NED_CASEBOOK_PATH``
   overrides it) and never inside the installed package.
 
-M1 ships storage only: there is no API route, no CLI command, no web surface, and no review
-object. Nothing in this package is reachable from ``/api/analyze``.
+M1 shipped storage only. M2 added the API routes, the CLI commands and the web panel, and still
+nothing in this package is reachable from ``/api/analyze``.
 """
 
 from __future__ import annotations
@@ -26,11 +26,13 @@ from ned.app.store.casebook_db import (
     utc_now_iso,
 )
 from ned.app.store.errors import (
+    CasebookBusyError,
     CasebookConfigError,
     CasebookCorruptError,
     CasebookDisabledError,
     CasebookError,
     CasebookNotFoundError,
+    IdempotencyConflictError,
     ImmutableRecordError,
     SchemaTooNewError,
 )
@@ -56,6 +58,7 @@ from ned.app.store.paths import (
     casebook_path,
     sidecar_paths,
 )
+from ned.app.store.snapshot import build_case_file_snapshot
 
 
 def open_casebook(path: Path | None = None) -> CasebookStore | None:
@@ -93,6 +96,7 @@ __all__ = [
     "ArchiveOutcome",
     "CaseFileRecord",
     "CaseFileSnapshot",
+    "CasebookBusyError",
     "CasebookConfigError",
     "CasebookCorruptError",
     "CasebookDisabledError",
@@ -102,6 +106,7 @@ __all__ = [
     "CasebookStore",
     "DeleteOutcome",
     "EntryRecord",
+    "IdempotencyConflictError",
     "ImmutableRecordError",
     "MaterialSnapshot",
     "OccurredPrecision",
@@ -109,6 +114,7 @@ __all__ = [
     "OccurredTime",
     "SchemaTooNewError",
     "archive_token",
+    "build_case_file_snapshot",
     "casebook_enabled",
     "casebook_path",
     "open_casebook",

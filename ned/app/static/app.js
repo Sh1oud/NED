@@ -16,7 +16,8 @@
   var TABS = [
     { tab: "tab-analyze", panel: "panel-analyze" },
     { tab: "tab-asymmetry", panel: "panel-asymmetry" },
-    { tab: "tab-lab", panel: "panel-lab" }
+    { tab: "tab-lab", panel: "panel-lab" },
+    { tab: "tab-casebook", panel: "panel-casebook" }
   ];
   var state = { analyze: null, asymmetry: null, fnbp: null, health: null };
 
@@ -1294,6 +1295,8 @@
     postJson("/api/analyze", { text: text, mode: currentMode() })
       .then(function (data) {
         state.analyze = data;
+        closeFileBox();
+        applyCasebookAvailability();
         renderAnalyze(data);
         setStatus(
           "analyze-status",
@@ -1702,6 +1705,486 @@
   }
 
 
+  /* -------------------------------------------------------------- casebook */
+
+  // The casebook is the only thing in NED that persists anything. Everything below is explicit
+  // and user-driven: nothing here files an input on its own, opening the panel files nothing,
+  // and what gets stored is what the *server* analysed for that archive request.
+  //
+  // The action id is the client's name for one user action. It is minted when the chooser opens
+  // and reused on a retry, so a double-click cannot file twice; it is dropped once the action
+  // succeeds, so filing the same sentence again tomorrow is a second, real case file.
+
+  var CASEBOOK_IDS = [
+    ["casebook-heading", "casebook_heading"],
+    ["casebook-intro", "casebook_intro"],
+    ["casebook-create-label", "casebook_create_label"],
+    ["casebook-label-field", "casebook_label_field"],
+    ["casebook-create", "casebook_create"],
+    ["file-to-casebook", "casebook_file_action"],
+    ["casebook-file-choose", "casebook_file_choose"],
+    ["casebook-file-occurred", "casebook_file_occurred"],
+    ["casebook-file-confirm", "casebook_file_confirm"],
+    ["casebook-file-cancel", "casebook_file_cancel"],
+    ["privacy-footer", "privacy_footer"]
+  ];
+
+  function casebookState() {
+    if (!state.casebook) {
+      state.casebook = {
+        enabled: false,
+        note: "",
+        casebooks: [],
+        detail: null,
+        openId: null,
+        pendingDelete: null,
+        busy: false,
+        actionId: null,
+        text: "",
+        mode: "normal"
+      };
+    }
+    return state.casebook;
+  }
+
+  function casebookOn() { return casebookState().enabled === true; }
+
+  function casebookCopy(key) {
+    var text = deskCopy(key);
+    return text || "";
+  }
+
+  function casebookFill(template, values) {
+    var out = template;
+    Object.keys(values).forEach(function (name) {
+      out = out.split("{" + name + "}").join(values[name]);
+    });
+    return out;
+  }
+
+  function renderCasebookCopy() {
+    CASEBOOK_IDS.forEach(function (pair) {
+      var node = $(pair[0]);
+      var text = casebookCopy(pair[1]);
+      if (node && text) { node.textContent = text; }
+    });
+    var label = $("casebook-label-input");
+    var labelHint = casebookCopy("casebook_label_placeholder");
+    if (label && labelHint) { label.setAttribute("placeholder", labelHint); }
+    var newName = $("casebook-file-new");
+    var newHint = casebookCopy("casebook_file_new");
+    if (newName && newHint) { newName.setAttribute("placeholder", newHint); }
+    applyCasebookAvailability();
+  }
+
+  function applyCasebookAvailability() {
+    var enabled = casebookOn();
+    var action = $("file-to-casebook");
+    if (action) { action.hidden = !enabled || !state.analyze; }
+    var create = $("casebook-create-card");
+    if (create) { create.hidden = !enabled; }
+    var notice = $("casebook-notice");
+    var note = casebookState().note;
+    if (notice) {
+      var text = enabled ? "" : casebookCopy("casebook_disabled");
+      if (!enabled && note) { text = text + " " + note; }
+      notice.textContent = text;
+    }
+    if (!enabled) {
+      closeFileBox();
+      clear($("casebook-list"));
+    }
+  }
+
+  // A small JSON helper: the casebook needs GET, POST, PATCH and DELETE, and every failure has
+  // to reach the reader as a sentence rather than as an empty panel.
+  function fetchJson(url, method, body) {
+    var options = { method: method || "GET", headers: { "Accept": "application/json" } };
+    if (body !== undefined && body !== null) {
+      options.headers["Content-Type"] = "application/json";
+      options.body = JSON.stringify(body);
+    }
+    return fetch(url, options).then(function (res) {
+      return res.text().then(function (raw) {
+        var payload = null;
+        try { payload = raw ? JSON.parse(raw) : null; } catch (e) { payload = null; }
+        if (!res.ok) {
+          var detail = payload && payload.detail ? payload.detail : "";
+          if (typeof detail !== "string") { detail = casebookCopy("casebook_archive_failed"); }
+          throw new Error(detail || ("Request failed with status " + res.status + "."));
+        }
+        return payload;
+      });
+    });
+  }
+
+  function newActionId() {
+    var bytes = [];
+    var i;
+    if (window.crypto && window.crypto.getRandomValues) {
+      var buffer = new Uint8Array(16);
+      window.crypto.getRandomValues(buffer);
+      for (i = 0; i < buffer.length; i += 1) { bytes.push(buffer[i]); }
+    } else {
+      for (i = 0; i < 16; i += 1) { bytes.push(Math.floor(Math.random() * 256)); }
+    }
+    return bytes.map(function (value) {
+      return (value < 16 ? "0" : "") + value.toString(16);
+    }).join("");
+  }
+
+  function loadCasebookStatus() {
+    return fetchJson("/api/casebook/status").then(function (payload) {
+      var data = obj(payload);
+      casebookState().enabled = data.enabled === true;
+      casebookState().note = txt(data.note);
+      applyCasebookAvailability();
+      if (casebookState().enabled) { return refreshCasebookList(); }
+      return null;
+    }).catch(function () {
+      // A status probe that fails must never leave the feature looking available.
+      casebookState().enabled = false;
+      casebookState().note = "";
+      applyCasebookAvailability();
+      return null;
+    });
+  }
+
+  function refreshCasebookList() {
+    if (!casebookOn()) { return Promise.resolve(null); }
+    return fetchJson("/api/casebook").then(function (payload) {
+      casebookState().casebooks = list(payload);
+      if (casebookState().openId && !casebookState().detail) { casebookState().openId = null; }
+      return openDetailIfNeeded();
+    }).catch(function (error) {
+      setStatus("casebook-status", error.message, "is-error");
+      return null;
+    });
+  }
+
+  function openDetailIfNeeded() {
+    var openId = casebookState().openId;
+    renderCasebookList();
+    if (!openId) { return Promise.resolve(null); }
+    return fetchJson("/api/casebook/" + encodeURIComponent(openId)).then(function (payload) {
+      casebookState().detail = obj(payload);
+      renderCasebookList();
+      return null;
+    }).catch(function (error) {
+      casebookState().detail = null;
+      setStatus("casebook-status", error.message, "is-error");
+      renderCasebookList();
+      return null;
+    });
+  }
+
+  function renderCasebookList() {
+    var host = $("casebook-list");
+    if (!host) { return; }
+    clear(host);
+    if (!casebookOn()) { return; }
+    var items = casebookState().casebooks || [];
+    if (!items.length) {
+      host.appendChild(el("p", "note", casebookCopy("casebook_empty")));
+      return;
+    }
+    items.forEach(function (item) { host.appendChild(casebookCard(obj(item))); });
+  }
+
+  function casebookCard(item) {
+    var card = el("section", "card casebook-card");
+    var head = el("div", "card-head");
+    head.appendChild(el("h3", "subhead", txt(item.label)));
+    var counts = casebookFill(casebookCopy("casebook_counts"), {
+      files: int(item.case_files) || 0,
+      entries: int(item.entries) || 0
+    });
+    head.appendChild(el("p", "note", counts));
+    card.appendChild(head);
+
+    var actions = el("div", "casebook-actions");
+    var open = casebookState().openId === txt(item.casebook_id);
+    var toggle = el("button", "btn btn-ghost btn-inline",
+      casebookCopy(open ? "casebook_collapse" : "casebook_expand"));
+    toggle.addEventListener("click", function () {
+      if (open) {
+        casebookState().openId = null;
+        casebookState().detail = null;
+        renderCasebookList();
+        return;
+      }
+      casebookState().openId = txt(item.casebook_id);
+      casebookState().detail = null;
+      openDetailIfNeeded();
+    });
+    actions.appendChild(toggle);
+    actions.appendChild(deleteControl("casebook", txt(item.casebook_id), txt(item.casebook_id),
+      "casebook_delete_casebook"));
+    card.appendChild(actions);
+
+    if (open) {
+      var detail = casebookState().detail;
+      if (detail && txt(obj(detail.casebook).casebook_id) === txt(item.casebook_id)) {
+        card.appendChild(casebookDetailBody(detail));
+      } else {
+        card.appendChild(el("p", "note", "…"));
+      }
+    }
+    return card;
+  }
+
+  function casebookDetailBody(detail) {
+    var body = el("div", "casebook-detail");
+    var caseFiles = list(obj(detail).case_files);
+    if (!caseFiles.length) {
+      body.appendChild(el("p", "note", casebookCopy("casebook_empty")));
+      return body;
+    }
+    caseFiles.forEach(function (raw) {
+      var casebookId = txt(obj(obj(detail).casebook).casebook_id);
+      body.appendChild(caseFileBlock(obj(raw), casebookId));
+    });
+    return body;
+  }
+
+  function caseFileBlock(caseFile, casebookId) {
+    var block = el("article", "casebook-file");
+    block.appendChild(el("p", "casebook-input", txt(caseFile.input_text)));
+
+    var when = txt(caseFile.occurred_at);
+    var occurred;
+    if (when) {
+      occurred = when + " (" + txt(caseFile.occurred_precision) + ")";
+    } else if (txt(caseFile.occurred_source) === "input_relative") {
+      occurred = casebookCopy("casebook_occurred_relative");
+    } else {
+      occurred = casebookCopy("casebook_occurred_unknown");
+    }
+    block.appendChild(el("p", "note", casebookFill(casebookCopy("casebook_times"), {
+      occurred: occurred,
+      saved: txt(caseFile.saved_at)
+    })));
+
+    var state = txt(caseFile.recognition) + " / " + txt(caseFile.verdict_code)
+      + " (" + txt(caseFile.verdict_severity) + ")";
+    block.appendChild(el("p", "note", casebookCopy("casebook_state") + ": " + state));
+    if (txt(caseFile.verdict_text)) {
+      block.appendChild(el("p", "prose", txt(caseFile.verdict_text)));
+    }
+
+    var rows = el("dl", "audit-rows");
+    var entries = list(caseFile.entries);
+    if (!entries.length) {
+      rows.appendChild(el("dd", "audit-text", casebookCopy("casebook_no_material")));
+    }
+    entries.forEach(function (raw, index) {
+      var entry = obj(raw);
+      rows.appendChild(el("dt", "audit-label", "材料 " + (index + 1)));
+      var cell = el("dd", "audit-text");
+      cell.appendChild(el("span", "casebook-entry-text", txt(entry.reported_content)));
+      cell.appendChild(el("span", "casebook-entry-meta", casebookFill(
+        casebookCopy("casebook_entry_line"), {
+          kind: txt(entry.entry_kind),
+          start: int(entry.start_offset),
+          end: int(entry.end_offset),
+          source: txt(entry.source_kind) + " / " + txt(entry.reporter_role)
+        })));
+      cell.appendChild(deleteControl("entry", casebookId, txt(entry.entry_id),
+        "casebook_delete_entry"));
+      rows.appendChild(cell);
+    });
+    block.appendChild(rows);
+
+    var actions = el("div", "casebook-actions");
+    actions.appendChild(deleteControl("case_file", casebookId, txt(caseFile.case_file_id),
+      "casebook_delete_case"));
+    block.appendChild(actions);
+    return block;
+  }
+
+  // Item 6 of the batch: a delete says what it will remove, in two steps, with no modal dialog.
+  function deleteControl(kind, casebookId, identifier, labelKey) {
+    var key = kind + ":" + identifier;
+    if (casebookState().pendingDelete === key) {
+      var group = el("span", "casebook-confirm");
+      group.appendChild(el("span", "note", casebookCopy("casebook_delete_ask")));
+      var yes = el("button", "btn btn-ghost btn-inline", casebookCopy("casebook_delete_yes"));
+      yes.addEventListener("click", function () { runDelete(kind, casebookId, identifier); });
+      var no = el("button", "btn btn-ghost btn-inline", casebookCopy("casebook_delete_cancel"));
+      no.addEventListener("click", function () {
+        casebookState().pendingDelete = null;
+        renderCasebookList();
+      });
+      group.appendChild(yes);
+      group.appendChild(no);
+      return group;
+    }
+    var button = el("button", "btn btn-ghost btn-inline", casebookCopy(labelKey));
+    button.addEventListener("click", function () {
+      casebookState().pendingDelete = key;
+      renderCasebookList();
+    });
+    return button;
+  }
+
+  function runDelete(kind, casebookId, identifier) {
+    var url = "/api/casebook/" + encodeURIComponent(casebookId);
+    if (kind === "entry") { url += "/entries/" + encodeURIComponent(identifier); }
+    if (kind === "case_file") { url += "/files/" + encodeURIComponent(identifier); }
+    casebookState().pendingDelete = null;
+    return fetchJson(url, "DELETE").then(function () {
+      if (kind === "casebook") {
+        casebookState().openId = null;
+        casebookState().detail = null;
+      } else {
+        casebookState().detail = null;
+      }
+      setStatus("casebook-status", casebookCopy("casebook_deleted"), null);
+      return refreshCasebookList();
+    }).catch(function (error) {
+      setStatus("casebook-status", error.message || casebookCopy("casebook_delete_failed"), "is-error");
+      renderCasebookList();
+      return null;
+    });
+  }
+
+  function createCasebook() {
+    var input = $("casebook-label-input");
+    var label = input && input.value ? String(input.value).trim() : "";
+    if (!label) {
+      setStatus("casebook-status", casebookCopy("casebook_file_pick"), "is-error");
+      return Promise.resolve(null);
+    }
+    return fetchJson("/api/casebook", "POST", { label: label }).then(function (record) {
+      if (input) { input.value = ""; }
+      setStatus("casebook-status",
+        casebookFill(casebookCopy("casebook_created"), { label: label }), null);
+      return refreshCasebookList();
+    }).catch(function (error) {
+      setStatus("casebook-status", error.message, "is-error");
+      return null;
+    });
+  }
+
+  function openFileBox() {
+    if (!casebookOn() || !state.analyze) { return Promise.resolve(null); }
+    casebookState().actionId = newActionId();
+    casebookState().text = txt(obj(state.analyze).input);
+    casebookState().mode = txt(obj(state.analyze).mode) || "normal";
+    setHidden("casebook-filebox", false);
+    setStatus("casebook-file-status", "", null);
+    // The picker must offer the casebooks that exist now, not the ones the panel last saw - and
+    // until it does, the confirm button is disabled so a fast click cannot land on nothing.
+    var confirm = $("casebook-file-confirm");
+    if (confirm) { confirm.disabled = true; }
+    return refreshCasebookList().then(function () {
+      fillCasebookPicker();
+      if (confirm) { confirm.disabled = false; }
+      return null;
+    });
+  }
+
+  function closeFileBox() {
+    setHidden("casebook-filebox", true);
+    setStatus("casebook-file-status", "", null);
+  }
+
+  function fillCasebookPicker() {
+    var picker = $("casebook-picker");
+    if (!picker) { return; }
+    clear(picker);
+    casebookState().casebooks.forEach(function (raw) {
+      var item = obj(raw);
+      var option = el("option", "", txt(item.label));
+      option.value = txt(item.casebook_id);
+      picker.appendChild(option);
+    });
+  }
+
+  function casebookIdForFiling() {
+    var newName = $("casebook-file-new");
+    var label = newName && newName.value ? String(newName.value).trim() : "";
+    if (label) {
+      return fetchJson("/api/casebook", "POST", { label: label }).then(function (record) {
+        if (newName) { newName.value = ""; }
+        return { id: txt(obj(record).casebook_id), label: label };
+      });
+    }
+    var picker = $("casebook-picker");
+    var id = picker && picker.value ? String(picker.value) : "";
+    if (!id) { return Promise.reject(new Error(casebookCopy("casebook_file_pick"))); }
+    var chosen = casebookState().casebooks.filter(function (raw) {
+      return txt(obj(raw).casebook_id) === id;
+    })[0];
+    return Promise.resolve({ id: id, label: chosen ? txt(obj(chosen).label) : id });
+  }
+
+  function confirmFile() {
+    if (!casebookOn() || casebookState().busy) { return Promise.resolve(null); }
+    var button = $("casebook-file-confirm");
+    var occurredNode = $("casebook-occurred");
+    var occurred = occurredNode && occurredNode.value ? String(occurredNode.value) : "";
+    casebookState().busy = true;
+    if (button) { button.disabled = true; }
+    setStatus("casebook-file-status", casebookCopy("casebook_filing"), "is-busy");
+    return casebookIdForFiling().then(function (chosen) {
+      var body = {
+        text: casebookState().text,
+        mode: casebookState().mode,
+        action_id: casebookState().actionId
+      };
+      if (occurred) {
+        body.occurred = {
+          occurred_at: occurred,
+          occurred_precision: "day",
+          occurred_source: "user"
+        };
+      }
+      return fetchJson(
+        "/api/casebook/" + encodeURIComponent(chosen.id) + "/archive", "POST", body
+      ).then(function (outcome) {
+        var data = obj(outcome);
+        var key = data.created === true ? "casebook_filed" : "casebook_filed_again";
+        var message = casebookCopy(key);
+        if (message.indexOf("{label}") >= 0) {
+          message = casebookFill(message, { label: chosen.label });
+        }
+        setStatus("casebook-file-status", message, null);
+        // The action finished: the next click is a new action, even on the same sentence.
+        casebookState().actionId = null;
+        return refreshCasebookList();
+      });
+    }).catch(function (error) {
+      // The action id is kept, so pressing the button again retries the same action.
+      setStatus("casebook-file-status",
+        error && error.message ? error.message : casebookCopy("casebook_file_failed"), "is-error");
+      return null;
+    }).then(function (value) {
+      casebookState().busy = false;
+      if (button) { button.disabled = false; }
+      return value;
+    });
+  }
+
+  function initCasebook() {
+    casebookState();
+    renderCasebookCopy();
+    var action = $("file-to-casebook");
+    if (action) { action.addEventListener("click", openFileBox); }
+    var cancel = $("casebook-file-cancel");
+    if (cancel) { cancel.addEventListener("click", closeFileBox); }
+    var confirm = $("casebook-file-confirm");
+    if (confirm) { confirm.addEventListener("click", confirmFile); }
+    var create = $("casebook-create");
+    if (create) { create.addEventListener("click", createCasebook); }
+    var tab = $("tab-casebook");
+    if (tab) {
+      tab.addEventListener("click", function () { loadCasebookStatus(); });
+    }
+    loadCasebookStatus();
+  }
+
+
   /* ------------------------------------------------------------- hall copy */
 
   // The hall's own labels are copy, not data: every one of them is looked up in the
@@ -1758,6 +2241,7 @@
     initMode();
     initExamples();
     initCopy();
+    initCasebook();
     renderFrontDeskCopy();
     renderStageChrome();
     renderDeskLabels();
@@ -1769,8 +2253,9 @@
         var next = hallLanguage() === "zh" ? "en" : "zh-CN";
         if (document.documentElement) { document.documentElement.setAttribute("lang", next); }
         renderFrontDeskCopy();
-    renderStageChrome();
-    renderDeskLabels();
+        renderStageChrome();
+        renderDeskLabels();
+        renderCasebookCopy();
         if (state.analyze) { renderAnalyze(state.analyze); }
       });
     }
@@ -1804,6 +2289,8 @@
       displaySituation: displaySituation,
       renderAspectBreakdown: renderAspectBreakdown,
       renderMaterialRegistry: renderMaterialRegistry,
+      loadCasebookStatus: loadCasebookStatus,
+      renderCasebookList: renderCasebookList,
       firstScreenCopy: firstScreenCopy,
       screenFact: screenFact,
       capturedReading: capturedReading,

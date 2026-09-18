@@ -2127,6 +2127,92 @@ FRONT_DESK_COPY: dict[str, dict[str, str]] = {
         "alone is itself suspicious.",
     },
     "plausibility": {"zh": "可信度 {p}%", "en": "plausibility {p}%"},
+    # PR-6M2: the casebook. Storage is opt-in and explicit, so the copy has to say what is kept,
+    # where, and what is never kept at all.
+    "casebook_tab": {"zh": "卷宗", "en": "Casebook"},
+    "casebook_heading": {"zh": "卷宗", "en": "Casebook"},
+    "casebook_intro": {
+        "zh": "卷宗只保存在本机，而且只保存在你主动归入的内容。",
+        "en": "The casebook lives on this machine and holds only what you file yourself.",
+    },
+    "casebook_disabled": {
+        "zh": "本机未启用卷宗功能（NED_CASEBOOK=off）。分析照常可用，任何输入都不会被保存。",
+        "en": "This machine has the casebook switched off (NED_CASEBOOK=off). Analysis still "
+        "works and nothing you type is stored.",
+    },
+    "casebook_create_label": {"zh": "新建卷宗", "en": "New casebook"},
+    "casebook_label_field": {"zh": "卷宗名", "en": "Casebook name"},
+    "casebook_label_placeholder": {"zh": "例如：小 A", "en": "for example: A."},
+    "casebook_create": {"zh": "新建", "en": "Create"},
+    "casebook_created": {"zh": "已新建卷宗 {label}。", "en": "Created casebook {label}."},
+    "casebook_empty": {"zh": "还没有卷宗。", "en": "No casebooks yet."},
+    "casebook_expand": {"zh": "查看", "en": "Open"},
+    "casebook_collapse": {"zh": "收起", "en": "Close"},
+    "casebook_counts": {
+        "zh": "{files} 个案卷 · {entries} 条材料",
+        "en": "{files} case file(s) · {entries} entry(ies)",
+    },
+    "casebook_file_action": {"zh": "归入卷宗", "en": "File into casebook"},
+    "casebook_file_choose": {"zh": "归入哪个卷宗", "en": "Which casebook"},
+    "casebook_file_new": {"zh": "或新建一个卷宗名…", "en": "or name a new casebook…"},
+    "casebook_file_occurred": {"zh": "发生时间（可选）", "en": "When it happened (optional)"},
+    "casebook_file_confirm": {"zh": "确认归入", "en": "File it"},
+    "casebook_file_cancel": {"zh": "取消", "en": "Cancel"},
+    "casebook_file_pick": {
+        "zh": "请选择一个卷宗，或填一个卷宗名。",
+        "en": "Choose a casebook, or type a name for a new one.",
+    },
+    "casebook_filing": {"zh": "正在归入…", "en": "Filing…"},
+    "casebook_filed": {"zh": "已归入「{label}」。", "en": "Filed into {label}."},
+    "casebook_filed_again": {
+        "zh": "这次动作已经归入过了，没有重复保存。",
+        "en": "This action was already filed; nothing was stored twice.",
+    },
+    "casebook_file_failed": {"zh": "归入失败。", "en": "Filing failed."},
+    "casebook_times": {
+        "zh": "发生时间 {occurred} · 保存时间 {saved}",
+        "en": "happened {occurred} · saved {saved}",
+    },
+    "casebook_occurred_unknown": {"zh": "未知", "en": "unknown"},
+    "casebook_occurred_relative": {
+        "zh": "原文含相对时间，未解析",
+        "en": "the input mentions a relative time; it was not resolved",
+    },
+    "casebook_state": {"zh": "当时状态", "en": "state then"},
+    "casebook_material": {"zh": "材料附件", "en": "material on file"},
+    "casebook_no_material": {
+        "zh": "本案没有登记材料。",
+        "en": "Nothing was registered for this input.",
+    },
+    "casebook_entry_line": {
+        "zh": "{kind} · 偏移 {start}-{end} · {source}",
+        "en": "{kind} · offsets {start}-{end} · {source}",
+    },
+    "casebook_delete_entry": {"zh": "删除这条材料", "en": "Delete this entry"},
+    "casebook_delete_case": {"zh": "删除这个案卷", "en": "Delete this case file"},
+    "casebook_delete_casebook": {"zh": "删除整个卷宗", "en": "Delete this casebook"},
+    "casebook_delete_ask": {
+        "zh": "确认永久删除？此操作立即生效，不可撤销。",
+        "en": "Delete for good? This takes effect immediately and cannot be undone.",
+    },
+    "casebook_delete_yes": {"zh": "确认删除", "en": "Delete"},
+    "casebook_delete_cancel": {"zh": "取消", "en": "Cancel"},
+    "casebook_deleted": {"zh": "已删除。", "en": "Deleted."},
+    "casebook_delete_failed": {"zh": "删除失败。", "en": "Delete failed."},
+    "casebook_archive_failed": {"zh": "卷宗请求失败。", "en": "The casebook request failed."},
+    # PR-6M2: the footer has to describe what actually happens. The old sentence said input stays
+    # "in this browser session", which was never quite true (the interface keeps its mode in
+    # browser storage) and would now be wrong in a second way.
+    "privacy_footer": {
+        "zh": "本机运行：输入只在浏览器内存与本机服务器之间传递，分析不写入任何数据库。"
+        "只有你主动「归入卷宗」的内容才会写入本机卷宗文件；分析模式偏好保存在浏览器本地存储，"
+        "界面语言切换只在当前页面生效。无遥测、无分析、无 Cookie、无第三方请求。",
+        "en": "Runs on this machine: your input passes between the browser's memory and the "
+        "local server, and analysing writes to no database. Only what you explicitly file into "
+        "the casebook is written to the local casebook file; your preferred analysis mode is "
+        "kept in browser storage, and the language switch lasts for this page only. No "
+        "telemetry, no analytics, no cookies, no third-party requests.",
+    },
     # PR-6R2: the two status lines of the counter action. They are the only sentences left on the
     # main path that a reader could meet in English while the desk is speaking Chinese.
     "status_no_input": {

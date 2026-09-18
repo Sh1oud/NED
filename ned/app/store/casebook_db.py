@@ -23,16 +23,19 @@ import hashlib
 import json
 import shutil
 import sqlite3
+import time
 import uuid
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
 from ned.app.store.errors import (
+    CasebookBusyError,
     CasebookConfigError,
     CasebookCorruptError,
     CasebookNotFoundError,
+    IdempotencyConflictError,
     ImmutableRecordError,
     SchemaTooNewError,
 )
@@ -176,28 +179,65 @@ def sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def archive_token(casebook_id: str, snapshot: CaseFileSnapshot) -> str:
+def archive_token(casebook_id: str, snapshot: CaseFileSnapshot, idempotency_key: str = "") -> str:
     """A stable idempotency token for one archive call.
 
-    It identifies the **analysis instance**, not the words: the engine's own ``generated_at``
-    is part of the seed, so double-clicking one archive changes nothing, while two identical
-    sentences submitted on two different days are two instances and archive as two case files.
+    It identifies the **action**, not the words. The engine's ``generated_at`` is part of the
+    seed, and so is the caller's ``idempotency_key`` when it supplies one: a retry or a
+    double-click reuses the same key and therefore the same token, while two identical sentences
+    filed by two different actions stay two real case files.
     """
 
-    seed = {
-        "casebook_id": casebook_id,
-        "input_sha256": sha256_text(snapshot.input_text),
-        "generated_at": snapshot.generated_at_utc,
-        "mode": str(snapshot.mode),
-        "engine_version": snapshot.engine_version,
-        "rules_fingerprint": snapshot.rules_fingerprint,
-    }
+    if idempotency_key:
+        # The caller named the action. The token is then a function of that name and the
+        # casebook, so a retry of one action lands on the same token even though the archive
+        # endpoint ran a fresh analysis (and therefore a fresh ``generated_at``) for it.
+        seed = {"casebook_id": casebook_id, "idempotency_key": idempotency_key}
+    else:
+        seed = {
+            "casebook_id": casebook_id,
+            "input_sha256": sha256_text(snapshot.input_text),
+            "generated_at": snapshot.generated_at_utc,
+            "mode": str(snapshot.mode),
+            "engine_version": snapshot.engine_version,
+            "rules_fingerprint": snapshot.rules_fingerprint,
+        }
     blob = json.dumps(seed, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return "arc_" + hashlib.sha256(blob.encode("utf-8")).hexdigest()[:24]
 
 
 def _new_id(prefix: str) -> str:
     return f"{prefix}_{uuid.uuid4().hex}"
+
+
+def _is_busy(error: sqlite3.Error) -> bool:
+    """SQLite says "locked" or "busy" when the file is held; that is a retry, not corruption."""
+
+    message = str(error).lower()
+    return "locked" in message or "busy" in message
+
+
+def _busy_error(error: sqlite3.Error) -> CasebookBusyError:
+    return CasebookBusyError(f"the casebook file is in use: {error}")
+
+
+def _enable_wal(connection: sqlite3.Connection, *, timeout: float = 5.0) -> None:
+    """Switch the file to WAL, waiting out a switch another connection is making.
+
+    ``PRAGMA busy_timeout`` does not cover this pragma: SQLite returns SQLITE_BUSY immediately
+    when the journal mode is changing somewhere else, so the wait has to be explicit. WAL is what
+    lets readers and the writer share the file at all, so it is worth the few retries.
+    """
+
+    deadline = time.monotonic() + timeout
+    while True:
+        try:
+            connection.execute("PRAGMA journal_mode = WAL")
+            return
+        except sqlite3.OperationalError as error:
+            if not _is_busy(error) or time.monotonic() >= deadline:
+                raise
+            time.sleep(0.02)
 
 
 class CasebookStore:
@@ -221,6 +261,11 @@ class CasebookStore:
         store = cls(path, connection, read_only=False)
         try:
             store._initialise()
+        except sqlite3.OperationalError as error:
+            connection.close()
+            if _is_busy(error):
+                raise _busy_error(error) from error
+            raise
         except BaseException:
             connection.close()
             raise
@@ -250,6 +295,10 @@ class CasebookStore:
 
         try:
             return cls._connect(path, read_only=read_only)
+        except sqlite3.OperationalError as error:
+            if _is_busy(error):
+                raise _busy_error(error) from error
+            raise
         except sqlite3.DatabaseError as error:
             raise CasebookCorruptError(f"the casebook file cannot be read: {error}") from error
 
@@ -266,7 +315,7 @@ class CasebookStore:
         connection.execute("PRAGMA foreign_keys = ON")
         connection.execute("PRAGMA busy_timeout = 5000")
         if not read_only:
-            connection.execute("PRAGMA journal_mode = WAL")
+            _enable_wal(connection)
             connection.execute("PRAGMA secure_delete = ON")
             connection.execute("PRAGMA synchronous = NORMAL")
         return connection
@@ -312,24 +361,33 @@ class CasebookStore:
         shutil.copyfile(self.path, target)
 
     def _migrate(self, current: int) -> None:
-        pending = [step for step in MIGRATIONS if step[0] >= current]
-        for from_version, to_version, statements in sorted(pending):
-            if from_version != current:
-                raise CasebookConfigError(
-                    f"no migration path from schema {current} to {to_version}"
-                )
-            self._apply_migration(from_version, to_version, statements)
-            current = to_version
+        """Apply the chain under the write lock, re-reading the version *inside* it.
 
-    def _apply_migration(
-        self, from_version: int, to_version: int, statements: Sequence[str]
-    ) -> None:
-        """Apply one migration atomically: statements and the version number move together."""
+        ``BEGIN IMMEDIATE`` is taken before the version is read, so two opens that race on a fresh
+        file cannot both decide to create schema 1: the loser waits for the winner's commit, then
+        sees the finished schema and does nothing. The whole chain is one transaction, so the
+        statements and the version number still move together or not at all.
+        """
 
         with self.transaction():
-            for statement in statements:
-                self._connection.execute(statement)
-            self._connection.execute(f"PRAGMA user_version = {to_version}")
+            current = self.user_version()
+            if current > SCHEMA_VERSION:
+                raise SchemaTooNewError(
+                    f"this casebook was written by a newer NED (schema {current} > "
+                    f"{SCHEMA_VERSION}); it is opened read-only and never downgraded"
+                )
+            if current == SCHEMA_VERSION:
+                return
+            pending = [step for step in MIGRATIONS if step[0] >= current]
+            for from_version, to_version, statements in sorted(pending):
+                if from_version != current:
+                    raise CasebookConfigError(
+                        f"no migration path from schema {current} to {to_version}"
+                    )
+                for statement in statements:
+                    self._connection.execute(statement)
+                self._connection.execute(f"PRAGMA user_version = {to_version}")
+                current = to_version
 
     def _check_integrity(self) -> None:
         try:
@@ -407,18 +465,30 @@ class CasebookStore:
         return self.get_casebook(casebook_id)
 
     # -- archiving ---------------------------------------------------------
-    def archive(self, casebook_id: str, snapshot: CaseFileSnapshot) -> ArchiveOutcome:
-        """Archive one analysis. Replaying the same call is a no-op, not a duplicate."""
+    def archive(
+        self, casebook_id: str, snapshot: CaseFileSnapshot, idempotency_key: str = ""
+    ) -> ArchiveOutcome:
+        """Archive one analysis. Replaying the same action is a no-op, not a duplicate.
+
+        ``idempotency_key`` is the caller's name for the user action that produced this call
+        (the API's action id, the CLI's ``--action-id``). Together with the snapshot it decides
+        the token, so a retry of the same action cannot file a second case file.
+        """
 
         casebook = self.get_casebook(casebook_id)
         fingerprint = snapshot.rules_fingerprint or rules_fingerprint()
         pinned = snapshot.model_copy(update={"rules_fingerprint": fingerprint})
-        token = archive_token(casebook_id, pinned)
+        token = archive_token(casebook_id, pinned, idempotency_key)
         existing = self._connection.execute(
-            "SELECT case_file_id FROM case_files WHERE archive_token = ?", (token,)
+            "SELECT case_file_id, input_sha256 FROM case_files WHERE archive_token = ?", (token,)
         ).fetchone()
         if existing is not None:
             case_file_id = str(existing["case_file_id"])
+            if str(existing["input_sha256"]) != sha256_text(pinned.input_text):
+                raise IdempotencyConflictError(
+                    f"action {idempotency_key!r} was already used to file different "
+                    "content into this casebook"
+                )
             return ArchiveOutcome(
                 created=False,
                 case_file_id=case_file_id,
@@ -563,16 +633,62 @@ class CasebookStore:
             for row in self._connection.execute(sql, params)
         ]
 
-    def list_entries(self, case_file_id: str | None = None) -> list[EntryRecord]:
+    def list_entries(
+        self, case_file_id: str | None = None, casebook_id: str | None = None
+    ) -> list[EntryRecord]:
+        """Entries of one case file, or of one casebook, or of the whole file.
+
+        Ordering the three ways keeps every read narrow: a request for one casebook's entries
+        never loads another casebook's rows.
+        """
+
         params: tuple[object, ...]
-        if case_file_id is None:
-            sql, params = "SELECT * FROM entries ORDER BY saved_at, entry_id", ()
-        else:
+        if case_file_id is not None:
             sql = "SELECT * FROM entries WHERE case_file_id = ? ORDER BY material_index, entry_id"
             params = (case_file_id,)
+        elif casebook_id is not None:
+            sql = "SELECT * FROM entries WHERE casebook_id = ? ORDER BY saved_at, material_index"
+            params = (casebook_id,)
+        else:
+            sql, params = "SELECT * FROM entries ORDER BY saved_at, entry_id", ()
         return [
             EntryRecord.model_validate(dict(row)) for row in self._connection.execute(sql, params)
         ]
+
+    def find_case_file(self, casebook_id: str, case_file_id: str) -> CaseFileRecord:
+        """One case file, looked up through its casebook: isolation is in the query."""
+
+        row = self._connection.execute(
+            "SELECT * FROM case_files WHERE casebook_id = ? AND case_file_id = ?",
+            (casebook_id, case_file_id),
+        ).fetchone()
+        if row is None:
+            raise CasebookNotFoundError(case_file_id)
+        return CaseFileRecord.model_validate(dict(row))
+
+    def find_entry(self, casebook_id: str, entry_id: str) -> EntryRecord:
+        """One entry, looked up through its casebook, for the same reason."""
+
+        row = self._connection.execute(
+            "SELECT * FROM entries WHERE casebook_id = ? AND entry_id = ?",
+            (casebook_id, entry_id),
+        ).fetchone()
+        if row is None:
+            raise CasebookNotFoundError(entry_id)
+        return EntryRecord.model_validate(dict(row))
+
+    def stats(self) -> dict[str, int]:
+        """How much is on file: casebooks, case files and entries."""
+
+        def count(table: str) -> int:
+            row = self._connection.execute(f"SELECT COUNT(*) AS n FROM {table}").fetchone()
+            return int(row["n"]) if row is not None else 0
+
+        return {
+            "casebooks": count("casebooks"),
+            "case_files": count("case_files"),
+            "entries": count("entries"),
+        }
 
     def _count_entries(self, case_file_id: str) -> int:
         row = self._connection.execute(

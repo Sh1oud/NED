@@ -1,0 +1,451 @@
+"""REST routes for the casebook: create, choose, archive, view, delete.
+
+Three product rules are enforced here rather than trusted to a front end:
+
+* ``POST /api/analyze`` is untouched and still writes nothing. Filing something into the
+  casebook is a separate, explicit request.
+* the archive request may carry the reader's input, a mode, an action id and the reader's own
+  event-time metadata - **and nothing else** (``extra="forbid"``). The verdict, the material
+  snapshot and the timestamps are all produced by this process running the engine, so a client
+  cannot file "what NED said" as anything but what NED said.
+* every read and write is scoped by ``casebook_id``, including the lookups a delete uses, so a
+  request addressed at one casebook can never reach another casebook's rows.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Iterator
+from contextlib import contextmanager
+
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from ned.app.api.routes import get_analyzer
+from ned.app.config import MAX_INPUT_CHARS
+from ned.app.core.analyzer import NedAnalyzer
+from ned.app.core.models import Mode
+from ned.app.store import (
+    CasebookBusyError,
+    CasebookConfigError,
+    CasebookCorruptError,
+    CasebookNotFoundError,
+    CasebookRecord,
+    CasebookStore,
+    CaseFileRecord,
+    EntryRecord,
+    IdempotencyConflictError,
+    OccurredTime,
+    SchemaTooNewError,
+    casebook_enabled,
+    casebook_path,
+    open_casebook,
+)
+from ned.app.store.snapshot import build_case_file_snapshot
+
+router = APIRouter(prefix="/api/casebook", tags=["casebook"])
+
+
+# --------------------------------------------------------------------------- models ---
+class CasebookStatus(BaseModel):
+    """Whether this machine has the casebook switched on, and what is on file."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool
+    path: str | None = None
+    casebooks: int = 0
+    case_files: int = 0
+    entries: int = 0
+    #: A short, honest explanation when the file exists but this build cannot use it.
+    note: str = ""
+
+
+class CasebookCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    label: str = Field(min_length=1, max_length=80)
+    subject_note: str = Field(default="", max_length=200)
+
+
+class CasebookEdit(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    label: str | None = Field(default=None, min_length=1, max_length=80)
+    subject_note: str | None = Field(default=None, max_length=200)
+
+    @model_validator(mode="after")
+    def _something_to_change(self) -> CasebookEdit:
+        if self.label is None and self.subject_note is None:
+            raise ValueError("supply label or subject_note")
+        return self
+
+
+class ArchiveRequest(BaseModel):
+    """What a client is allowed to say when filing something.
+
+    There is deliberately no verdict, no material list, no recognition state and no timestamp
+    here: those are NED's own record of the analysis it runs for this request.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    text: str = Field(min_length=1, max_length=MAX_INPUT_CHARS)
+    mode: Mode = "normal"
+    #: The client's name for this user action. Reused on a retry, so a double-click is a no-op.
+    action_id: str = Field(min_length=8, max_length=64)
+    #: The reader's own event time, validated by the store's own model at request time.
+    occurred: OccurredTime = Field(default_factory=OccurredTime)
+
+
+class CasebookView(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    casebook_id: str
+    label: str
+    subject_note: str = ""
+    created_at: str
+    archived_at: str | None = None
+    case_files: int = 0
+    entries: int = 0
+
+
+class EntryView(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    entry_id: str
+    entry_kind: str
+    material_index: int | None = None
+    material_id: str | None = None
+    material_kind: str = ""
+    reported_content: str = ""
+    start_offset: int | None = None
+    end_offset: int | None = None
+    source_kind: str = ""
+    reporter_role: str = ""
+    proposition_owner: str = ""
+    target: str = ""
+    origin_rule_id: str = ""
+    subject_label: str | None = None
+    occurred_at: str | None = None
+    occurred_precision: str
+    occurred_source: str
+    saved_at: str
+    generated_at: str
+
+
+class CaseFileView(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    case_file_id: str
+    input_text: str
+    mode: str
+    language: str
+    recognition: str
+    verdict_code: str
+    verdict_text: str
+    verdict_severity: str
+    signal_type: str
+    signal_label: str
+    engine_name: str
+    engine_version: str
+    rules_version: str
+    rules_fingerprint: str
+    generated_at: str
+    saved_at: str
+    occurred_at: str | None = None
+    occurred_precision: str
+    occurred_source: str
+    entries: list[EntryView] = Field(default_factory=list)
+
+
+class CasebookDetail(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    casebook: CasebookView
+    case_files: list[CaseFileView] = Field(default_factory=list)
+
+
+class ArchiveResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    created: bool
+    casebook_id: str
+    case_file_id: str
+    archive_token: str
+    entry_count: int
+    recognition: str
+    verdict_code: str
+
+
+class DeleteResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    deleted: bool
+    kind: str
+    identifier: str
+    detail: str = ""
+
+
+# ---------------------------------------------------------------------- the store ---
+@contextmanager
+def open_store() -> Iterator[CasebookStore]:
+    """One store for one request, opened and closed in the request's own thread.
+
+    This is deliberately not a FastAPI dependency: a dependency and the endpoint it feeds can run
+    on different threadpool workers, and a sqlite connection belongs to the thread that made it.
+    Opening the store here, inside the endpoint body, keeps one connection on one thread for the
+    whole request.
+    """
+
+    try:
+        store = open_casebook()
+    except SchemaTooNewError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except CasebookCorruptError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    except CasebookBusyError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    except CasebookConfigError as error:
+        raise HTTPException(status_code=500, detail=str(error)) from error
+    if store is None:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "the casebook is switched off on this machine (NED_CASEBOOK=off); "
+                "nothing has been stored and nothing can be filed"
+            ),
+        )
+    try:
+        yield store
+    finally:
+        store.close()
+
+
+def _not_found(error: CasebookNotFoundError) -> HTTPException:
+    return HTTPException(status_code=404, detail=str(error))
+
+
+# ------------------------------------------------------------------------- routes ---
+@router.get("/status", response_model=CasebookStatus, summary="Is the casebook available?")
+def status() -> CasebookStatus:
+    """Always answerable, so a page can be honest about the feature being off.
+
+    A status probe is a *read*: it never creates the database, so asking whether the casebook is
+    available cannot bring it into existence. When the switch is off this reports
+    ``enabled=false``; when the file exists but this build cannot read it, that is said in
+    ``note`` instead of pretending the feature works.
+    """
+
+    if not casebook_enabled():
+        return CasebookStatus(enabled=False)
+    path = casebook_path()
+    if not path.exists():
+        return CasebookStatus(enabled=True, path=str(path))
+    try:
+        store = CasebookStore.open_read_only(path)
+    except (SchemaTooNewError, CasebookCorruptError, CasebookConfigError) as error:
+        return CasebookStatus(enabled=False, path=str(path), note=str(error))
+    with store:
+        counts = store.stats()
+    return CasebookStatus(
+        enabled=True,
+        path=str(path),
+        casebooks=counts["casebooks"],
+        case_files=counts["case_files"],
+        entries=counts["entries"],
+    )
+
+
+@router.post("", response_model=CasebookView, status_code=201, summary="Create a casebook")
+def create_casebook(payload: CasebookCreate) -> CasebookView:
+    with open_store() as store:
+        record = store.create_casebook(payload.label, payload.subject_note)
+        return _casebook_view(store, record)
+
+
+@router.get("", response_model=list[CasebookView], summary="List casebooks")
+def list_casebooks() -> list[CasebookView]:
+    with open_store() as store:
+        return [_casebook_view(store, record) for record in store.list_casebooks()]
+
+
+@router.get("/{casebook_id}", response_model=CasebookDetail, summary="One casebook and its cases")
+def get_casebook(casebook_id: str) -> CasebookDetail:
+    with open_store() as store:
+        try:
+            record = store.get_casebook(casebook_id)
+        except CasebookNotFoundError as error:
+            raise _not_found(error) from error
+        return CasebookDetail(
+            casebook=_casebook_view(store, record),
+            case_files=[
+                _case_file_view(store, case_file)
+                for case_file in store.list_case_files(casebook_id)
+            ],
+        )
+
+
+@router.patch("/{casebook_id}", response_model=CasebookView, summary="Rename a casebook")
+def edit_casebook(casebook_id: str, payload: CasebookEdit) -> CasebookView:
+    with open_store() as store:
+        changes = payload.model_dump(exclude_none=True)
+        try:
+            record = store.update_casebook(casebook_id, **changes)
+        except CasebookNotFoundError as error:
+            raise _not_found(error) from error
+        return _casebook_view(store, record)
+
+
+@router.post(
+    "/{casebook_id}/archive",
+    response_model=ArchiveResult,
+    summary="Analyse an input now and file the result",
+)
+def archive(casebook_id: str, payload: ArchiveRequest, request: Request) -> ArchiveResult:
+    """Run NED on the reader's input and file *that* analysis.
+
+    The client sends the input, the mode, an action id and its own event-time metadata. It never
+    sends a verdict, a material list or a timestamp: the snapshot is built from the analysis this
+    request just produced.
+    """
+
+    analyzer: NedAnalyzer = get_analyzer(request)
+    result = analyzer.analyze_text(payload.text, mode=payload.mode)
+    snapshot = build_case_file_snapshot(result, occurred=payload.occurred, book=analyzer.book)
+    with open_store() as store:
+        try:
+            store.get_casebook(casebook_id)
+        except CasebookNotFoundError as error:
+            raise _not_found(error) from error
+        try:
+            outcome = store.archive(casebook_id, snapshot, idempotency_key=payload.action_id)
+        except IdempotencyConflictError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+        return ArchiveResult(
+            created=outcome.created,
+            casebook_id=outcome.casebook_id,
+            case_file_id=outcome.case_file_id,
+            archive_token=outcome.archive_token,
+            entry_count=outcome.entry_count,
+            recognition=str(result.recognition),
+            verdict_code=result.verdict.code,
+        )
+
+
+@router.delete("/{casebook_id}", response_model=DeleteResult, summary="Delete a whole casebook")
+def delete_casebook(casebook_id: str) -> DeleteResult:
+    with open_store() as store:
+        outcome = store.delete_casebook(casebook_id)
+        return DeleteResult(
+            deleted=outcome.deleted,
+            kind=outcome.kind,
+            identifier=outcome.identifier,
+            detail=outcome.detail,
+        )
+
+
+@router.delete(
+    "/{casebook_id}/files/{case_file_id}",
+    response_model=DeleteResult,
+    summary="Delete one case file and its entries",
+)
+def delete_case_file(casebook_id: str, case_file_id: str) -> DeleteResult:
+    with open_store() as store:
+        try:
+            store.find_case_file(casebook_id, case_file_id)
+        except CasebookNotFoundError as error:
+            raise _not_found(error) from error
+        outcome = store.delete_case_file(case_file_id)
+        return DeleteResult(
+            deleted=outcome.deleted,
+            kind=outcome.kind,
+            identifier=outcome.identifier,
+            detail=outcome.detail,
+        )
+
+
+@router.delete(
+    "/{casebook_id}/entries/{entry_id}",
+    response_model=DeleteResult,
+    summary="Delete one entry",
+)
+def delete_entry(casebook_id: str, entry_id: str) -> DeleteResult:
+    with open_store() as store:
+        try:
+            store.find_entry(casebook_id, entry_id)
+        except CasebookNotFoundError as error:
+            raise _not_found(error) from error
+        outcome = store.delete_entry(entry_id)
+        return DeleteResult(
+            deleted=outcome.deleted,
+            kind=outcome.kind,
+            identifier=outcome.identifier,
+            detail=outcome.detail,
+        )
+
+
+# ------------------------------------------------------------------------ helpers ---
+def _casebook_view(store: CasebookStore, record: CasebookRecord) -> CasebookView:
+    case_files = store.list_case_files(record.casebook_id)
+    return CasebookView(
+        casebook_id=record.casebook_id,
+        label=record.label,
+        subject_note=record.subject_note,
+        created_at=record.created_at,
+        archived_at=record.archived_at,
+        case_files=len(case_files),
+        entries=len(store.list_entries(casebook_id=record.casebook_id)),
+    )
+
+
+def _case_file_view(store: CasebookStore, record: CaseFileRecord) -> CaseFileView:
+    entries = store.list_entries(case_file_id=record.case_file_id)
+    return CaseFileView(
+        case_file_id=record.case_file_id,
+        input_text=record.input_text,
+        mode=record.mode,
+        language=record.language,
+        recognition=record.recognition,
+        verdict_code=record.verdict_code,
+        verdict_text=record.verdict_text,
+        verdict_severity=record.verdict_severity,
+        signal_type=record.signal_type,
+        signal_label=record.signal_label,
+        engine_name=record.engine_name,
+        engine_version=record.engine_version,
+        rules_version=record.rules_version,
+        rules_fingerprint=record.rules_fingerprint,
+        generated_at=record.generated_at,
+        saved_at=record.saved_at,
+        occurred_at=record.occurred_at,
+        occurred_precision=record.occurred_precision,
+        occurred_source=record.occurred_source,
+        entries=[_entry_view(entry) for entry in entries],
+    )
+
+
+def _entry_view(record: EntryRecord) -> EntryView:
+    return EntryView(
+        entry_id=record.entry_id,
+        entry_kind=record.entry_kind,
+        material_index=record.material_index,
+        material_id=record.material_id,
+        material_kind=record.material_kind,
+        reported_content=record.reported_content,
+        start_offset=record.start_offset,
+        end_offset=record.end_offset,
+        source_kind=record.source_kind,
+        reporter_role=record.reporter_role,
+        proposition_owner=record.proposition_owner,
+        target=record.target,
+        origin_rule_id=record.origin_rule_id,
+        subject_label=record.subject_label,
+        occurred_at=record.occurred_at,
+        occurred_precision=record.occurred_precision,
+        occurred_source=record.occurred_source,
+        saved_at=record.saved_at,
+        generated_at=record.generated_at,
+    )
+
+
+__all__ = ["router"]

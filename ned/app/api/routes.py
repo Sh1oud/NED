@@ -1,7 +1,9 @@
 """REST API routes.
 
-All analysis is local and stateless: NED stores nothing, logs no input, and has
-no database, no accounts and no telemetry.
+All analysis is local and stateless: an analysis stores nothing, logs no input, and there
+are no accounts and no telemetry. The only local storage NED has is the casebook - a local
+file the reader switches on and files material into themselves, through
+:mod:`ned.app.api.casebook`. Analysing never writes to it.
 """
 
 from __future__ import annotations

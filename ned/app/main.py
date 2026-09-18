@@ -12,8 +12,10 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from ned.app.api.casebook import router as casebook_router
 from ned.app.api.routes import router
 from ned.app.core.analyzer import NedAnalyzer
+from ned.app.store import CasebookConfigError, casebook_enabled, casebook_path
 from ned.app.ui.personality import web_personality_catalog
 from ned.app.version import (
     DISCLAIMER,
@@ -40,6 +42,21 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
 
+def _casebook_availability() -> dict[str, object]:
+    """Whether the casebook is switched on, and where it would live.
+
+    A read of the switch and the path, never an open: serving the page must not bring a
+    casebook into existence, and a misconfigured path must not break the page either.
+    """
+
+    try:
+        if not casebook_enabled():
+            return {"enabled": False, "path": None}
+        return {"enabled": True, "path": str(casebook_path())}
+    except CasebookConfigError:
+        return {"enabled": False, "path": None}
+
+
 def create_app() -> FastAPI:
     """Build the ASGI application."""
 
@@ -50,7 +67,9 @@ def create_app() -> FastAPI:
             f"{TAGLINE}\n\n"
             "NED detects possible positive-affection signals, generates alternative "
             "explanations, discounts the evidence, and reports a verdict — all offline, "
-            "with no database, no accounts, no telemetry and no paid APIs.\n\n"
+            "with no accounts, no telemetry and no paid APIs. Analysing stores nothing; "
+            "the only local storage is the casebook you switch on and file into "
+            "yourself.\n\n"
             "**NED cannot determine whether someone likes you. Humans are not APIs.**"
         ),
         version=__version__,
@@ -62,6 +81,7 @@ def create_app() -> FastAPI:
         license_info={"name": "MIT"},
     )
     app.include_router(router)
+    app.include_router(casebook_router)
 
     if STATIC_DIR.is_dir():
         app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
@@ -83,6 +103,8 @@ def create_app() -> FastAPI:
             "examples": [case.model_dump() for case in instance.examples()],
             "disclaimer": instance.book.disclaimer or DISCLAIMER,
             "privacy_note": PRIVACY_NOTE,
+            "casebook_enabled": _casebook_availability()["enabled"],
+            "casebook_path": _casebook_availability()["path"],
             "personality_catalog": web_personality_catalog(),
         }
 

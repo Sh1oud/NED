@@ -11,7 +11,9 @@ import contextlib
 import json
 import os
 import sys
-from typing import Annotated, Any
+from pathlib import Path
+from typing import Annotated, Any, cast
+from uuid import uuid4
 
 import typer
 from rich.console import Console, Group
@@ -29,6 +31,21 @@ from ned.app.core.models import (
     FnbpResult,
     Mode,
     Verdict,
+)
+from ned.app.store import (
+    CasebookConfigError,
+    CasebookDisabledError,
+    CasebookError,
+    CasebookNotFoundError,
+    CasebookStore,
+    CaseFileRecord,
+    IdempotencyConflictError,
+    OccurredPrecision,
+    OccurredTime,
+    build_case_file_snapshot,
+    casebook_enabled,
+    casebook_path,
+    open_casebook,
 )
 from ned.app.ui.personality import (
     ASPECT_CARD_SITUATIONS,
@@ -987,6 +1004,294 @@ def examples(
         table.add_row(case.id, case.mode, case.text, case.note)
     out.print()
     out.print(table)
+    out.print()
+
+
+casebook_app = typer.Typer(
+    help="Manage the local casebook. It is off unless NED_CASEBOOK=on.",
+    no_args_is_help=True,
+)
+app.add_typer(casebook_app, name="casebook")
+
+
+def _casebook_error(error: Exception) -> typer.Exit:
+    """Every casebook failure ends the same way: the reason, then a non-zero exit."""
+
+    console().print(f"[red]{error}[/red]")
+    return typer.Exit(code=1)
+
+
+def _open_store() -> CasebookStore:
+    """Open the casebook or stop, with the reason printed."""
+
+    try:
+        store = open_casebook()
+    except (CasebookError, CasebookConfigError) as error:
+        raise _casebook_error(error) from error
+    if store is None:
+        raise _casebook_error(
+            CasebookDisabledError(
+                "the casebook is switched off on this machine; set NED_CASEBOOK=on "
+                "(and optionally NED_CASEBOOK_PATH) to use it"
+            )
+        )
+    return store
+
+
+def _resolve_casebook(store: CasebookStore, value: str) -> str:
+    """Accept a casebook id or its label; a label must be unambiguous."""
+
+    for record in store.list_casebooks():
+        if record.casebook_id == value:
+            return record.casebook_id
+    matches = [record for record in store.list_casebooks() if record.label == value]
+    if not matches:
+        raise _casebook_error(CasebookNotFoundError(f"no casebook {value!r}"))
+    if len(matches) > 1:
+        ids = ", ".join(record.casebook_id for record in matches)
+        raise _casebook_error(
+            CasebookConfigError(f"the label {value!r} matches several casebooks: {ids}")
+        )
+    return matches[0].casebook_id
+
+
+def _case_file_panel(store: CasebookStore, record: CaseFileRecord) -> Panel:
+    """One case file as the reader should see it: what, when, what state, what material."""
+
+    when = record.occurred_at or "time unknown"
+    if record.occurred_at is None and record.occurred_source == "input_relative":
+        when = "the input mentions a relative time; no date was ever recorded"
+    lines = [
+        Text(f"input      {record.input_text}", overflow="fold"),
+        Text(f"occurred   {when}  ({record.occurred_precision}/{record.occurred_source})"),
+        Text(f"saved      {record.saved_at}"),
+        Text(f"generated  {record.generated_at}"),
+        Text(
+            f"state      {record.recognition} / {record.verdict_code} ({record.verdict_severity})"
+        ),
+        Text(f"reading    {record.verdict_text}", overflow="fold"),
+        Text(
+            f"engine     {record.engine_name} {record.engine_version}, "
+            f"rules {record.rules_version} ({record.rules_fingerprint})"
+        ),
+    ]
+    entries = store.list_entries(case_file_id=record.case_file_id)
+    if not entries:
+        lines.append(Text("material   none registered for this input"))
+    for entry in entries:
+        lines.append(
+            Text(
+                f"material   [{entry.entry_kind}/{entry.material_kind}] {entry.reported_content} "
+                f"(offsets {entry.start_offset}-{entry.end_offset}, "
+                f"{entry.source_kind}/{entry.reporter_role}, {entry.origin_rule_id})"
+            )
+        )
+    return Panel(
+        Text.assemble(*[Text("\n").join(lines)]),
+        title=f"{record.case_file_id} · {record.mode} · {record.language}",
+        border_style="dim",
+        expand=False,
+    )
+
+
+@casebook_app.command("status")
+def casebook_status() -> None:
+    """Whether the casebook is available on this machine, and what is on file."""
+
+    out = console()
+    try:
+        enabled = casebook_enabled()
+        path = casebook_path() if enabled else None
+    except CasebookConfigError as error:
+        raise _casebook_error(error) from error
+    out.print()
+    out.print(f"casebook   {'on' if enabled else 'off'}")
+    if path is not None:
+        out.print(f"file       {path}")
+        if path.exists():
+            store = CasebookStore.open_read_only(path)
+            with store:
+                stats = store.stats()
+            out.print(
+                f"on file    {stats['casebooks']} casebook(s), {stats['case_files']} case file(s), "
+                f"{stats['entries']} entr(ies)"
+            )
+        else:
+            out.print("on file    nothing yet; the file is created by the first archive")
+    out.print()
+
+
+@casebook_app.command("list")
+def casebook_list() -> None:
+    """List the casebooks on this machine."""
+
+    out = console()
+    store = _open_store()
+    with store:
+        records = store.list_casebooks()
+        table = Table(box=None, show_header=True, header_style="bold", padding=(0, 1))
+        table.add_column("casebook")
+        table.add_column("label")
+        table.add_column("case files", justify="right")
+        table.add_column("entries", justify="right")
+        table.add_column("created", style="dim")
+        for record in records:
+            table.add_row(
+                record.casebook_id,
+                record.label,
+                str(len(store.list_case_files(record.casebook_id))),
+                str(len(store.list_entries(casebook_id=record.casebook_id))),
+                record.created_at,
+            )
+    out.print()
+    if not records:
+        out.print("no casebooks yet")
+    else:
+        out.print(table)
+    out.print()
+
+
+@casebook_app.command("create")
+def casebook_create(
+    label: Annotated[str, typer.Option("--label", help="What to call this casebook.")],
+    note: Annotated[str, typer.Option("--note", help="Optional subject note.")] = "",
+) -> None:
+    """Create a casebook (a subject scope the reader names)."""
+
+    out = console()
+    store = _open_store()
+    with store:
+        record = store.create_casebook(label, note)
+    out.print()
+    out.print(f"created casebook {record.casebook_id} ({record.label})")
+    out.print()
+
+
+@casebook_app.command("rename")
+def casebook_rename(
+    casebook: Annotated[str, typer.Option("--casebook", help="Casebook id or label.")],
+    label: Annotated[str, typer.Option("--label", help="The new display name.")],
+) -> None:
+    """Change a casebook's display name. History is untouched."""
+
+    out = console()
+    store = _open_store()
+    with store:
+        casebook_id = _resolve_casebook(store, casebook)
+        record = store.update_casebook(casebook_id, label=label)
+    out.print()
+    out.print(f"renamed {record.casebook_id} to {record.label}")
+    out.print()
+
+
+@casebook_app.command("show")
+def casebook_show(
+    casebook: Annotated[str, typer.Option("--casebook", help="Casebook id or label.")],
+) -> None:
+    """Show one casebook: its case files, their state and their material."""
+
+    out = console()
+    store = _open_store()
+    with store:
+        casebook_id = _resolve_casebook(store, casebook)
+        record = store.get_casebook(casebook_id)
+        case_files = store.list_case_files(casebook_id)
+        out.print()
+        out.print(f"{record.label}  ({record.casebook_id})")
+        if record.subject_note:
+            out.print(f"note: {record.subject_note}")
+        if not case_files:
+            out.print("nothing filed in this casebook yet")
+        for case_file in case_files:
+            out.print(_case_file_panel(store, case_file))
+    out.print()
+
+
+@casebook_app.command("archive")
+def casebook_archive(
+    casebook: Annotated[str, typer.Option("--casebook", help="Casebook id or label.")],
+    text: Annotated[str, typer.Option("--text", help="The input to file.")] = "",
+    file: Annotated[str | None, typer.Option("--file", help="Read the input from a file.")] = None,
+    mode: Annotated[str, typer.Option("--mode")] = "normal",
+    occurred: Annotated[
+        str | None, typer.Option("--occurred", help="Event date/time the reader declares.")
+    ] = None,
+    precision: Annotated[
+        str, typer.Option("--precision", help="year/month/day/hour/minute/second")
+    ] = "day",
+    action_id: Annotated[
+        str | None,
+        typer.Option("--action-id", help="Reuse to make a retry idempotent; default is a new one."),
+    ] = None,
+) -> None:
+    """Analyse the input with NED and file that analysis into the casebook."""
+
+    out = console()
+    if bool(text) == bool(file):
+        raise _casebook_error(CasebookConfigError("supply exactly one of --text or --file"))
+    payload_text = text if text else Path(str(file)).read_text(encoding="utf-8")
+    parsed_mode = _validate_mode(mode, out)
+    if parsed_mode is None:
+        raise typer.Exit(code=1)
+    allowed = ("year", "month", "day", "hour", "minute", "second", "unknown")
+    if precision not in allowed:
+        raise _casebook_error(
+            CasebookConfigError(
+                "--precision must be one of {}, not {!r}".format(", ".join(allowed), precision)
+            )
+        )
+    try:
+        occurred_time = OccurredTime(
+            occurred_at=occurred,
+            occurred_precision=cast(OccurredPrecision, precision if occurred else "unknown"),
+            occurred_source="user" if occurred else "unknown",
+        )
+    except ValueError as error:
+        raise _casebook_error(CasebookConfigError(str(error))) from error
+    key = action_id or uuid4().hex
+    analyzer = get_analyzer()
+    store = _open_store()
+    with store:
+        casebook_id = _resolve_casebook(store, casebook)
+        result = analyzer.analyze_text(payload_text, mode=parsed_mode)
+        snapshot = build_case_file_snapshot(result, occurred=occurred_time, book=analyzer.book)
+        try:
+            outcome = store.archive(casebook_id, snapshot, idempotency_key=key)
+        except IdempotencyConflictError as error:
+            raise _casebook_error(error) from error
+    out.print()
+    out.print(
+        f"{'filed' if outcome.created else 'already filed'}: case file {outcome.case_file_id} "
+        f"({outcome.entry_count} entr(ies)) · {result.recognition} / {result.verdict.code}"
+    )
+    out.print()
+
+
+@casebook_app.command("delete")
+def casebook_delete(
+    casebook: Annotated[str, typer.Option("--casebook", help="Casebook id or label.")],
+    yes: Annotated[bool, typer.Option("--yes", help="Skip the confirmation prompt.")] = False,
+) -> None:
+    """Delete a casebook and everything filed under it. This is a real delete."""
+
+    out = console()
+    store = _open_store()
+    with store:
+        casebook_id = _resolve_casebook(store, casebook)
+        record = store.get_casebook(casebook_id)
+        case_files = len(store.list_case_files(casebook_id))
+        entries = len(store.list_entries(casebook_id=casebook_id))
+        if not yes:
+            confirmed = typer.confirm(
+                f"delete casebook {record.label!r} ({casebook_id}) and with it "
+                f"{case_files} case file(s) / {entries} entr(ies)?"
+            )
+            if not confirmed:
+                out.print("nothing was deleted")
+                raise typer.Exit(code=0)
+        outcome = store.delete_casebook(casebook_id)
+    out.print()
+    out.print(f"deleted {outcome.identifier}: {outcome.detail}")
     out.print()
 
 

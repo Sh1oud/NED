@@ -34,6 +34,14 @@ class CasebookCorruptError(CasebookError):
     """``PRAGMA integrity_check`` did not answer ``ok``."""
 
 
+class CasebookBusyError(CasebookError):
+    """The file is in use by another request and did not come free in time.
+
+    This is a "try again", not a verdict about the file: the store never reports a held lock as
+    corruption, and it never reports corruption as a held lock.
+    """
+
+
 class ImmutableRecordError(CasebookError):
     """An archived case file or entry was about to be changed.
 
@@ -46,7 +54,16 @@ class CasebookNotFoundError(CasebookError):
     """The requested casebook, case file or entry is not in the file."""
 
 
+class IdempotencyConflictError(CasebookError):
+    """One action id was reused for different content.
+
+    A replay of the same action is a no-op; a *different* archive wearing the same action id is
+    a client mistake, and answering with the first case file would silently lose the second.
+    """
+
+
 __all__ = [
+    "CasebookBusyError",
     "CasebookConfigError",
     "CasebookCorruptError",
     "CasebookDisabledError",
