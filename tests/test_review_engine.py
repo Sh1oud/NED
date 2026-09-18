@@ -14,13 +14,15 @@ from ned.app.core.analyzer import NedAnalyzer
 from ned.app.review import (
     CurrentCase,
     MaterialFacts,
+    Order,
     RecordedDirection,
     Relation,
     RelationReason,
     ReviewRecord,
+    TemporalWindow,
     build_casebook_review,
+    compare,
     current_case_facts,
-    safely_later,
 )
 
 ANALYZER = NedAnalyzer()
@@ -269,10 +271,12 @@ def test_saved_at_cannot_order_anything() -> None:
     assert "saved_at" not in names
     assert "generated_at" not in names
     # The only clock the algorithm has is a declared event time, on the point it is handed.
-    assert {field.name for field in dataclasses.fields(longitudinal._Point)} == {
-        "occurred_at",
+    assert {field.name for field in dataclasses.fields(longitudinal.TemporalWindow)} == {
+        "value",
         "precision",
         "source",
+        "frame",
+        "window",
     }
     source = Path(longitudinal.__file__).read_text(encoding="utf-8")
     assert ".saved_at" not in source
@@ -346,21 +350,30 @@ def test_an_unknown_record_is_insufficient_rather_than_guessed() -> None:
 
 # ------------------------------------------------------------- the safe clock ---
 @pytest.mark.parametrize(
-    ("later", "earlier", "expected"),
+    ("left", "right", "expected"),
     [
-        (("2026-08-03", "day", "user"), ("2026-07-12", "day", "user"), True),
-        (("2026-07-12", "day", "user"), ("2026-08-03", "day", "user"), False),
-        (("2026-08-03", "day", "user"), ("2026-08-03", "day", "user"), False),
-        (("2026-08-03", "day", "user"), ("2026-07", "month", "user"), None),
-        (("2026-08-03", "day", "input_relative"), ("2026-07-12", "day", "user"), None),
-        ((None, "unknown", "unknown"), ("2026-07-12", "day", "user"), None),
-        (("2026-08-03T14", "hour", "user"), ("2026-08-03T09", "hour", "user"), True),
+        # two declared days a month apart: same frame, disjoint windows
+        (("2026-08-03", "day", "user"), ("2026-07-12", "day", "user"), Order.AFTER),
+        # the same day twice: a recorded value, not an ordering
+        (("2026-08-03", "day", "user"), ("2026-08-03", "day", "user"), Order.SAME),
+        # a month contains that day: no order may be invented
+        (("2026-03-15", "day", "user"), ("2026-03", "month", "user"), Order.NOT_COMPARABLE),
+        # windows that are far apart are ordered even when the precisions differ
+        (("2026-08-03", "day", "user"), ("2025-12", "month", "user"), Order.AFTER),
+        # a relative clue has no window at all
+        (
+            ("2026-08-03", "day", "input_relative"),
+            ("2026-07-12", "day", "user"),
+            Order.NOT_COMPARABLE,
+        ),
+        # and neither has an unknown one
+        ((None, "unknown", "unknown"), ("2026-07-12", "day", "user"), Order.NOT_COMPARABLE),
+        # the same hour, same frame
+        (("2026-08-03T14", "hour", "user"), ("2026-08-03T09", "hour", "user"), Order.AFTER),
     ],
 )
-def test_only_same_precision_declared_times_can_be_ordered(later, earlier, expected) -> None:
-    from ned.app.review.longitudinal import _Point
-
-    assert safely_later(_Point(*later), _Point(*earlier)) is expected
+def test_declared_times_are_ordered_by_their_windows(left, right, expected) -> None:
+    assert compare(TemporalWindow.of(*left), TemporalWindow.of(*right)).order is expected
 
 
 # --------------------------------------------------------------- no arithmetic ---

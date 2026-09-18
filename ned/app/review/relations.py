@@ -55,12 +55,6 @@ BOUNDARY_SIGNAL_TYPES: frozenset[str] = frozenset({"direct_rejection"})
 #: Verdict codes that state a boundary even when no material was filed for it.
 BOUNDARY_VERDICT_CODES: frozenset[str] = frozenset({"ned.direct_rejection"})
 
-#: Time precisions M3 can compare. Two values are only ever ordered against each other when the
-#: precision is the *same*: 2026-03 and 2026-03-15 are not comparable, and M3 refuses to guess.
-COMPARABLE_PRECISIONS: frozenset[str] = frozenset(
-    {"year", "month", "day", "hour", "minute", "second"}
-)
-
 
 @dataclass(frozen=True)
 class MaterialClass:
@@ -189,7 +183,6 @@ def directions_agree(current: RecordedDirection, recorded: RecordedDirection) ->
 __all__ = [
     "BOUNDARY_SIGNAL_TYPES",
     "BOUNDARY_VERDICT_CODES",
-    "COMPARABLE_PRECISIONS",
     "NEGATIVE_SIGNAL_TYPES",
     "POSITIVE_SIGNAL_TYPES",
     "CaseFileClass",

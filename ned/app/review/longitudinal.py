@@ -9,12 +9,16 @@ Time discipline (the part that is easy to get wrong):
 
 * ``saved_at`` is not an input. :class:`ReviewRecord` has no such field, so the algorithm cannot
   order anything by when it was filed. Only a declared event time can order two records;
-* two records are compared only when both declare an event time *at the same precision*. A month
-  and a day are not comparable, and the review refuses to guess which came first;
-* a boundary governs only when its ordering against every other boundary is safe. Otherwise the
+* a declared time is a **window in a frame**, never a padded timestamp
+  (:mod:`ned.app.review.temporal`). ``2026-03`` is the whole of March; a month that contains a day
+  cannot be ordered against it;
+* every ordering question in this module - which boundary is latest, whether a record is really
+  later than a boundary - is answered by that one comparator. There is no second opinion about
+  "later" anywhere in the review;
+* a boundary governs only when its ordering against every other candidate is safe. Otherwise the
   review says so and names no governing entry;
-* "boundary first" is not "boundary forever": a later positive record that is safely later than a
-  boundary is not superseded by it.
+* "boundary first" is not "boundary forever": a record that is provably later than a boundary is
+  not superseded by it.
 """
 
 from __future__ import annotations
@@ -35,12 +39,16 @@ from ned.app.review.models import (
     SummaryCode,
 )
 from ned.app.review.relations import (
-    COMPARABLE_PRECISIONS,
     CaseFileClass,
     MaterialFacts,
     classify_case_file,
     classify_material,
     directions_agree,
+)
+from ned.app.review.temporal import (
+    TemporalWindow,
+    strictly_before,
+    undecidable,
 )
 
 
@@ -81,57 +89,29 @@ class CurrentCase:
     occurred_source: str = "unknown"
 
 
-@dataclass(frozen=True)
-class _Point:
-    """One record's event time, as far as it is actually known."""
-
-    occurred_at: str | None
-    precision: str
-    source: str
-
-
 @dataclass
 class _Row:
     record: ReviewRecord
     family: ReviewFamily
     direction: RecordedDirection
     explicit_boundary: bool
-    time: _Point
+    window: TemporalWindow
     relation: Relation = Relation.NOT_COMPARABLE
     reason: RelationReason = RelationReason.RECORDED_TOO_THINLY
     superseded_by: str | None = None
     governing: bool = False
 
 
-def _point(record: ReviewRecord) -> _Point:
-    return _Point(record.occurred_at, record.occurred_precision, record.occurred_source)
+def _window(record: ReviewRecord) -> TemporalWindow:
+    """The record's declared event time, as a window in its frame. Never read from ``saved_at``."""
+
+    return TemporalWindow.of(record.occurred_at, record.occurred_precision, record.occurred_source)
 
 
-def safely_later(later: _Point, earlier: _Point) -> bool | None:
-    """Is ``later`` safely after ``earlier``? ``None`` means "cannot tell, and will not guess".
-
-    Safe means: both declare an event time the reader supplied, both store it at the *same*
-    precision, and the two strings differ. Same-precision values share one shape, so their
-    ordering is the ordering of the strings. Anything else - a missing time, a relative clue, a
-    month against a day - is not comparable in M3.
-    """
-
-    later_at = later.occurred_at
-    earlier_at = earlier.occurred_at
-    if later_at is None or earlier_at is None:
-        return None
-    if later.source != "user" or earlier.source != "user":
-        return None
-    if (
-        later.precision not in COMPARABLE_PRECISIONS
-        or earlier.precision not in COMPARABLE_PRECISIONS
-    ):
-        return None
-    if later.precision != earlier.precision:
-        return None
-    if later_at == earlier_at:
-        return False
-    return later_at > earlier_at
+def _current_window(current: CurrentCase) -> TemporalWindow:
+    return TemporalWindow.of(
+        current.occurred_at, current.occurred_precision, current.occurred_source
+    )
 
 
 def current_case_facts(
@@ -198,8 +178,8 @@ def build_casebook_review(
 
     rows = [_row_for(record) for record in records]
     governing_row, governing_current, governing_reason, order_known = _find_governing(rows, current)
-    governing_point = (
-        _point(governing_row.record) if governing_row is not None else _current_point(current)
+    governing_window = (
+        governing_row.window if governing_row is not None else _current_window(current)
     )
     has_governing = governing_row is not None or governing_current
 
@@ -211,9 +191,19 @@ def build_casebook_review(
         RecordedDirection.NEGATIVE,
         RecordedDirection.BOUNDARY,
     )
-    # "Boundary first" is not "boundary forever": if a later record is *safely* later than the
+    # An unknown order names no governing entry: if the boundary cannot be ordered against a
+    # record it could govern, calling it the file's state would claim more than the archive proves.
+    if has_governing and _governs_an_unordered_record(
+        rows, governing_row, governing_window, supersedable
+    ):
+        governing_row, governing_current = None, False
+        has_governing = False
+        governing_reason = GoverningReason.ORDER_NOT_DETERMINABLE
+    # "Boundary first" is not "boundary forever": if a later record is *provably* later than the
     # boundary, the boundary is no longer the file's last word and is not named governing.
-    if has_governing and _later_record_exists(rows, governing_row, governing_point, supersedable):
+    elif has_governing and _later_record_exists(
+        rows, governing_row, governing_window, supersedable
+    ):
         governing_row, governing_current = None, False
         has_governing = False
         governing_reason = GoverningReason.LATER_RECORD_AFTER_BOUNDARY
@@ -225,7 +215,7 @@ def build_casebook_review(
         if (
             has_governing
             and row.direction in supersedable
-            and safely_later(governing_point, row.time) is True
+            and strictly_before(row.window, governing_window)
         ):
             row.relation = Relation.SUPERSEDED
             row.reason = RelationReason.SUPERSEDED_BY_LATER_BOUNDARY
@@ -234,11 +224,8 @@ def build_casebook_review(
             )
             continue
         if not row.explicit_boundary and historical_boundaries:
-            undecidable = any(
-                safely_later(_point(other.record), row.time) is None
-                for other in historical_boundaries
-            )
-            if undecidable and row.direction in (
+            unclear = any(undecidable(other.window, row.window) for other in historical_boundaries)
+            if unclear and row.direction in (
                 RecordedDirection.POSITIVE,
                 RecordedDirection.NEGATIVE,
             ):
@@ -296,7 +283,7 @@ def _row_for(record: ReviewRecord) -> _Row:
             family=classified.family,
             direction=classified.direction,
             explicit_boundary=classified.explicit_boundary,
-            time=_point(record),
+            window=_window(record),
         )
     reading: CaseFileClass = classify_case_file(
         signal_type=record.recorded_signal_type,
@@ -307,12 +294,8 @@ def _row_for(record: ReviewRecord) -> _Row:
         family=reading.family,
         direction=reading.direction,
         explicit_boundary=reading.explicit_boundary,
-        time=_point(record),
+        window=_window(record),
     )
-
-
-def _current_point(current: CurrentCase) -> _Point:
-    return _Point(current.occurred_at, current.occurred_precision, current.occurred_source)
 
 
 def _find_governing(
@@ -320,48 +303,68 @@ def _find_governing(
 ) -> tuple[_Row | None, bool, GoverningReason, bool]:
     """The latest explicit boundary, or an honest reason for not naming one."""
 
-    candidates: list[tuple[str, _Row | None, _Point]] = [
-        (row.record.item_id, row, row.time) for row in rows if row.explicit_boundary
+    candidates: list[tuple[str, _Row | None, TemporalWindow]] = [
+        (row.record.item_id, row, row.window) for row in rows if row.explicit_boundary
     ]
     if current.is_boundary:
-        candidates.append(("__current__", None, _current_point(current)))
+        candidates.append(("__current__", None, _current_window(current)))
     if not candidates:
         return None, False, GoverningReason.NO_EXPLICIT_BOUNDARY, False
     if len(candidates) == 1:
-        item_id, row, point = candidates[0]
-        if point.occurred_at is None or point.source != "user":
+        item_id, row, window = candidates[0]
+        if not window.comparable:
             return None, False, GoverningReason.BOUNDARY_HAS_NO_EVENT_TIME, False
         return row, row is None, GoverningReason.LATEST_EXPLICIT_BOUNDARY, True
-    for item_id, row, point in candidates:
+    for item_id, row, window in candidates:
         wins = True
-        for other_id, _other_row, other_point in candidates:
+        for other_id, _other_row, other_window in candidates:
             if other_id == item_id:
                 continue
-            later = safely_later(point, other_point)
-            if later is not True:
-                # Equal times or an incomparable pair: no entry may be called the latest one.
+            if not strictly_before(other_window, window):
+                # Nothing that is not *provably* later may be called the latest boundary: equal
+                # windows, containing windows and mixed frames all land here.
                 wins = False
                 break
         if wins:
             return row, row is None, GoverningReason.LATEST_EXPLICIT_BOUNDARY, True
-    declared = [point for _id, _row, point in candidates if point.occurred_at is not None]
+    declared = [window for _id, _row, window in candidates if window.comparable]
     if not declared:
         return None, False, GoverningReason.BOUNDARY_HAS_NO_EVENT_TIME, False
     return None, False, GoverningReason.ORDER_NOT_DETERMINABLE, False
 
 
-def _later_record_exists(
+def _governs_an_unordered_record(
     rows: list[_Row],
     governing_row: _Row | None,
-    governing_point: _Point,
+    governing_window: TemporalWindow,
     supersedable: tuple[RecordedDirection, ...],
 ) -> bool:
-    """Is there a record that is *safely* later than the boundary it would otherwise govern?"""
+    """Is there a record this boundary would govern, whose order against it is unknown?
+
+    Only records with a direction of their own count: a third party's stance or a record with no
+    reading at all was never the boundary's to govern.
+    """
 
     for row in rows:
         if row is governing_row or row.direction not in supersedable:
             continue
-        if safely_later(row.time, governing_point) is True:
+        if undecidable(governing_window, row.window):
+            return True
+    return False
+
+
+def _later_record_exists(
+    rows: list[_Row],
+    governing_row: _Row | None,
+    governing_window: TemporalWindow,
+    supersedable: tuple[RecordedDirection, ...],
+) -> bool:
+    """Is there a record that is *provably* later than the boundary it would otherwise govern?"""
+
+    for row in rows:
+        if row is governing_row or row.direction not in supersedable:
+            continue
+        if strictly_before(governing_window, row.window):
             return True
     return False
 
@@ -489,5 +492,4 @@ __all__ = [
     "ReviewRecord",
     "build_casebook_review",
     "current_case_facts",
-    "safely_later",
 ]
