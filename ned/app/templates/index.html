@@ -15,33 +15,30 @@
       <div class="hero-glow" aria-hidden="true"></div>
       <div class="hall-awning" aria-hidden="true"></div>
       <div class="hero-body">
-        <div class="hero-meta">
-          <span class="badge badge-state" id="health-pill" data-state="pending">
+        <div class="utility-row">
+          <span class="utility-item" id="health-pill" data-state="pending">
             <span class="dot" aria-hidden="true"></span><span id="health-text">Checking engine</span>
           </span>
-          <span class="badge mono" id="version-badge">v{{ version }}</span>
-          <span class="badge badge-quiet" id="privacy-note">{{ privacy_note }}</span>
+          <span class="utility-sep" aria-hidden="true">·</span>
+          <span class="utility-item" id="version-badge">v{{ version }}</span>
+          <span class="utility-sep" aria-hidden="true">·</span>
+          <span class="utility-item" id="privacy-note">{{ privacy_note }}</span>
           <button type="button" class="btn btn-ghost btn-lang" id="lang-toggle" aria-label="Switch interface language">EN</button>
         </div>
 
-        <h1 class="hero-title">
-          <span class="hero-title-main">NED</span>
-          <span class="hero-title-sub">Nov1ce Evidence Denier</span>
-          <span class="hero-title-sub" id="hall-title"></span>
+        <h1 class="masthead">
+          <span class="masthead-name">NED</span>
+          <span class="masthead-sub">Nov1ce Evidence Denier</span>
         </h1>
-
-        <p class="hero-purposes" id="institution-purpose">把可疑的好消息重新变成不确定。本局只审查材料的证据资格，不猜对方的心意。</p>
-        <p class="hero-quote" id="hero-slogan">When reality becomes suspiciously positive, NED restores uncertainty.</p>
-        <p class="hero-tagline">Systematically explaining away good news since 2026. · 自 2026 年起，系统性解释掉好消息。</p>
       </div>
     </header>
 
     <div class="hall-directory">
       <nav class="tabs" role="tablist" aria-label="NED modules">
-        <button type="button" class="tab is-active" id="tab-analyze" role="tab" aria-selected="true" aria-controls="panel-analyze" tabindex="0" data-tab="analyze">交材料 · Review intake</button>
-        <span class="tab-group-label">其它窗口</span>
-        <button type="button" class="tab tab-secondary" id="tab-asymmetry" role="tab" aria-selected="false" aria-controls="panel-asymmetry" tabindex="-1" data-tab="asymmetry">证据对比（专项服务）</button>
-        <button type="button" class="tab tab-secondary" id="tab-lab" role="tab" aria-selected="false" aria-controls="panel-lab" tabindex="-1" data-tab="lab">通知分支实验室（工程功能）</button>
+        <button type="button" class="tab is-active" id="tab-analyze" role="tab" aria-selected="true" aria-controls="panel-analyze" tabindex="0" data-tab="analyze">交材料</button>
+        <span class="tab-group-label" id="tabs-group-label">其它窗口</span>
+        <button type="button" class="tab tab-secondary" id="tab-asymmetry" role="tab" aria-selected="false" aria-controls="panel-asymmetry" tabindex="-1" data-tab="asymmetry">证据对比</button>
+        <button type="button" class="tab tab-secondary" id="tab-lab" role="tab" aria-selected="false" aria-controls="panel-lab" tabindex="-1" data-tab="lab">通知分支实验室</button>
       </nav>
     </div>
 
@@ -60,16 +57,16 @@
               <div class="window-plate" aria-hidden="true"></div>
               <div class="card-head">
                 <p class="stage-kicker"><span class="stage-no">01</span> <span class="stage-kicker-text" id="stage-kicker-submit"></span></p>
-                <h2 class="label" id="intake-heading">Evidence Intake · 提交待审查材料</h2>
-                <p class="hint" id="intake-purpose">粘贴一句话，或描述发生了什么。本局不猜对方的心意，只审查你手上的材料。</p>
+                <h2 class="intake-heading" id="intake-heading">请提交待审查材料</h2>
+                <p class="hint" id="intake-purpose">粘贴一句话，或描述发生了什么。</p>
               </div>
 
-              <label class="field-label" for="analyze-input">Message or event · 材料原文</label>
-              <textarea id="analyze-input" class="input" rows="4" placeholder="Paste a message or describe what happened… · 粘贴消息，或描述发生了什么…" spellcheck="false"></textarea>
+              <label class="field-label" id="field-material-label" for="analyze-input">材料原文</label>
+              <textarea id="analyze-input" class="input" rows="4" placeholder="粘贴消息，或描述发生了什么…" spellcheck="false"></textarea>
 
               <div class="row-inline">
                 <div class="field">
-                  <label class="field-label" for="mode-select">Analysis mode · 审查模式</label>
+                  <label class="field-label" id="field-mode-label" for="mode-select">审查模式</label>
                   <select id="mode-select" class="input select">
                     {% for m in modes %}
                     <option value="{{ m.id }}" data-blurb="{{ m.blurb }}"{% if m.id == modes_default %} selected{% endif %}>{{ m.label }}</option>
@@ -78,15 +75,15 @@
                   <p class="mode-blurb" id="mode-blurb">{% for m in modes %}{% if m.id == modes_default %}{{ m.blurb }}{% endif %}{% endfor %}</p>
                 </div>
                 <div class="field field-actions">
-                  <button type="button" class="btn btn-primary" id="analyze-submit">Analyze Evidence</button>
+                  <button type="button" class="btn btn-primary" id="analyze-submit">提交审查</button>
                   <p class="status" id="analyze-status" role="status" aria-live="polite"></p>
                 </div>
               </div>
 
               <details class="examples-guide" id="examples-guide">
-                <summary id="examples-heading">办事指南 · Example cases</summary>
+                <summary id="examples-heading">办事指南</summary>
                 <div class="chips-wrap">
-                  <div class="label">Example cases</div>
+                  <div class="label" id="examples-guide-label">办事指南</div>
                   <div class="chips" id="example-chips">
                     {% for ex in examples %}
                     <button type="button" class="chip" data-text="{{ ex.text }}" data-mode="{{ ex.mode }}"{% if ex.note %} title="{{ ex.note }}"{% endif %}>
@@ -120,8 +117,8 @@
                   <span class="meta-item">lang <b class="mono" id="result-language">—</b></span>
                   <span class="meta-item">signal <b class="mono" id="result-signal-type">—</b></span>
                 </div>
-                <button type="button" class="btn btn-ghost btn-inline" id="submit-another">继续交材料 · Submit another</button>
-                <button type="button" class="btn btn-ghost" id="copy-json">Copy JSON</button>
+                <button type="button" class="btn btn-ghost btn-inline" id="submit-another">继续交材料</button>
+                <button type="button" class="btn btn-ghost" id="copy-json">复制 JSON</button>
               </div>
             </div>
 
@@ -163,7 +160,7 @@
                   <p class="note" id="material-registry-isolation"></p>
                 </div>
               </section>
-              <p class="stage-empty" id="material-empty" hidden>本版未识别到可登记材料。 · No material was recognised in this submission.</p>
+              <p class="stage-empty" id="material-empty" hidden>本版未识别到可登记材料。</p>
             </section>
 
             <!-- (3) REVIEW OPINION --------------------------------------------- -->
@@ -175,7 +172,7 @@
                 <h2 class="screen-title" id="screen-title">—</h2>
                 <p class="screen-fact" id="screen-fact">—</p>
                 <p class="screen-quality-row" id="screen-quality-row" hidden>
-                  <span class="screen-quality-label" id="screen-quality-label">Evidence quality</span>
+                  <span class="screen-quality-label" id="screen-quality-label">证据强度</span>
                   <span class="screen-quality" id="screen-quality">—</span>
                 </p>
                 <div class="screen-lines" id="screen-lines"></div>
@@ -186,55 +183,55 @@
 
               <div class="review-grid">
                 <section class="card">
-                  <div class="label">Reality Check · 现实核对</div>
+                  <div class="label" id="section-reality">现实核对</div>
                   <div id="reality-check" class="stack">
-                    <h3 class="subhead">Reality Check</h3>
+                    <h3 class="subhead" id="reality-heading">现实核对</h3>
                     <p class="prose" id="reality-check-text">—</p>
                   </div>
                 </section>
 
                 <section class="card card-wide review-region-start" id="nea-block" hidden>
-                  <div class="label">Negative Evidence Amplifier · 负面证据放大器</div>
+                  <div class="label" id="section-nea">负面证据放大器</div>
                   <div class="stack">
-                    <h3 class="subhead">Observed evidence vs amplified reading</h3>
+                    <h3 class="subhead" id="nea-heading">观察到的证据与放大后的读法</h3>
                     <div class="kv">
                       <div class="kv-row">
-                        <span class="kv-k">Observed evidence</span>
+                        <span class="kv-k" id="nea-observed-label">观察到的证据</span>
                         <span class="kv-v" id="nea-observed">—</span>
                       </div>
                       <div class="kv-row">
-                        <span class="kv-k">Amplified reading</span>
+                        <span class="kv-k" id="nea-amplified-label">放大后的读法</span>
                         <span class="kv-v alarm" id="nea-amplified">—</span>
                       </div>
                     </div>
                     <p class="note" id="nea-framing">—</p>
-                    <p class="note">Nothing here is advice, and nothing here is a fact about anyone.</p>
+                    <p class="note" id="nea-note">这里没有建议，也没有任何关于某人的事实。</p>
                   </div>
                 </section>
 
                 <section class="card card-wide">
-                  <div class="label">Hypotheses · 替代解释</div>
+                  <div class="label" id="section-hypotheses">替代解释</div>
                   <div id="alternative-hypotheses" class="stack review-region-start">
-                    <h3 class="subhead">Alternative Hypotheses</h3>
-                    <p class="note">These are alternative hypotheses, not findings. Each one exists to re-open the possibility that 可能只是人好。👍</p>
+                    <h3 class="subhead" id="hypotheses-heading">替代解释</h3>
+                    <p class="note" id="hypo-note">以下是替代解释，不是结论。它们只用来重新打开另一种可能：可能只是人好。👍</p>
                     <ol class="hypo-list" id="hypotheses-list">
-                      <li class="hypo hypo-empty">No alternative hypotheses computed yet.</li>
+                      <li class="hypo hypo-empty">本次还没有生成替代解释。</li>
                     </ol>
                   </div>
                 </section>
 
                 <section class="card card-wide review-region-start" id="epistemic-breakdown" hidden>
-                  <div class="label">Epistemic Breakdown · 解释审计</div>
+                  <div class="label" id="section-audit">解释审计</div>
                   <div class="stack">
-                    <h3 class="subhead">Alternative Explanation Audit</h3>
+                    <h3 class="subhead" id="audit-heading">解释审计</h3>
                     <dl class="audit-rows" id="audit-rows"></dl>
                   </div>
                 </section>
 
                 <section class="card card-wide review-region-start" id="aspect-breakdown" hidden>
-                  <div class="label">Multiple Aspects Breakdown · 多面材料</div>
+                  <div class="label" id="section-aspects">多面材料</div>
                   <div class="stack">
-                    <h3 class="subhead">Materials on file</h3>
+                    <h3 class="subhead" id="aspects-heading">在卷材料</h3>
                     <dl class="audit-rows" id="aspect-rows"></dl>
                   </div>
                 </section>
@@ -246,9 +243,9 @@
               <h3 class="stage-title"><span class="stage-no">04</span> <span id="stage-title-issuance"></span></h3>
               <p class="stage-lead" id="issuance-lead">本机构这次究竟签没签。</p>
               <section class="card verdict-card" id="issuance-card">
-                <div class="label" id="issuance-heading">Verdict</div>
+                <div class="label" id="issuance-heading">签发状态</div>
                 <div id="final-verdict" class="stack">
-                  <h3 class="subhead">Final Verdict</h3>
+                  <h3 class="subhead" id="verdict-heading">最终裁决</h3>
                   <p class="verdict-line">
                     <span class="verdict-emoji" id="verdict-emoji" aria-hidden="true"></span>
                     <span class="verdict-text" id="verdict-text">—</span>
@@ -263,7 +260,7 @@
 
             <!-- TECHNICAL ARCHIVE: everything a case officer does not need ---- -->
             <details class="technical-details" id="technical-details">
-              <summary id="records-heading">Technical Details</summary>
+              <summary id="records-heading">技术档案</summary>
               <div class="technical-body">
                 <dl class="spec-strip" id="system-strip">
                   <div class="spec">

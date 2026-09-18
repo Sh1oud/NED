@@ -35,29 +35,35 @@ TEMPLATE = (ROOT / "ned" / "app" / "templates" / "index.html").read_text(encodin
 SCRIPT = (ROOT / "ned" / "app" / "static" / "app.js").read_text(encoding="utf-8")
 STYLE = (ROOT / "ned" / "app" / "static" / "style.css").read_text(encoding="utf-8")
 
-#: The frozen wording, key by key: (zh, en). The English intake heading is
-#: "Submit material for review", not the longer draft this batch started from.
+#: The frozen wording, key by key: (zh, en). PR-6R2 deleted the hall title and its two slogan
+#: sentences - the desk states what it is, not what it promises - so these are the four labels
+#: that remain, and the archive heading now says what the folded block became.
 FRONT_DESK = {
-    "hall_title": (
-        "NED 不确定性审查局 · 网上办事大厅",
-        "NED Uncertainty Review Bureau · Online Service Hall",
-    ),
     "intake_heading": ("请提交待审查材料", "Submit material for review"),
     "submit_label": ("提交审查", "Submit for review"),
     # PR-3: the folded block became the dossier's technical archive, so its heading says so.
-    "records_heading": ("技术档案 · Technical archive", "Technical archive"),
+    "records_heading": ("技术档案", "Technical archive"),
     "issuance_heading": ("签发状态", "Issuance status"),
 }
 
 #: One hall label per injected element. ``analyze-submit`` is the pre-existing
 #: button; every other anchor is the element the label was always meant to name.
 ANCHORS = {
-    "hall_title": "hall-title",
     "intake_heading": "intake-heading",
     "submit_label": "analyze-submit",
     "records_heading": "records-heading",
     "issuance_heading": "issuance-heading",
 }
+
+#: The hall title and its slogan, deleted by PR-6R2. They must not come back anywhere: not in the
+#: template, not in the script, not in the stylesheet, not in the served page.
+DELETED_HALL_TEXT = (
+    "NED 不确定性审查局 · 网上办事大厅",
+    "NED Uncertainty Review Bureau · Online Service Hall",
+    "自 2026 年起，系统性解释掉好消息。",
+    "把可疑的好消息重新变成不确定。",
+    "本局只审查材料的证据资格",
+)
 
 #: Punchlines a serious screen is never allowed to carry. The register is scoped
 #: per situation: ``timeline_boundary``'s own locked copy contains 「害羞」 only
@@ -126,6 +132,82 @@ LEGACY_DIGESTS = {
     "verdict_overrides": "43d774733393a9ee",
 }
 
+#: Every key the desk block carries besides the four frozen labels: PR-3's stage chrome,
+#: PR-4R's state words, and PR-6R2's labels for the tab index, the intake fields, the review
+#: sections and the review region's own notes.
+DESK_KEYS = {
+    "stage_material_count",
+    "stage_material_none",
+    "stage_review_done",
+    "stage_review_unsignable",
+    "stage_review_none",
+    "stage_issuance_signed",
+    "stage_issuance_material",
+    "stage_issuance_none",
+    "issuance_signed",
+    "issuance_boundary",
+    "issuance_boundary_sub",
+    "issuance_material",
+    "issuance_material_sub",
+    "issuance_none",
+    "issuance_none_sub",
+    "material_count",
+    "material_count_none",
+    "review_relation_evidence_and_material",
+    "review_relation_evidence_only",
+    "review_relation_material_only",
+    "review_relation_none",
+    "language_toggle",
+    "stage_name_submit",
+    "stage_name_material",
+    "stage_name_review",
+    "stage_name_issuance",
+    "issuance_kicker",
+    "stage_kicker_submit",
+    "satire_line",
+    "submit_pending",
+    "submit_done",
+    "stage_submit_state",
+    "stamp_signed",
+    "stamp_unsigned",
+    "stamp_boundary",
+    "stamp_material_pending",
+    "material_lead",
+    "review_lead",
+    "issuance_lead",
+    "submit_another",
+    "stage_material_independent_none",
+    "material_empty_independent_none",
+    "fact_material_only",
+    "tab_intake",
+    "tab_others",
+    "tab_asymmetry",
+    "tab_lab",
+    "intake_purpose",
+    "field_material",
+    "field_mode",
+    "field_material_placeholder",
+    "examples_heading",
+    "section_reality",
+    "section_nea",
+    "section_hypotheses",
+    "section_audit",
+    "section_aspects",
+    "verdict_heading",
+    "copy_json",
+    "screen_quality_label",
+    "nea_observed_label",
+    "nea_amplified_label",
+    "nea_note",
+    "hypo_note",
+    "hypo_empty",
+    "plausibility",
+    "status_no_input",
+    "status_analyze_failed",
+    "hypo_note_boundary",
+    "hypo_note_hostile",
+}
+
 
 def digest(value: object) -> str:
     blob = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
@@ -167,54 +249,9 @@ def test_the_hall_has_exactly_the_five_frozen_labels() -> None:
     assert set(FRONT_DESK) <= set(catalog["front_desk"])
     for key, wording in FRONT_DESK.items():
         assert catalog["front_desk"][key] == {"zh": wording[0], "en": wording[1]}, key
-    # PR-3's dossier chrome lives in the same block, and nothing else does
-    assert set(catalog["front_desk"]) == set(FRONT_DESK) | {
-        "stage_material_count",
-        "stage_material_none",
-        "stage_review_done",
-        "stage_review_unsignable",
-        "stage_review_none",
-        "stage_issuance_signed",
-        "stage_issuance_material",
-        "stage_issuance_none",
-        "issuance_signed",
-        "issuance_boundary",
-        "issuance_boundary_sub",
-        "issuance_material",
-        "issuance_material_sub",
-        "issuance_none",
-        "issuance_none_sub",
-        "material_count",
-        "material_count_none",
-        "review_relation_evidence_and_material",
-        "review_relation_evidence_only",
-        "review_relation_material_only",
-        "review_relation_none",
-        "language_toggle",
-        "stage_name_submit",
-        "stage_name_material",
-        "stage_name_review",
-        "stage_name_issuance",
-        "issuance_kicker",
-        "stage_kicker_submit",
-        "satire_line",
-        "submit_pending",
-        "submit_done",
-        "stage_submit_state",
-        # PR-4R: the state words, the stage leads, the way back to the counter, and
-        # the wording for a case that was adjudicated without a separate material.
-        "stamp_signed",
-        "stamp_unsigned",
-        "stamp_boundary",
-        "stamp_material_pending",
-        "material_lead",
-        "review_lead",
-        "issuance_lead",
-        "submit_another",
-        "stage_material_independent_none",
-        "material_empty_independent_none",
-        "fact_material_only",
-    }
+    # PR-3's dossier chrome, PR-4R's state words and PR-6R2's desk labels live in the same
+    # block, and nothing else does. The set is frozen: widening it is a copy change.
+    assert set(catalog["front_desk"]) == set(FRONT_DESK) | DESK_KEYS
 
 
 @pytest.mark.parametrize("key", sorted(p.FRONT_DESK_COPY))
@@ -234,10 +271,20 @@ def test_the_served_page_embeds_the_hall_copy() -> None:
     assert match is not None
     embedded = json.loads(match.group(1))
     assert embedded["front_desk"] == p.FRONT_DESK_COPY
-    # the served markup keeps the strings the page has always shipped; the hall
-    # labels replace them at runtime, never in the template.
-    assert "Analyze Evidence" in page
-    assert "Technical Details" in page
+    # PR-6R2: the served markup carries the zh wording as its no-JS fallback, in the document's
+    # own declared language. The English variant is runtime-only, served from the catalogue above.
+    assert "请提交待审查材料" in page
+    assert "提交审查" in page
+    assert "技术档案" in page
+    # the old English desk fallbacks are gone with the bilingual headings
+    for gone in (
+        "Analyze Evidence",
+        "Negative Evidence Amplifier",
+        "Final Verdict",
+        "Alternative Hypotheses",
+        "Evidence Intake",
+    ):
+        assert gone not in page, gone
 
 
 # --------------------------------------------------------------------------- #
@@ -245,12 +292,47 @@ def test_the_served_page_embeds_the_hall_copy() -> None:
 # --------------------------------------------------------------------------- #
 
 
+def test_the_deleted_hall_text_is_gone_from_the_whole_tree() -> None:
+    """The three sentences PR-6R2 deleted stay deleted; nothing smuggles them back in."""
+
+    for gone in DELETED_HALL_TEXT:
+        assert gone not in TEMPLATE, gone
+        assert gone not in SCRIPT, gone
+        assert gone not in STYLE, gone
+        assert gone not in json.dumps(p.web_personality_catalog(), ensure_ascii=False), gone
+
+
 def test_the_web_assets_hold_no_second_copy_of_the_hall_labels() -> None:
+    """PR-6R2: the markup's fallback is the zh wording, and the en wording is runtime-only.
+
+    The desk is a zh-first product: the document declares zh-CN, and the script swaps in the
+    catalogue's en variant when the reader asks for English. A scriptless page therefore reads in
+    the product's own language instead of a second one - and the script itself still carries no
+    sentence of either language.
+    """
+
     for key, (zh, en) in FRONT_DESK.items():
-        for text in (zh, en):
-            assert text not in TEMPLATE, (key, text)
-            assert text not in SCRIPT, (key, text)
-            assert text not in STYLE, (key, text)
+        assert en not in TEMPLATE, (key, en)
+        assert en not in SCRIPT, (key, en)
+        assert en not in STYLE, (key, en)
+        assert zh not in SCRIPT, (key, zh)
+        assert zh not in STYLE, (key, zh)
+        if key in ANCHORS:
+            assert zh in TEMPLATE, (key, zh)
+
+
+def test_the_markup_fallback_is_the_catalogue_wording() -> None:
+    """PR-6R2: the no-JS fallback is the zh wording, pinned equal to the catalogue.
+
+    The desk declares zh-CN, so a scriptless page reads in the product's own language. Equality is
+    asserted rather than mere presence, so the markup and the catalogue cannot drift apart - which
+    is the property the old "no second copy" pin was protecting.
+    """
+
+    for key, anchor in ANCHORS.items():
+        match = re.search(rf'id="{re.escape(anchor)}"[^>]*>([^<]*)<', TEMPLATE)
+        assert match is not None, anchor
+        assert match.group(1).strip() == p.FRONT_DESK_COPY[key]["zh"], (anchor, match.group(1))
 
 
 def test_the_injection_reads_the_catalogue_and_names_no_stage() -> None:
@@ -335,3 +417,25 @@ def test_the_legacy_catalogue_keys_are_not_overwritten() -> None:
     assert set(catalog) == set(LEGACY_DIGESTS) | {"front_desk"}
     changed = [key for key, want in LEGACY_DIGESTS.items() if digest(catalog[key]) != want]
     assert not changed, changed
+
+
+def test_the_serious_register_prints_the_annotation_without_the_joke() -> None:
+    """PR-6R2: a stated boundary changes one sentence, and only that sentence.
+
+    The playful example that explains the hypotheses card belongs on an ordinary desk. On a
+    boundary screen NED has just said it stopped joking, so the client prints the catalogue's
+    serious variant there, keyed on the same ``data-situation`` the register already uses.
+    """
+
+    assert p.FRONT_DESK_COPY["hypo_note_boundary"]["zh"] != p.FRONT_DESK_COPY["hypo_note"]["zh"]
+    assert "👍" not in p.FRONT_DESK_COPY["hypo_note_boundary"]["zh"]
+    assert "人好" not in p.FRONT_DESK_COPY["hypo_note_boundary"]["zh"]
+    assert "开玩笑" not in p.FRONT_DESK_COPY["hypo_note"]["zh"]
+    assert "renderReviewNote(situation);" in SCRIPT
+    note = SCRIPT[SCRIPT.index("function renderReviewNote(") :]
+    note = note[: note.index("function ", 10)]
+    assert '"boundary"' in note and '"timeline_boundary"' in note
+    # and the annotation is not re-set by the language-only label pass
+    labels = SCRIPT[SCRIPT.index("var DESK_LABEL_IDS") :]
+    labels = labels[: labels.index("];")]
+    assert "hypo-note" not in labels

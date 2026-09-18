@@ -2,29 +2,48 @@
    Instrument-panel dark theme. No remote assets, system fonts only. */
 
 :root {
-  --bg: #0b0d10;
-  --bg-soft: #0e1216;
-  --panel: #12161b;
-  --panel-2: #151b22;
-  --panel-3: #1a2129;
-  --line: #1e252d;
-  --line-strong: #2a323c;
-  --text: #e7eef4;
-  --text-dim: #9dafbe;
-  --text-faint: #6d7d8c;
-  --accent: #5eead4;
-  --accent-2: #2dd4bf;
-  --steel: #7dd3fc;
-  --info: #7dd3fc;
-  --warning: #fbbf24;
-  --reject: #f87171;
-  --chaos: #c084fc;
-  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Helvetica Neue", Arial, sans-serif;
-  --radius: 10px;
-  --radius-sm: 7px;
-  --max: 1100px;
+  /* PR-6R2 — the identity palette: a warm ink desk with three surfaces, aged paper for
+     anything that is in the file, one seal colour, and teal demoted to a point colour. */
+  --ink-950: #100d0b;          /* the technical archive: coldest, darkest */
+  --ink-900: #17130f;          /* the page: warm charcoal (ink), not blue-black */
+  --ink-850: #1b1712;          /* surface 1: the desk */
+  --ink-800: #221c15;          /* surface 2: raised plates and rules */
+  --ink-750: #2b231a;          /* surface 3: the deepest raised material */
+  --paper-100: #efe6d5;        /* file paper */
+  --paper-200: #e4d8c2;        /* file paper, shaded */
+  --paper-300: #d5c6ab;        /* file paper, edge */
+  --paper-ink: #241d15;        /* ink on paper */
+  --paper-faint: #5c5039;
+  --seal: #a8433a;             /* the seal: boundaries and warnings only */
+  --seal-dim: #7d3129;         /* the seal, pressed into paper */
+  --seal-bright: #d0705f;      /* the same seal, legible on ink */
+  --accent-point: #4fb3a3;     /* teal, demoted: focus and the active rail stage */
+
+  --bg: var(--ink-900);
+  --bg-soft: var(--ink-850);
+  --panel: var(--ink-850);
+  --panel-2: var(--ink-800);
+  --panel-3: var(--ink-750);
+  --line: #3a3125;
+  --line-strong: #544734;
+  --text: #ece5da;
+  --text-dim: #bcae98;
+  --text-faint: #958877;
+  --accent: var(--accent-point);
+  --accent-2: #3f8f84;
+  --warning: #c08a3e;
+  --reject: var(--seal);
+  --steel: #9aa8a4;            /* identifier tags, colder than the page */
+  --info: #7fb2c8;
+  --chaos: #b58ad0;
   --sev: var(--info);
+  --sev-reject: var(--seal);
+  --max: 1100px;
+  --radius: 4px;
+  --radius-sm: 3px;
+  --sans: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+  --display: Georgia, "Times New Roman", "Songti SC", "SimSun", serif;
+  --mono: ui-monospace, Consolas, "Cascadia Mono", monospace;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -1632,4 +1651,663 @@ textarea.input { min-height: 84px; }
   #analyze-submit {
     min-height: 48px;
   }
+}
+
+
+/* ==========================================================================
+   PR-6R2 — FRONT DESK IDENTITY: the archive review room.
+
+   The desk is warm ink. A dossier page is paper. An annotation is a dark
+   marginal note on the desk. The receipt is a signed sheet with a seal. Only
+   the archive appendix is colder and darker than the page it sits on.
+
+   Nothing here changes a behaviour contract: the four-stage rail, the four
+   recognition states, the material registry, the language toggle, the keyboard
+   path and every mobile rule keep working exactly as before. This block is
+   presentation only, and it is written last so it wins the cascade on purpose:
+   every zone is anchored to an id, and every paper sheet resets the colour its
+   children inherit, so no older class rule can leave dark ink on dark ink.
+   ========================================================================== */
+
+/* ---------------------------------------------------------------- the desk */
+body {
+  background-color: var(--ink-900);
+  background-image:
+    radial-gradient(1100px 520px at 50% -10%, rgba(168, 67, 58, 0.045), transparent 62%),
+    linear-gradient(180deg, #1a1611 0%, var(--ink-900) 42%, #14100c 100%);
+  background-repeat: no-repeat;
+  color: var(--text);
+}
+.app { max-width: var(--max); }
+
+/* ------------------------------------------------------------- the masthead */
+.hero {
+  border: none;
+  border-top: 2px solid var(--line-strong);
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  padding: 26px 2px 16px;
+}
+.hero-glow { display: none; }
+.masthead {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 0;
+}
+.masthead-name {
+  font-family: var(--display);
+  font-size: clamp(2.6rem, 7vw, 3.9rem);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 0.95;
+  color: var(--paper-100);
+}
+.masthead-sub {
+  font-family: var(--sans);
+  font-size: 0.8rem;
+  font-weight: 400;
+  letter-spacing: 0.24em;
+  text-transform: none;
+  color: var(--text-faint);
+}
+.utility-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 0;
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+.utility-item { display: inline-flex; align-items: center; gap: 6px; }
+.utility-sep { color: var(--line-strong); }
+.utility-row .btn-lang {
+  margin-left: auto;
+  min-height: 34px;
+  padding: 4px 12px;
+  border-color: var(--line);
+  background: none;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.16em;
+}
+
+/* --------------------------------------------------------- the index strip */
+.hall-directory {
+  margin-top: 0;
+  padding: 0;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+}
+.hall-directory .tabs { gap: 2px; }
+.hall-directory .tab,
+.hall-directory .tab.is-active {
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--text-faint);
+  font-family: var(--sans);
+  font-size: 0.79rem;
+  letter-spacing: 0.06em;
+  padding: 10px 12px;
+}
+.hall-directory .tab.is-active {
+  color: var(--paper-100);
+  border-bottom-color: var(--seal);
+}
+.tab-group-label {
+  color: var(--text-faint);
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  border-left: 1px solid var(--line);
+  padding-left: 12px;
+}
+.tab-secondary { opacity: 0.72; }
+
+/* ------------------------------------------------- the intake sheet: paper */
+#stage-block-submit .intake-card {
+  position: relative;
+  border: 1px solid var(--paper-300);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, #f2eadb, var(--paper-200));
+  color: var(--paper-ink);
+  box-shadow: 0 20px 46px rgba(0, 0, 0, 0.5);
+}
+#stage-block-submit .intake-card::before {
+  /* the ruled top edge of a filing card - decoration, never text */
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--paper-300), transparent 70%);
+}
+#stage-block-submit .intake-card .window-plate { display: none; }
+#stage-block-submit .intake-card .card-head {
+  border-bottom: 1px dashed var(--paper-300);
+  padding-bottom: 10px;
+}
+#stage-block-submit .intake-card :where(*) { color: inherit; }
+#stage-block-submit .intake-card .stage-kicker {
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.2em;
+  text-transform: none;
+  color: var(--paper-faint);
+}
+#stage-block-submit .intake-card .stage-kicker .stage-no { color: var(--seal-dim); }
+#stage-block-submit .intake-card .intake-heading {
+  font-family: var(--display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  margin: 6px 0 8px;
+  color: var(--paper-ink);
+}
+#stage-block-submit .intake-card .hint,
+#stage-block-submit .intake-card .mode-blurb,
+#stage-block-submit .intake-card .status,
+#stage-block-submit .intake-card .field-label,
+#stage-block-submit .intake-card .chip-note,
+#stage-block-submit .intake-card .chip-mode,
+#stage-block-submit .intake-card .examples-guide > summary {
+  color: var(--paper-faint);
+}
+#stage-block-submit .intake-card .field-label {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: none;
+}
+#stage-block-submit .intake-card .status {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+}
+#stage-block-submit .intake-card .input {
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--paper-300);
+  color: var(--paper-ink);
+  font-family: var(--sans);
+  font-size: 0.95rem;
+}
+#stage-block-submit .intake-card .input::placeholder { color: var(--paper-faint); }
+#stage-block-submit .intake-card .input:focus {
+  border-color: var(--accent-2);
+  box-shadow: 0 0 0 2px rgba(63, 143, 132, 0.28);
+}
+#stage-block-submit .intake-card .btn-primary {
+  background: var(--paper-ink);
+  border-color: var(--paper-ink);
+  color: var(--paper-100);
+  font-family: var(--sans);
+  letter-spacing: 0.12em;
+  box-shadow: none;
+}
+#stage-block-submit .intake-card .btn-primary:hover:not(:disabled) {
+  background: #3a2f22;
+  color: #fff;
+}
+#stage-block-submit .intake-card .row-inline {
+  border-top: 1px dashed var(--paper-300);
+  padding-top: 10px;
+}
+#stage-block-submit .intake-card .mode-blurb,
+#stage-block-submit .intake-card .select { font-size: 0.82rem; }
+#stage-block-submit .intake-card .examples-guide { border-top: 1px dashed var(--paper-300); }
+#stage-block-submit .intake-card .examples-guide > summary {
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+#stage-block-submit .intake-card .chip {
+  background: rgba(255, 255, 255, 0.45);
+  border-color: var(--paper-300);
+  color: var(--paper-ink);
+}
+
+/* ------------------------------------- the rail: a register line, not cards */
+#stage-rail {
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--ink-850);
+}
+#stage-rail .stage {
+  border: none;
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+}
+#stage-rail .stage:first-child { border-left: none; }
+#stage-rail .stage.is-done { background: rgba(79, 179, 163, 0.05); }
+#stage-rail .stage.is-active {
+  background: rgba(79, 179, 163, 0.09);
+  box-shadow: inset 0 -2px 0 var(--accent-point);
+}
+#stage-rail .stage.is-empty { opacity: 0.78; }
+#stage-rail .stage-no {
+  font-family: var(--mono);
+  color: var(--text-faint);
+}
+#stage-rail .stage.is-active .stage-no { color: var(--accent-point); }
+#stage-rail .stage-name {
+  font-family: var(--sans);
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+}
+#stage-rail .stage-state {
+  font-family: var(--mono);
+  letter-spacing: 0.02em;
+  color: var(--text-faint);
+}
+#stage-rail .stage.is-done .stage-state,
+#stage-rail .stage.is-active .stage-state { color: var(--accent-point); }
+
+/* --------------------------------- the receipt header: did NED sign anything */
+#issuance-strip {
+  border: 1px solid var(--line-strong);
+  border-left: 4px solid var(--seal);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(180deg, var(--ink-800), var(--ink-850));
+  padding: 16px 18px;
+}
+#issuance-strip[data-recognition="material_registered"] {
+  border-left-color: var(--paper-300);
+  box-shadow: none;
+}
+#issuance-strip[data-recognition="nothing_recognized"] {
+  border-style: solid;
+  border-left-color: var(--line-strong);
+}
+#issuance-strip[data-situation="boundary"] {
+  border-color: var(--seal);
+  border-left-color: var(--seal);
+  box-shadow: inset 0 0 0 1px rgba(168, 67, 58, 0.35);
+}
+#issuance-stamp {
+  min-width: 62px;
+  padding: 9px 12px;
+  border: 2px solid var(--seal);
+  border-radius: 2px;
+  transform: rotate(-3deg);
+  font-family: var(--display);
+  font-size: 1rem;
+  line-height: 1.15;
+  letter-spacing: 0.08em;
+  text-align: center;
+  color: var(--seal-bright);
+  background: rgba(168, 67, 58, 0.1);
+}
+#issuance-strip[data-recognition="nothing_recognized"] #issuance-stamp {
+  border-color: var(--text-faint);
+  color: var(--text-faint);
+  background: none;
+}
+#issuance-strip[data-recognition="material_registered"] #issuance-stamp {
+  border-color: var(--paper-300);
+  color: var(--paper-200);
+  background: none;
+}
+#issuance-strip[data-situation="boundary"] #issuance-stamp {
+  border-color: var(--seal);
+  color: var(--seal-bright);
+}
+#issuance-kicker {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  color: var(--text-faint);
+}
+#issuance-value {
+  font-family: var(--display);
+  font-size: 1.18rem;
+  color: var(--paper-100);
+}
+#issuance-sub { font-family: var(--sans); color: var(--text-dim); }
+#issuance-strip .report-meta {
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+#issuance-strip .btn-ghost {
+  border-color: var(--line);
+  color: var(--text-dim);
+  font-family: var(--sans);
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+/* --------------------------------- the material registry: a paper attachment */
+#material-registry {
+  position: relative;
+  border: 1px solid var(--paper-300);
+  border-left: 3px solid var(--paper-300);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, #f2eadb, var(--paper-200));
+  color: var(--paper-ink);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.35);
+}
+#material-registry :where(*) { color: inherit; }
+#material-registry .label,
+#material-registry .note,
+#material-registry .audit-label { color: var(--paper-faint); }
+#material-registry .label {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: none;
+}
+#material-registry .audit-rows {
+  border-top: 1px solid var(--paper-300);
+  grid-template-columns: 96px minmax(0, 1fr);
+}
+#material-registry .audit-label {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  border-bottom: 1px dotted var(--paper-300);
+}
+#material-registry .audit-text {
+  font-family: var(--sans);
+  border-bottom: 1px dotted var(--paper-300);
+}
+#material-registry .label + .stack,
+#material-registry .stack { gap: 8px; }
+
+/* ------------------------------- the review opinion: an annotated sheet */
+#first-screen {
+  border: 1px solid var(--paper-300);
+  border-left: 6px solid var(--paper-300);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, #f4ecdc, var(--paper-200));
+  color: var(--paper-ink);
+  padding: 22px 24px;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.35);
+}
+#first-screen :where(*) { color: inherit; }
+#first-screen .screen-title {
+  font-family: var(--display);
+  font-size: clamp(1.5rem, 3.6vw, 2.15rem);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--paper-ink);
+}
+#first-screen .screen-fact,
+#first-screen .screen-reality,
+#first-screen .screen-quality-label,
+#first-screen .screen-quality-row > .quality-side + .quality-side::before {
+  color: var(--paper-faint);
+}
+#first-screen .screen-quality {
+  font-family: var(--display);
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--paper-ink);
+}
+#first-screen .screen-line {
+  border-left: 2px solid var(--paper-300);
+  font-family: var(--sans);
+  font-size: 1.05rem;
+  color: var(--paper-ink);
+}
+#first-screen .screen-quote {
+  border-left: 2px solid var(--paper-300);
+  color: var(--paper-ink);
+}
+#first-screen .screen-reality {
+  border-top: 1px dashed var(--paper-300);
+  padding-top: 10px;
+}
+/* a stated boundary: NED stops joking - same paper, colder, and the seal edge */
+#first-screen[data-situation="boundary"] {
+  border-color: var(--seal);
+  border-left: 6px solid var(--seal);
+  background: linear-gradient(180deg, #eae4d5, #d9d2bf);
+  box-shadow: inset 0 0 0 1px rgba(168, 67, 58, 0.25), 0 14px 32px rgba(0, 0, 0, 0.35);
+}
+#first-screen[data-situation="boundary"] .screen-title { color: var(--seal-dim); }
+#first-screen[data-situation="boundary"] .screen-line {
+  border-left-color: var(--seal);
+  color: var(--paper-ink);
+}
+#first-screen[data-situation="boundary"] .screen-quality { color: var(--seal-dim); }
+
+/* --------------------- the marginalia: annotations on the desk, never paper */
+.review-grid { gap: 14px; }
+.review-grid .card {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--ink-850);
+  color: var(--text);
+  box-shadow: none;
+}
+.review-grid .card .label {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: none;
+  color: var(--text-faint);
+}
+.review-grid .card .subhead {
+  font-family: var(--display);
+  font-size: 1.02rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.review-grid .card .prose,
+.review-grid .card .note,
+.review-grid .card .kv-k,
+.review-grid .card .hypo-empty,
+.review-grid .card .plausibility,
+.review-grid .card .rule-id { color: var(--text-dim); }
+.review-grid .card .kv-v { color: var(--text); }
+.review-grid .card .kv-v.alarm { color: var(--seal-bright); }
+.review-grid .card .hypo-head { color: var(--text); }
+.review-grid .card .hypo {
+  border-left: 2px solid var(--line-strong);
+  padding-left: 10px;
+  background: none;
+}
+.review-grid .card .tag {
+  font-family: var(--mono);
+  background: var(--ink-800);
+  border-color: var(--line);
+  color: var(--steel);
+}
+.review-relation {
+  border-left: 3px solid var(--line-strong);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--ink-800);
+  color: var(--text-dim);
+}
+.stage-title .stage-no { color: var(--text-faint); }
+.stage-block[data-stage="issuance"] .stage-title,
+.stage-block[data-stage="review"] .stage-title { color: var(--paper-100); }
+
+/* ------------------------------------ the receipt: a signed sheet and a seal */
+#stage-block-issuance { margin-top: 4px; }
+#issuance-card.card.verdict-card {
+  position: relative;
+  border: 1px double var(--paper-300);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--paper-100), var(--paper-200));
+  color: var(--paper-ink);
+  padding: 20px 22px;
+  box-shadow: 0 24px 52px rgba(0, 0, 0, 0.55);
+}
+#issuance-card :where(*) { color: inherit; }
+#issuance-card .label {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: none;
+  color: var(--paper-faint);
+}
+#issuance-card .subhead {
+  font-family: var(--display);
+  font-size: 1.1rem;
+  color: var(--paper-ink);
+}
+#final-verdict {
+  position: relative;
+  margin-top: 18px;
+  padding: 16px 16px 18px;
+  border: 1px solid var(--paper-300);
+  border-left: 4px solid var(--seal);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(180deg, var(--paper-200), var(--paper-300));
+  box-shadow: inset 0 0 0 1px rgba(36, 29, 21, 0.05);
+}
+#final-verdict::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 16px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--seal), rgba(168, 67, 58, 0));
+}
+#final-verdict::after {
+  /* the seal position: an empty plate, never a status of its own */
+  content: "";
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  width: 56px;
+  height: 56px;
+  border: 2px solid rgba(168, 67, 58, 0.45);
+  border-radius: 2px;
+  transform: rotate(-6deg);
+  pointer-events: none;
+}
+#final-verdict :where(*) { color: inherit; }
+#final-verdict .label { color: var(--paper-faint); }
+#final-verdict .verdict-text {
+  font-family: var(--display);
+  font-size: 1.34rem;
+  font-weight: 600;
+  color: var(--paper-ink);
+}
+#final-verdict .verdict-emoji { filter: saturate(0.7); }
+#final-verdict .chip-row { margin-top: 10px; }
+#final-verdict .severity-chip,
+#final-verdict .code-chip,
+#final-verdict .threshold-chip {
+  font-family: var(--mono);
+  background: rgba(36, 29, 21, 0.05);
+  border-color: var(--paper-300);
+  color: var(--paper-faint);
+}
+/* the severity of the ruling, printed in an ink that reads on paper */
+#analyze-results[data-severity="info"] #final-verdict .severity-chip { color: #255a6b; border-color: #255a6b; }
+#analyze-results[data-severity="warning"] #final-verdict .severity-chip { color: #6f450c; border-color: #6f450c; }
+#analyze-results[data-severity="reject"] #final-verdict .severity-chip { color: var(--seal-dim); border-color: var(--seal-dim); }
+#analyze-results[data-severity="chaos"] #final-verdict .severity-chip { color: #5e3f80; border-color: #5e3f80; }
+/* a stated boundary goes to the seal on the receipt too */
+#analyze-results[data-situation="boundary"] #final-verdict {
+  box-shadow: inset 0 0 0 1px rgba(168, 67, 58, 0.3);
+}
+#analyze-results[data-situation="boundary"] #final-verdict .verdict-text { color: var(--seal-dim); }
+
+/* -------------------------------------------- the archive: the coldest page */
+#technical-details {
+  border: 1px solid #241d16;
+  border-radius: var(--radius-sm);
+  background: var(--ink-950);
+}
+#technical-details > summary {
+  font-family: var(--mono);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  color: var(--text-faint);
+}
+#technical-details .technical-body { color: var(--text-dim); }
+#technical-details .label,
+#technical-details .subhead,
+#technical-details .kv-k,
+#technical-details .spec dt {
+  font-family: var(--mono);
+  letter-spacing: 0.1em;
+  color: var(--text-faint);
+}
+#technical-details .kv-v,
+#technical-details .prose,
+#technical-details .note,
+#technical-details .readout-value,
+#technical-details .bar-value { color: var(--text-dim); }
+#technical-details .card {
+  background: #14110d;
+  border: 1px solid #241d16;
+  border-left: 1px solid #241d16;
+  color: var(--text-dim);
+}
+#technical-details .card .label { color: var(--text-faint); }
+#technical-details .table th,
+#technical-details .table td { border-color: #241d16; }
+#technical-details .table th { color: var(--text-faint); }
+
+/* --------------------------------------------- the quiet words around them */
+.stage-lead,
+.stage-hint,
+.stage-empty,
+.satire-line { color: var(--text-faint); }
+.stage-empty {
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.012);
+}
+.satire-line {
+  font-family: var(--sans);
+  font-size: 0.74rem;
+  letter-spacing: 0.02em;
+}
+
+/* ------------------------------------------------------------ narrow screens */
+@media (max-width: 900px) {
+  #stage-rail .stage { padding: 11px 12px; }
+}
+@media (max-width: 720px) {
+  /* the registry's rows stack on a phone, exactly as they did before */
+  #material-registry .audit-rows { grid-template-columns: minmax(0, 1fr); }
+  #material-registry { padding: 13px 12px; }
+  /* the language toggle is a control on a phone, not a footnote */
+  .utility-row .btn-lang { min-height: 44px; padding: 6px 14px; }
+}
+@media (max-width: 520px) {
+  .hero { padding: 20px 2px 14px; }
+  .masthead-name { font-size: 2.4rem; }
+  .masthead-sub { font-size: 0.72rem; letter-spacing: 0.18em; }
+  #stage-block-submit .intake-card { padding: 13px 12px; }
+  #first-screen { padding: 16px 14px; }
+  #first-screen .screen-title { font-size: 1.4rem; }
+  #final-verdict::after { width: 40px; height: 40px; right: 10px; bottom: 10px; }
+  #stage-rail .stage { padding: 10px 10px; }
+}
+@media (max-width: 460px) {
+  #final-verdict { padding: 13px; }
+  #final-verdict .verdict-text { font-size: 1.08rem; }
+  #issuance-strip { padding: 13px 12px; }
+  /* the seal sits square on a phone, exactly as the shipped narrow-screen rule had it */
+  #issuance-stamp { transform: none; }
+}
+@media (max-width: 380px) {
+  .hero { padding: 14px 2px 12px; }
+  #final-verdict::after { width: 34px; height: 34px; right: 9px; bottom: 9px; }
+  #issuance-stamp { min-width: 54px; font-size: 0.92rem; }
 }

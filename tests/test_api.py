@@ -228,20 +228,24 @@ def test_web_ui_renders(client: TestClient) -> None:
     assert response.status_code == 200
     body = response.text
     assert "Nov1ce Evidence Denier" in body
-    assert "Systematically explaining away good news since 2026." in body
-    assert "restores uncertainty" in body
+    # PR-6R2: the desk states what it is. The two slogan sentences - and the hall title they sat
+    # under - were deleted from the page; the tagline still names the product in the CLI and docs.
+    assert "不确定性审查局" not in body
+    assert "自 2026 年起" not in body
     assert "人好" in body
     assert "Local-first" in body
-    assert "Paste a message or describe what happened" in body
-    assert "Analyze Evidence" in body
-    assert "Alternative Hypotheses" in body
+    assert "粘贴消息，或描述发生了什么" in body
+    # PR-6R2: the desk's own markup is Chinese - one language at a time, and the English variant
+    # is served from the embedded catalogue at runtime.
+    assert "请提交待审查材料" in body
+    assert "提交审查" in body
+    assert "最终裁决" in body
+    assert "负面证据放大器" in body
     assert "NED Reaching Level" in body
     assert 'id="personality-catalog"' in body
     assert 'id="reaching-personality"' in body
     assert 'id="fnbp-personality"' in body
     assert "Reality Check" in body
-    assert "Final Verdict" in body
-    assert "Negative Evidence Amplifier" in body
     assert __version__ in body
     assert "{{" not in body, "Jinja placeholder left unrendered"
 

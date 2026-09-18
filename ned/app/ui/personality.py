@@ -2078,20 +2078,82 @@ def emoji_discipline(situation: str, text: str) -> str:
 #: none is invented here. The page reads every one of these out of this catalogue at
 #: runtime, which is why the template and the script carry no second copy of them.
 FRONT_DESK_COPY: dict[str, dict[str, str]] = {
-    "hall_title": {
-        "zh": "NED 不确定性审查局 · 网上办事大厅",
-        "en": "NED Uncertainty Review Bureau · Online Service Hall",
-    },
     "intake_heading": {
         "zh": "请提交待审查材料",
         "en": "Submit material for review",
+    },
+    # PR-6R2: one language per label. These were printed as "中文 · ENGLISH TITLE" in the
+    # markup; they are looked up now, so the page shows one language at a time.
+    "tab_intake": {"zh": "交材料", "en": "Review intake"},
+    "tab_others": {"zh": "其它窗口", "en": "Other windows"},
+    "tab_asymmetry": {"zh": "证据对比", "en": "Evidence comparison"},
+    "tab_lab": {"zh": "通知分支实验室", "en": "Notification branch lab"},
+    "intake_purpose": {
+        "zh": "粘贴一句话，或描述发生了什么。",
+        "en": "Paste a message, or describe what happened.",
+    },
+    "field_material": {"zh": "材料原文", "en": "Message or event"},
+    "field_mode": {"zh": "审查模式", "en": "Analysis mode"},
+    "field_material_placeholder": {
+        "zh": "粘贴消息，或描述发生了什么…",
+        "en": "Paste a message, or describe what happened…",
+    },
+    "examples_heading": {"zh": "办事指南", "en": "Example cases"},
+    "section_reality": {"zh": "现实核对", "en": "Reality check"},
+    "section_nea": {"zh": "负面证据放大器", "en": "Negative evidence amplifier"},
+    "section_hypotheses": {"zh": "替代解释", "en": "Alternative hypotheses"},
+    "section_audit": {"zh": "解释审计", "en": "Explanation audit"},
+    "section_aspects": {"zh": "多面材料", "en": "Multiple aspects"},
+    "verdict_heading": {"zh": "最终裁决", "en": "Final verdict"},
+    "copy_json": {"zh": "复制 JSON", "en": "Copy JSON"},
+    # PR-6R2: the review region's own labels and notes. Two of these were literals in the
+    # template and two in the shipped script, which is how an English sentence ended up printed
+    # on a Chinese desk. They are catalogue labels now, so both languages are served the same way.
+    "screen_quality_label": {"zh": "证据强度", "en": "Evidence quality"},
+    "nea_observed_label": {"zh": "观察到的证据", "en": "Observed evidence"},
+    "nea_amplified_label": {"zh": "放大后的读法", "en": "Amplified reading"},
+    "nea_note": {
+        "zh": "这里没有建议，也没有任何关于某人的事实。",
+        "en": "Nothing here is advice, and nothing here is a fact about anyone.",
+    },
+    "hypo_note": {
+        "zh": "以下是替代解释，不是结论。它们只用来重新打开另一种可能：可能只是人好。👍",
+        "en": "These are alternative hypotheses, not findings. Each one exists to re-open the "
+        "possibility that 可能只是人好。👍",
+    },
+    "hypo_empty": {
+        "zh": "本次没有生成替代解释。什么都不做，本身就值得怀疑。",
+        "en": "No alternative hypotheses were generated for this input. Leaving the evidence "
+        "alone is itself suspicious.",
+    },
+    "plausibility": {"zh": "可信度 {p}%", "en": "plausibility {p}%"},
+    # PR-6R2: the two status lines of the counter action. They are the only sentences left on the
+    # main path that a reader could meet in English while the desk is speaking Chinese.
+    "status_no_input": {
+        "zh": "先输入一句话，或描述发生了什么。",
+        "en": "Enter a message or describe what happened first.",
+    },
+    "status_analyze_failed": {"zh": "审查失败。", "en": "Analysis failed."},
+    # PR-6R2: the hypotheses annotation is the one place the playful example survived into a
+    # stated boundary. Under the serious register the same annotation is printed without it,
+    # keyed on the client-derived situation that register already runs on.
+    "hypo_note_boundary": {
+        "zh": "以下是替代解释，不是结论。对方已经把边界说出口，本机构不对这句话开玩笑。",
+        "en": "These are alternative hypotheses, not findings. The boundary was stated out "
+        "loud, and this agency does not joke about it.",
+    },
+    # the same annotation for the other register where NED is not joking
+    "hypo_note_hostile": {
+        "zh": "以下是替代解释，不是结论。输入已经报告了敌意，本机构不把这句话读轻。",
+        "en": "These are alternative hypotheses, not findings. The input reported hostility, "
+        "and this agency does not read it lightly.",
     },
     "submit_label": {
         "zh": "提交审查",
         "en": "Submit for review",
     },
     "records_heading": {
-        "zh": "技术档案 · Technical archive",
+        "zh": "技术档案",
         "en": "Technical archive",
     },
     "issuance_heading": {
@@ -2155,7 +2217,7 @@ FRONT_DESK_COPY: dict[str, dict[str, str]] = {
     "stage_name_material": {"zh": "材料登记", "en": "Material registration"},
     "stage_name_review": {"zh": "审查意见", "en": "Review opinion"},
     "stage_name_issuance": {"zh": "签发状态", "en": "Issuance"},
-    "issuance_kicker": {"zh": "签发状态 · Issuance", "en": "Issuance status"},
+    "issuance_kicker": {"zh": "签发状态", "en": "Issuance status"},
     "stage_kicker_submit": {"zh": "第一步 · 提交材料", "en": "Step one - submit material"},
     "stage_submit_state": {"zh": "已提交", "en": "submitted"},
     "submit_pending": {

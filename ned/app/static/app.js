@@ -11,7 +11,6 @@
   "use strict";
 
   var DASH = "\u2014";
-  var NO_HYPOTHESES = "No alternative hypotheses were generated for this input. Leaving the evidence alone is itself suspicious.";
   var SEVERITIES = ["info", "warning", "reject", "chaos"];
   var MODE_KEY = "ned.mode";
   var TABS = [
@@ -646,7 +645,7 @@
     clear(host);
     var pack = payload ? comedyPack(obj(payload)) : null;
     var items = pack ? list(pack.hypotheses) : list(raw);
-    if (items.length === 0) { host.appendChild(el("li", "hypo hypo-empty", NO_HYPOTHESES)); return; }
+    if (items.length === 0) { host.appendChild(el("li", "hypo hypo-empty", deskCopy("hypo_empty"))); return; }
     items.forEach(function (rawItem) {
       var h = obj(rawItem);
       var li = el("li", "hypo");
@@ -656,7 +655,8 @@
       fill.style.width = clampPct(h.plausibility) + "%";
       li.appendChild(el("div", "hypo-head", txt(h.hypothesis)));
       meta.appendChild(el("span", "tag", txt(h.category)));
-      meta.appendChild(el("span", "plausibility", "plausibility " + num(h.plausibility) + "%"));
+      meta.appendChild(el("span", "plausibility",
+        deskCopy("plausibility").replace("{p}", num(h.plausibility))));
       if (h.source) { meta.appendChild(el("span", "tag", txt(h.source))); }
       if (h.rule_id) { meta.appendChild(el("span", "rule-id", txt(h.rule_id))); }
       li.appendChild(meta);
@@ -1130,6 +1130,19 @@
     sub.textContent = deskCopy("issuance_none_sub");
   }
 
+  // PR-6R2: the annotation beside the alternative hypotheses. The desk keeps its running
+  // example on an ordinary screen and drops it under the serious register, which is the one
+  // place a stated boundary is allowed to change a sentence.
+  function renderReviewNote(situation) {
+    var key = "hypo_note";
+    if (situation === "boundary" || situation === "timeline_boundary") {
+      key = "hypo_note_boundary";
+    } else if (situation === "hostile") {
+      key = "hypo_note_hostile";
+    }
+    setText("hypo-note", deskCopy(key));
+  }
+
   function renderReviewRelation(d, recognition) {
     var materials = (d.materials && d.materials.length) || 0;
     var hasEvidence = !!(d.evidence && d.evidence.length);
@@ -1189,6 +1202,7 @@
     report.setAttribute("data-recognition", recognition);
 
     renderAnalyzeScreen(d, situation, basis);
+    renderReviewNote(situation);
 
     texts([
       ["result-mode", d.mode], ["result-language", d.language], ["result-signal-type", d.signal_type],
@@ -1267,7 +1281,9 @@
     var report = $("analyze-results");
     setStatus("analyze-status", "", null);
     if (!text) {
-      setStatus("analyze-status", "Enter a message or describe what happened first.", "is-error");
+      setStatus("analyze-status",
+        deskCopy("status_no_input") || "Enter a message or describe what happened first.",
+        "is-error");
       input.focus();
       return;
     }
@@ -1302,7 +1318,9 @@
           report.classList.remove("is-loading");
           if (!state.analyze) { report.hidden = true; }
         }
-        setStatus("analyze-status", err && err.message ? err.message : "Analysis failed.", "is-error");
+        setStatus("analyze-status",
+          err && err.message ? err.message : deskCopy("status_analyze_failed"),
+          "is-error");
       })
       .then(function () { button.disabled = false; });
   }
@@ -1623,6 +1641,42 @@
       .then(function () { button.disabled = false; });
   }
 
+  // PR-6R2: the desk shows one language at a time. These labels used to be bilingual
+  // literals in the markup; they are catalogue lookups now, like the rest of the chrome.
+  var DESK_LABEL_IDS = [
+     ["tab-analyze", "tab_intake"],
+     ["tabs-group-label", "tab_others"],
+     ["tab-asymmetry", "tab_asymmetry"],
+     ["tab-lab", "tab_lab"],
+     ["intake-purpose", "intake_purpose"],
+     ["field-material-label", "field_material"],
+     ["field-mode-label", "field_mode"],
+     ["examples-heading", "examples_heading"],
+     ["examples-guide-label", "examples_heading"],
+     ["section-reality", "section_reality"],
+     ["section-nea", "section_nea"],
+     ["section-hypotheses", "section_hypotheses"],
+     ["section-audit", "section_audit"],
+     ["section-aspects", "section_aspects"],
+     ["verdict-heading", "verdict_heading"],
+     ["copy-json", "copy_json"],
+     ["screen-quality-label", "screen_quality_label"],
+     ["nea-observed-label", "nea_observed_label"],
+     ["nea-amplified-label", "nea_amplified_label"],
+     ["nea-note", "nea_note"]
+  ];
+
+  function renderDeskLabels() {
+    DESK_LABEL_IDS.forEach(function (pair) {
+      var node = $(pair[0]);
+      var label = frontDeskText(pair[1]);
+      if (node && label) { node.textContent = label; }
+    });
+    var input = $("analyze-input");
+    var placeholder = frontDeskText("field_material_placeholder");
+    if (input && placeholder) { input.setAttribute("placeholder", placeholder); }
+  }
+
   // PR-3: the dossier's own chrome - the four counters, their titles, the issuance kicker and
   // the satire line - is catalogue copy read here, kept out of the hall-label block so that
   // block stays what it is (labels only, no status machine).
@@ -1706,6 +1760,7 @@
     initCopy();
     renderFrontDeskCopy();
     renderStageChrome();
+    renderDeskLabels();
     var langBtn = $("lang-toggle");
     if (langBtn) {
       langBtn.addEventListener("click", function () {
@@ -1715,6 +1770,7 @@
         if (document.documentElement) { document.documentElement.setAttribute("lang", next); }
         renderFrontDeskCopy();
     renderStageChrome();
+    renderDeskLabels();
         if (state.analyze) { renderAnalyze(state.analyze); }
       });
     }
