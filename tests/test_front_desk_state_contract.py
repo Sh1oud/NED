@@ -218,6 +218,47 @@ def test_the_stamp_states_the_recognition_state_from_the_catalogue() -> None:
     assert "\\u8fb9\\u754c" not in strip
 
 
+def test_the_strip_and_the_opinion_quote_one_sentence() -> None:
+    """PR-4S: the sentence is computed once and printed by both surfaces.
+
+    PR-3's strip printed the raw payload sentence while the review screen printed the
+    display-repaired one, so one page could claim both "你又开始了" and "本机构决定继续怀疑",
+    or show an unrepaired "—未回复" next to the repaired sentence.
+    """
+
+    strip = function_body("renderIssuanceStrip")
+    assert "shownVerdict" in strip, "the strip must take the sentence it prints"
+    assert "verdict.text" not in strip, "the strip may not read the payload sentence itself"
+    assert "renderIssuanceStrip(d, situation, recognition, shownVerdict);" in SCRIPT
+
+    body = function_body("renderAnalyze")
+    assert "var shownVerdict = repairDisplayText(" in body
+    assert "displayVerdictText(v.code, v.text, situation, basis, language)" in body
+    assert body.index("var shownVerdict") < body.index("renderIssuanceStrip(d, situation"), (
+        "the sentence must exist before the strip is rendered"
+    )
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["她发了个爱心表情，但她三天没回我。", "他今天一整天都没回我消息"],
+)
+def test_the_display_layer_is_still_needed_for_the_raw_sentence(text: str) -> None:
+    """The two hazards this contract exists for, measured on the live payload."""
+
+    payload = analyse(text)
+    code = payload["verdict"]["code"]
+    raw = payload["verdict"]["text"]
+    assert code in {"nea.you_started_again", "nea.latency_insufficient"}, code
+    if code == "nea.you_started_again":
+        # the false second-person claim: only true when the reader stated their own conclusion
+        assert "你又开始了" in raw
+        assert "without_basis" in p.VERDICT_DISPLAY_OVERRIDES[code]
+    else:
+        # the unrepaired duration artifact
+        assert "—未回复" in raw
+
+
 def test_the_material_only_screen_is_complete_and_agrees_with_the_cli() -> None:
     """No raw slot, and no no-signal wording on a screen with material on file."""
 

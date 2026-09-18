@@ -1087,7 +1087,10 @@
     }
   }
 
-  function renderIssuanceStrip(d, situation, recognition) {
+  // PR-4S: ``shownVerdict`` is the sentence the review opinion already prints, computed once in
+  // renderAnalyze. The strip quotes that same string, so the two surfaces can never disagree
+  // about who is being accused or about an unrepaired duration slot.
+  function renderIssuanceStrip(d, situation, recognition, shownVerdict) {
     var strip = $("issuance-strip");
     var stamp = $("issuance-stamp");
     var value = $("issuance-value");
@@ -1107,15 +1110,15 @@
         : (recognition === "material_registered" ? "stamp_material_pending" : "stamp_unsigned"));
     stamp.textContent = deskCopy(stampKey) || stamp.textContent;
 
-    var verdict = obj(d.verdict);
+    var sentence = txt(shownVerdict);
     if (boundary) {
       value.textContent = deskCopy("issuance_boundary");
-      sub.textContent = txt(verdict.text) || deskCopy("issuance_boundary_sub");
+      sub.textContent = sentence || deskCopy("issuance_boundary_sub");
       return;
     }
     if (signed) {
       value.textContent = deskCopy("issuance_signed");
-      sub.textContent = txt(verdict.text) || "\u2014";
+      sub.textContent = sentence || "\u2014";
       return;
     }
     if (recognition === "material_registered") {
@@ -1227,7 +1230,7 @@
     // The four-stage dossier: what was submitted, what was registered, what this agency
     // thinks of it, and whether anything was signed.
     renderStageRail(d, situation, recognition);
-    renderIssuanceStrip(d, situation, recognition);
+    renderIssuanceStrip(d, situation, recognition, shownVerdict);
     renderMaterialStage(d, recognition);
     renderReviewRelation(d, recognition);
 
