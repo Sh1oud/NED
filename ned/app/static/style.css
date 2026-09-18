@@ -2538,3 +2538,13 @@ body {
   .casebook-reread-row { grid-template-columns: 1fr; }
   .casebook-reread-fields { grid-column: 1; }
 }
+
+
+/* ---------------------------------------------------------------- front desk: PR-6M4D
+   The relative-time hint is a sentence beside the date field: it explains why a date is being
+   asked for, and it never fills one in. */
+.casebook-relative-hint {
+  margin: 6px 0 0;
+  border-left: 2px solid var(--line-strong);
+  padding-left: 8px;
+}

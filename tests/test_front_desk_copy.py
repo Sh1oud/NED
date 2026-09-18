@@ -158,6 +158,10 @@ LEGACY_DIGESTS = {
 #: PR-4R's state words, PR-6R2's labels, PR-6M2's casebook copy and PR-6M3's review copy.
 #: The set is frozen: adding or removing a key is a copy change and belongs in a batch that
 #: says so.
+#: Every key the desk block carries besides the four frozen labels: PR-3's stage chrome,
+#: PR-4R's state words, PR-6R2's labels, PR-6M2's casebook copy and PR-6M4D's review copy.
+#: The set is frozen: adding or removing a key is a copy change and belongs in a batch that
+#: says so.
 DESK_KEYS = {
     "tab_intake",
     "tab_others",
@@ -199,6 +203,10 @@ DESK_KEYS = {
     "casebook_file_choose",
     "casebook_file_new",
     "casebook_file_occurred",
+    "casebook_relative_hint",
+    "casebook_relative_filed",
+    "casebook_dated_filed",
+    "casebook_occurred_by_user",
     "casebook_file_confirm",
     "casebook_file_cancel",
     "casebook_file_pick",

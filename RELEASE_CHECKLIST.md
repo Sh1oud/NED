@@ -125,7 +125,8 @@ git push origin main --tags
 
 ## 9. Things this release does *not* do (keep them out of the announcement)
 
-- No LLM, no external API, no database, no accounts, no telemetry. `LLMProvider` is a
+- No LLM, no external API, no account system, no telemetry. The analysis path keeps no
+  database of its own (the opt-in casebook is a separate local file). `LLMProvider` is a
   declared stub that raises on use.
 - No claim about anyone's real feelings, anywhere in the output or the docs.
 - Fuyuki is a fictional internal codename, not a real person.

@@ -79,9 +79,11 @@ instead of inventing one. The transcript above is abbreviated — the real comma
 prints Technical Details, Scoring, NED Reaching Level, the Reality Check panel, Mode
 Notes and the disclaimer footer.
 
-NED v0.1 runs **entirely offline**. There is no database, no account system, no
-telemetry, no analytics and no paid API. Your text is analysed in-process and
-discarded.
+NED v0.1 runs **entirely offline**. There is no account system, no telemetry, no
+analytics and no paid API. Your text is analysed in-process and discarded: analysing
+writes nothing to disk. The one thing NED can keep is a **casebook** - a local file you
+switch on yourself (`NED_CASEBOOK=on`) and file into explicitly; nothing is filed unless
+you press the button.
 
 ---
 
@@ -556,7 +558,10 @@ rule id, and `tests/test_rules.py` checks pack coherence in CI.
 NED v0.1 is **local-first**:
 
 - no uploads, no cloud, no third-party API calls;
-- no database, no files written from your input, no accounts;
+- no files written from your input by an analysis, and no accounts;
+- the casebook is a local database file, and it exists only if you switch it on and file
+  something into it yourself; anything you file is kept until you delete it;
+- re-reading an archived case is computed on the spot and stored nowhere;
 - no telemetry, no analytics, no trackers, no cookies;
 - the web UI keeps your text in the browser and stores only the selected mode in
   `localStorage`;

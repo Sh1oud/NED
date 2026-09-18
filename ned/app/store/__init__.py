@@ -58,7 +58,7 @@ from ned.app.store.paths import (
     casebook_path,
     sidecar_paths,
 )
-from ned.app.store.snapshot import build_case_file_snapshot
+from ned.app.store.snapshot import build_case_file_snapshot, occurred_for_archive
 
 
 def open_casebook(path: Path | None = None) -> CasebookStore | None:
@@ -117,6 +117,7 @@ __all__ = [
     "build_case_file_snapshot",
     "casebook_enabled",
     "casebook_path",
+    "occurred_for_archive",
     "open_casebook",
     "require_casebook",
     "rules_fingerprint",

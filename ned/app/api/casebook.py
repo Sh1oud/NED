@@ -22,6 +22,7 @@ from ned.app.api.store_access import open_store, open_store_read_only_for_casebo
 from ned.app.config import MAX_INPUT_CHARS
 from ned.app.core.analyzer import NedAnalyzer
 from ned.app.core.models import Mode
+from ned.app.core.relative_time import relative_time_cues
 from ned.app.review import (
     RecordedCaseFile,
     RecordedEntry,
@@ -43,7 +44,7 @@ from ned.app.store import (
     casebook_path,
     rules_fingerprint,
 )
-from ned.app.store.snapshot import build_case_file_snapshot
+from ned.app.store.snapshot import build_case_file_snapshot, occurred_for_archive
 
 router = APIRouter(prefix="/api/casebook", tags=["casebook"])
 
@@ -61,6 +62,14 @@ class CasebookStatus(BaseModel):
     entries: int = 0
     #: A short, honest explanation when the file exists but this build cannot use it.
     note: str = ""
+
+
+class RelativeTimeHintRequest(BaseModel):
+    """The text to look at. Nothing else: this endpoint knows no dates."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    text: str = Field(min_length=1, max_length=MAX_INPUT_CHARS)
 
 
 class CasebookCreate(BaseModel):
@@ -178,6 +187,23 @@ class ArchiveResult(BaseModel):
     entry_count: int
     recognition: str
     verdict_code: str
+    #: How the event time was recorded: ``user`` for the reader's own date, ``input_relative``
+    #: when the text mentioned time but no date was given, ``unknown`` otherwise.
+    occurred_source: str = "unknown"
+    occurred_at: str | None = None
+    occurred_precision: str = "unknown"
+    #: The relative-time wordings the input used. A hint about the text, never a date.
+    relative_time_cues: list[str] = Field(default_factory=list)
+
+
+class RelativeTimeHint(BaseModel):
+    """Whether an input mentions a relative time, and which wording it used."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    cues: list[str] = Field(default_factory=list)
+    has_relative_time: bool = False
+    note_code: str = "no_relative_time"
 
 
 class DeleteResult(BaseModel):
@@ -265,6 +291,27 @@ def edit_casebook(casebook_id: str, payload: CasebookEdit) -> CasebookView:
 
 
 @router.post(
+    "/relative-time",
+    response_model=RelativeTimeHint,
+    summary="Does this input mention a relative time? (a hint, not a date)",
+)
+def relative_time(payload: RelativeTimeHintRequest) -> RelativeTimeHint:
+    """Say whether the text uses wording like 昨天, so the interface can offer a date.
+
+    This is a pure function of the text: no clock, no conversion, and nothing is stored. The
+    answer only ever feeds the archive hint - it cannot reach the verdict, the evidence or the
+    material registration.
+    """
+
+    cues = relative_time_cues(payload.text)
+    return RelativeTimeHint(
+        cues=list(cues),
+        has_relative_time=bool(cues),
+        note_code="relative_time_cue" if cues else "no_relative_time",
+    )
+
+
+@router.post(
     "/{casebook_id}/archive",
     response_model=ArchiveResult,
     summary="Analyse an input now and file the result",
@@ -279,7 +326,10 @@ def archive(casebook_id: str, payload: ArchiveRequest, request: Request) -> Arch
 
     analyzer: NedAnalyzer = get_analyzer(request)
     result = analyzer.analyze_text(payload.text, mode=payload.mode)
-    snapshot = build_case_file_snapshot(result, occurred=payload.occurred, book=analyzer.book)
+    # The reader's date wins; with none, a relative-time wording is recorded as a hint that the
+    # text mentioned time - never converted into a day NED guessed.
+    occurred = occurred_for_archive(payload.text, payload.occurred)
+    snapshot = build_case_file_snapshot(result, occurred=occurred, book=analyzer.book)
     with open_store() as store:
         try:
             store.get_casebook(casebook_id)
@@ -297,6 +347,10 @@ def archive(casebook_id: str, payload: ArchiveRequest, request: Request) -> Arch
             entry_count=outcome.entry_count,
             recognition=str(result.recognition),
             verdict_code=result.verdict.code,
+            occurred_source=str(occurred.occurred_source),
+            occurred_at=occurred.occurred_at,
+            occurred_precision=str(occurred.occurred_precision),
+            relative_time_cues=list(relative_time_cues(payload.text)),
         )
 
 

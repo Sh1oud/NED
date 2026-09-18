@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from ned.app.core import events as event_registry
 from ned.app.core.models import AnalysisResult
+from ned.app.core.relative_time import has_relative_time
 from ned.app.core.rules import RuleBook
 from ned.app.store.fingerprint import rules_fingerprint
 from ned.app.store.models import CaseFileSnapshot, MaterialSnapshot, OccurredTime
@@ -82,4 +83,22 @@ def _event_material_ids(text: str, book: RuleBook | None) -> frozenset[str]:
     )
 
 
-__all__ = ["build_case_file_snapshot"]
+def occurred_for_archive(text: str, requested: OccurredTime | None = None) -> OccurredTime:
+    """What event time an archive records for this input.
+
+    The reader's own date wins. With none, a relative-time wording is recorded as
+    ``input_relative``: the archive keeps the *fact* that the text mentioned time, and nothing
+    else - ``occurred_at`` stays NULL, because NED may not work out which day "昨天" was.
+    Anything else is ``unknown``.
+    """
+
+    if requested is not None and requested.occurred_at is not None:
+        return requested
+    if has_relative_time(text):
+        return OccurredTime(
+            occurred_at=None, occurred_precision="unknown", occurred_source="input_relative"
+        )
+    return OccurredTime()
+
+
+__all__ = ["build_case_file_snapshot", "occurred_for_archive"]

@@ -64,7 +64,11 @@ EXAMPLES_PATH = Path(__file__).resolve().parents[2] / "examples" / "cases.json"
 
 
 class NedAnalyzer:
-    """Offline analysis facade. Stateless: NED stores nothing about you."""
+    """Offline analysis facade.
+
+    Stateless: an analysis stores nothing. The casebook is a separate, opt-in store that nothing
+    on this path reads or writes.
+    """
 
     def __init__(self, book: RuleBook | None = None, provider_name: str = "local") -> None:
         self.book = book if book is not None else RuleBook.load()
@@ -422,7 +426,8 @@ class NedAnalyzer:
         )
         notes.extend(f"[easter egg {egg.id}] {egg.message}" for egg in eggs)
         notes.append(
-            "no input text was stored, transmitted or logged; NED has no database and no telemetry."
+            "analysing stores nothing and sends nothing anywhere; a casebook file exists on this "
+            "machine only if you switch it on and file something into it yourself. No telemetry."
         )
         return notes
 

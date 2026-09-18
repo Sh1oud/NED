@@ -17,7 +17,7 @@ Technical Details ────────────────────�
 │ input      : 她说喜欢我                                                                        │
 │ mode       : extreme                                                                           │
 │ language   : zh                                                                                │
-│ signal     : explicit_affection — 转述的喜欢表达（她说喜欢我）                                 │
+│ signal     : explicit_affection — 转述的喜欢表达                                               │
 │ raw reading: 对方据称表达了喜欢（转述）。                                                      │
 └────────────────────────────────────────────────────────────────────────────────────────────────┘
 ┌─────────────────────────────────────────── Scoring ────────────────────────────────────────────┐
@@ -43,8 +43,8 @@ Technical Details ────────────────────�
 │ These are generated alternative hypotheses, not findings.                                      │
 └────────────────────────────────────────────────────────────────────────────────────────────────┘
 ┌──────────────────────────────────────── Reality Check ─────────────────────────────────────────┐
-│ 文本只能证明对方说了这句话。转述的喜欢表达（她说喜欢我）与内心状态之间没有可验证的映射，所以   │
-│ NED 既不确认也不否认，它只是拒绝把一句话当成测量结果。                                         │
+│ 文本只能证明对方说了这句话。转述的喜欢表达与内心状态之间没有可验证的映射，所以 NED             │
+│ 既不确认也不否认，它只是拒绝把一句话当成测量结果。                                             │
 └────────────────────────────────────────────────────────────────────────────────────────────────┘
 ┌─────────────────────── Final Verdict (ned.extreme_insufficient_sample) ────────────────────────┐
 │ 证据不足，建议扩大样本量。👍                                                                   │
@@ -53,7 +53,8 @@ Technical Details ────────────────────�
 │  · mode: Nov1ce Extreme (extreme) — Nov1ce Mode. Every escape hatch is opened at once,         │
 │  including the legal ones.                                                                     │
 │  · engine: local-rule (offline=True), 5 alternative explanation(s) generated                   │
-│  · no input text was stored, transmitted or logged; NED has no database and no telemetry.      │
+│  · analysing stores nothing and sends nothing anywhere; a casebook file exists on this         │
+│  machine only if you switch it on and file something into it yourself. No telemetry.           │
 └────────────────────────────────────────────────────────────────────────────────────────────────┘
 NED cannot determine whether someone likes you. Humans are not APIs. No amount of text analysis
 can replace direct communication and context. Every alternative explanation here is generated

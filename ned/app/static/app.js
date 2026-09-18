@@ -1967,9 +1967,16 @@
     var block = el("article", "casebook-file");
     block.appendChild(el("p", "casebook-input", txt(caseFile.input_text)));
 
-    var when = txt(caseFile.occurred_at);
+    // Read the recorded value raw: ``txt`` renders "nothing" as a dash, which is truthy and
+    // would make the "no declared time" branch unreachable.
+    var whenRaw = caseFile.occurred_at;
+    var when = whenRaw === null || whenRaw === undefined ? "" : String(whenRaw);
     var occurred;
-    if (when) {
+    if (when && txt(caseFile.occurred_source) === "user") {
+      // Provenance stays visible: this date was supplied by the reader, not worked out by NED.
+      occurred = when + " (" + txt(caseFile.occurred_precision) + ", "
+        + casebookCopy("casebook_occurred_by_user") + ")";
+    } else if (when) {
       occurred = when + " (" + txt(caseFile.occurred_precision) + ")";
     } else if (txt(caseFile.occurred_source) === "input_relative") {
       occurred = casebookCopy("casebook_occurred_relative");
@@ -2237,6 +2244,9 @@
     casebookState().mode = txt(obj(state.analyze).mode) || "normal";
     setHidden("casebook-filebox", false);
     setStatus("casebook-file-status", "", null);
+    // A hint, from the server, about the wording of the input. It never fills the date field:
+    // the reader either leaves it empty or types a date of their own.
+    showRelativeHint(casebookState().text);
     // The picker must offer the casebooks that exist now, not the ones the panel last saw - and
     // until it does, the confirm button is disabled so a fast click cannot land on nothing.
     var confirm = $("casebook-file-confirm");
@@ -2251,6 +2261,26 @@
   function closeFileBox() {
     setHidden("casebook-filebox", true);
     setStatus("casebook-file-status", "", null);
+  }
+
+  function showRelativeHint(text) {
+    var node = $("casebook-relative-hint");
+    if (!node) { return; }
+    node.hidden = true;
+    node.textContent = "";
+    if (!text) { return; }
+    fetchJson("/api/casebook/relative-time", "POST", { text: text }).then(function (payload) {
+      var answer = obj(payload);
+      var cues = list(answer.cues);
+      if (answer.has_relative_time !== true || !cues.length) { return; }
+      node.textContent = casebookFill(casebookCopy("casebook_relative_hint"), {
+        cues: cues.join("、")
+      });
+      node.hidden = false;
+    }).catch(function () {
+      // A hint that cannot be fetched is simply not shown; filing is unaffected.
+      node.hidden = true;
+    });
   }
 
   function fillCasebookPicker() {
@@ -2310,7 +2340,18 @@
         var data = obj(outcome);
         var key = data.created === true ? "casebook_filed" : "casebook_filed_again";
         var message = casebookCopy(key);
-        if (message.indexOf("{label}") >= 0) {
+        var cues = list(data.relative_time_cues);
+        if (data.created === true && txt(data.occurred_source) === "input_relative") {
+          message = casebookFill(casebookCopy("casebook_relative_filed"), {
+            label: chosen.label,
+            cues: cues.join("、")
+          });
+        } else if (data.created === true && txt(data.occurred_at)) {
+          message = casebookFill(casebookCopy("casebook_dated_filed"), {
+            label: chosen.label,
+            when: txt(data.occurred_at)
+          });
+        } else if (message.indexOf("{label}") >= 0) {
           message = casebookFill(message, { label: chosen.label });
         }
         setStatus("casebook-file-status", message, null);

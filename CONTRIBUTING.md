@@ -88,7 +88,7 @@ A provider added in this version must still work fully offline. `LLMProvider` ex
 - **Formatting and linting:** `ruff`, line length **100**. Run `ruff format .` before opening a PR.
 - **Types:** annotate every public function, method, and module-level constant. `mypy ned` must pass.
 - **Models:** use **Pydantic v2** models for all structured data crossing a function, API, or CLI boundary. No ad-hoc dicts for anything that leaves the core.
-- **Dependencies:** do not add a new heavy dependency without discussing it in an issue first. The promise is local-first, fully offline, no telemetry, no analytics, no trackers, no database, no accounts, no paid APIs — a dependency that breaks any of that is a non-starter.
+- **Dependencies:** do not add a new heavy dependency without discussing it in an issue first. The promise is local-first, fully offline, no telemetry, no analytics, no trackers, no accounts, no paid APIs, and an analysis path that writes nothing (the opt-in casebook is a separate local file) — a dependency that breaks any of that is a non-starter.
 - **Strings:** user-facing text lives in rule packs or templates, not inline in logic.
 - Keep functions small and pure where possible; scoring and asymmetry math should be trivially testable without the API layer.
 

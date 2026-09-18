@@ -33,6 +33,7 @@ from ned.app.core.models import (
     Mode,
     Verdict,
 )
+from ned.app.core.relative_time import relative_time_cues
 from ned.app.review import (
     CasebookReview,
     RecordedCaseFile,
@@ -53,6 +54,7 @@ from ned.app.store import (
     build_case_file_snapshot,
     casebook_enabled,
     casebook_path,
+    occurred_for_archive,
     open_casebook,
     rules_fingerprint,
 )
@@ -1439,11 +1441,7 @@ def casebook_archive(
             )
         )
     try:
-        occurred_time = OccurredTime(
-            occurred_at=occurred,
-            occurred_precision=cast(OccurredPrecision, precision if occurred else "unknown"),
-            occurred_source="user" if occurred else "unknown",
-        )
+        occurred_time = examine_occurred(occurred, precision)
     except ValueError as error:
         raise _casebook_error(CasebookConfigError(str(error))) from error
     key = action_id or uuid4().hex
@@ -1452,6 +1450,9 @@ def casebook_archive(
     with store:
         casebook_id = _resolve_casebook(store, casebook)
         result = analyzer.analyze_text(payload_text, mode=parsed_mode)
+        # The same rule as the API: the reader's date, else the hint that the text mentioned
+        # time, else nothing - never a date NED worked out.
+        occurred_time = occurred_for_archive(payload_text, occurred_time)
         snapshot = build_case_file_snapshot(result, occurred=occurred_time, book=analyzer.book)
         try:
             outcome = store.archive(casebook_id, snapshot, idempotency_key=key)
@@ -1462,6 +1463,14 @@ def casebook_archive(
         f"{'filed' if outcome.created else 'already filed'}: case file {outcome.case_file_id} "
         f"({outcome.entry_count} entr(ies)) · {result.recognition} / {result.verdict.code}"
     )
+    if occurred_time.occurred_source == "input_relative":
+        hints = ", ".join(relative_time_cues(payload_text))
+        out.print(
+            f"note: the input mentions a relative time ({hints}); NED did not convert it, so "
+            "this case carries no event date. Pass --occurred to add one."
+        )
+    elif occurred_time.occurred_at is None:
+        out.print("note: no event date was given for this case.")
     out.print()
 
 

@@ -343,7 +343,7 @@ class AnalyzeRequest(BaseModel):
     text: str = Field(min_length=1, max_length=MAX_INPUT_CHARS)
     mode: Mode = "normal"
     #: Earlier turns, oldest first. Used only to model NED's escalating
-    #: unwillingness to update; NED stores nothing server-side.
+    #: unwillingness to update; a request is analysed in-process and stored nowhere.
     history: list[str] = Field(default_factory=list)
     #: Optional cap on the number of alternative explanations.
     top_k: int | None = Field(default=None, ge=1, le=10)

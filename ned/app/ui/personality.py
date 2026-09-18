@@ -2156,6 +2156,24 @@ FRONT_DESK_COPY: dict[str, dict[str, str]] = {
     "casebook_file_choose": {"zh": "归入哪个卷宗", "en": "Which casebook"},
     "casebook_file_new": {"zh": "或新建一个卷宗名…", "en": "or name a new casebook…"},
     "casebook_file_occurred": {"zh": "发生时间（可选）", "en": "When it happened (optional)"},
+    # PR-6M4D: the hint. NED says the time is not pinned down; it never works out the date.
+    "casebook_relative_hint": {
+        "zh": "这条材料包含「{cues}」等相对时间。NED 不会自行换算日期；如你希望以后参与时间排序，"
+        "可以补充实际日期。",
+        "en": "This material mentions a relative time ({cues}). NED does not convert it into a "
+        "date; if you want it to take part in time ordering later, you can add the actual date.",
+    },
+    "casebook_relative_filed": {
+        "zh": "已归入「{label}」；这条材料提到相对时间（{cues}），NED 没有换算日期，"
+        "所以这个案卷没有事件时间。",
+        "en": "Filed into {label}; the material mentions a relative time ({cues}) and NED did "
+        "not convert it, so this case carries no event date.",
+    },
+    "casebook_dated_filed": {
+        "zh": "已归入「{label}」，事件时间 {when}（由你补充）。",
+        "en": "Filed into {label} with the event date {when} (supplied by you).",
+    },
+    "casebook_occurred_by_user": {"zh": "由你补充", "en": "supplied by you"},
     "casebook_file_confirm": {"zh": "确认归入", "en": "File it"},
     "casebook_file_cancel": {"zh": "取消", "en": "Cancel"},
     "casebook_file_pick": {

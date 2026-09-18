@@ -280,7 +280,8 @@ def test_the_casebook_id_is_in_every_path(client: TestClient) -> None:
     }
     assert "/api/casebook" in casebook_paths
     for path in casebook_paths:
-        if path in ("/api/casebook", "/api/casebook/status"):
+        # The hint endpoint is a pure function of a text: it names no casebook, and stores nothing.
+        if path in ("/api/casebook", "/api/casebook/status", "/api/casebook/relative-time"):
             continue
         assert path.startswith("/api/casebook/{casebook_id}"), path
 
@@ -393,6 +394,34 @@ def test_an_invented_or_padded_event_time_is_refused(client: TestClient) -> None
 
 
 def test_a_relative_time_clue_is_recorded_as_such(client: TestClient) -> None:
+    """PR-6M4D: the server derives this from the text; it no longer takes a client's word.
+
+    The wording "昨天" is in the input, no date is given, so the archive records that the text
+    mentioned time - and still invents no day.
+    """
+
+    casebook_id = make_casebook(client)
+    outcome = archive(
+        client,
+        casebook_id,
+        text="她昨天说她喜欢我",
+        occurred={
+            "occurred_at": None,
+            "occurred_precision": "unknown",
+            "occurred_source": "unknown",
+        },
+    )
+    assert outcome["status"] == 200
+    assert outcome["occurred_source"] == "input_relative"
+    assert outcome["relative_time_cues"] == ["昨天"]
+    case_file = client.get(f"/api/casebook/{casebook_id}").json()["case_files"][0]
+    assert case_file["occurred_source"] == "input_relative"
+    assert case_file["occurred_at"] is None
+
+
+def test_a_declared_relative_source_without_a_clue_is_not_recorded(client: TestClient) -> None:
+    """A client may not put words in the archive's mouth: no cue in the text means no cue."""
+
     casebook_id = make_casebook(client)
     outcome = archive(
         client,
@@ -404,9 +433,8 @@ def test_a_relative_time_clue_is_recorded_as_such(client: TestClient) -> None:
         },
     )
     assert outcome["status"] == 200
-    case_file = client.get(f"/api/casebook/{casebook_id}").json()["case_files"][0]
-    assert case_file["occurred_source"] == "input_relative"
-    assert case_file["occurred_at"] is None
+    assert outcome["occurred_source"] == "unknown"
+    assert outcome["relative_time_cues"] == []
 
 
 # ----------------------------------------------------------- additive contract ---
