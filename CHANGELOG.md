@@ -27,7 +27,9 @@ the one shared catalogue. The cycle this version ships also carries the boundary
 and material-layer corrections merged after `v0.1.9`, so the judgement layer does move
 against that tag: 6,050 of the 9,471 corpus inputs answer differently, and 1,982 of those
 change verdict — always an existing situation giving way to another existing situation
-(measured in `RELEASE_CHECKLIST.md` §13). No new verdict, no new signal family, no new
+(measured in `RELEASE_CHECKLIST.md` §13). The same cycle also carries the casebook, the
+first thing NED has ever been able to keep: opt-in, local, off by default, and written
+only by a button the reader presses. No new verdict, no new signal family, no new
 score, and no REST or CLI contract change: the shape of the output is the same, and the
 answers differ where attribution was wrong.
 
@@ -49,6 +51,21 @@ so the only verdict migrations are the ones measured above.
   the strings it always shipped.
 - Permanent pins for the front-desk copy contract, the responsive/accessibility
   contract, the serious register, and the quoted-boundary behaviour.
+- Opt-in **casebook** (M1–M4D): `归入卷宗` files an analysed input into a named casebook
+  on this machine; `调卷联合审查` reads a new message beside the archived pages and
+  reports direction only — 与本案方向一致 / 与本案冲突 / 已被更晚的明确边界覆盖 /
+  无法比较 / 记录不足 — and states 这是卷宗意见，不是新的最终裁决; `用当前版本重读`
+  shows an archived case's stored reading beside the reading the current rules produce,
+  with the differences classified and nothing written back. `NED_CASEBOOK` is off unless
+  the reader switches it on, and analysing still stores nothing.
+- Relative-time wording is reported as a hint and never converted to a date
+  (`relative_time_cues`, 43 Chinese and 27 English cues, no clock and no timezone); a
+  date the reader supplies is stored with its provenance (`occurred_source=user`,
+  `occurred_precision=day`) and is the only kind of date that can order a casebook page.
+  A page whose text only implies a time is stored as `input_relative` with no date at all.
+- Permanent pins for the casebook store schema and its immutability triggers, the
+  temporal-window ordering, the joint-review relation set, the re-read alignment, and the
+  relative-time detector.
 
 ### Fixed
 - An explicit boundary written inside the corner brackets `「」` / `『』` is
@@ -69,10 +86,14 @@ so the only verdict migrations are the ones measured above.
   reader discounting herself.
 - Response latency can now be insufficient evidence on its own, so `我给她发消息她隔天才回`
   reaches the latency screen instead of no signal.
+- The engine's storage note describes the casebook instead of claiming NED has no database
+  at all: analysing stores nothing and sends nothing anywhere, and a casebook file exists on
+  this machine only if the reader switches it on and files something into it themselves.
 - The README's current-version samples read 0.1.10, the bilingual claim is scoped to what is
-  measured, and all four screenshot rows are marked current for this version: the three web
-  images were re-captured from the 0.1.10 UI, and the CLI capture was regenerated from the
-  0.1.10 CLI before its image was re-rendered.
+  measured, and all four screenshot rows are marked current for this version: the resealed
+  candidate's UI is what the three web images were captured from, and the CLI capture was
+  re-verified against the live CLI at the release width before its image was re-rendered
+  from it.
 
 ### Known boundaries (not fixed in this release)
 - **English has no reported-material layer.** The material registry and the report-frame

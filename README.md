@@ -87,6 +87,39 @@ you press the button.
 
 ---
 
+## What's new in 0.1.10 — Front Desk Renewal, and the casebook
+
+**The hall.** The local page now reads as a service hall: an intake window, a staged
+material registry, a review record, a serious register and an issuance stamp, with
+every label coming from one shared catalogue. Geometry, spacing and typography only —
+the verdict layer, the score, the signal families and the REST/CLI contract are
+unchanged.
+
+**The casebook — the first thing NED ever keeps.** It is opt-in, it is a file on your
+own machine, and it is off until you switch it on (`NED_CASEBOOK=on`). Analysing still
+writes nothing; the only write path is the button you press yourself. Three windows
+come with it:
+
+- **归入卷宗 — file a case.** The filed page keeps the input, the reading it got at the
+  time, and the engine and rule version that produced it. Filing the same sentence
+  twice on purpose files two cases; pressing the button twice files one.
+- **调卷联合审查 — read beside the archive.** NED reads an archived casebook next to
+  the message in front of you and reports direction: 与本案方向一致 / 与本案冲突 /
+  已被更晚的明确边界覆盖 / 无法比较 / 记录不足. It does not average, does not merge,
+  and says so: 这是卷宗意见，不是新的最终裁决。
+- **用当前版本重读 — re-read an archived case.** The reading stored at the time and the
+  reading the current rules produce are shown side by side, with the differences
+  classified; the stored record is never rewritten, and the block says so when nothing
+  changed.
+
+**Time is the one thing NED refuses to compute.** A date-like wording (`昨天`, `上周`,
+`a few days ago`) is reported as a hint and nothing more: NED does not convert it, and a
+filed page keeps the fact that the text mentioned time while leaving the date empty. If
+you supply a date yourself, it is stored as *yours* — 事件时间 2026-08-25（由你补充）—
+and only then can that page take part in ordering. A page with no date is shown as
+无法比较 instead of being sorted somewhere plausible, and an unknown order never
+produces a claim that one page overrides another.
+
 ## What's new in 0.1.8 — Evidence Standards, Both Ways
 
 Two new capabilities, one subject: **the same window for every conclusion, and no
@@ -146,12 +179,15 @@ All four views are exercised by the test suite (`tests/test_api.py`,
 version each image was captured from is printed inside the image itself, so an
 image always shows its own capture version — which is exactly why it has to be
 re-captured after a UI change or a version bump instead of being assumed current.
-All four images now show 0.1.10. The three web images were re-captured from the
-0.1.10 UI: the front desk is the renewed one, and each shot was taken only after its
-own readiness gate proved the report had rendered. The CLI image was re-captured in
-two documented steps — `docs/cli-extreme.txt` was regenerated from the 0.1.10 CLI at
-the release width, then the image was re-rendered from it — so the version printed
-inside that image is the released one as well. Re-capture with:
+All four images now show 0.1.10 and were taken from the resealed release candidate,
+not from an earlier tree. The three web images were re-captured from that UI: the
+casebook tab is part of the page, the shots are taken in the shipped default
+configuration (no casebook switched on), and each shot was taken only after its own
+readiness gate proved the report had rendered. The CLI capture was re-verified
+byte-for-byte against a live `ned analyze "她说喜欢我" --mode extreme` run at the release
+width (99 columns), and the image was then re-rendered *from* the committed
+`docs/cli-extreme.txt` twice, to identical bytes — so the version printed inside that
+image is the released one as well. Re-capture with:
 
 ```bash
 ned serve --port 8742                          # terminal 1
@@ -203,6 +239,13 @@ from calm cyan to "Industrial-grade denial" magenta.
 - **Multiple Aspects.** When the input reports several materials that can each stand
   on their own page, NED keeps every page with its own grade and refuses to add them
   up: no average, no merge, no ranking, no overall relationship score.
+- **Casebook (opt-in, local, off by default).** File an analysed input into a named
+  casebook, read a new message *beside* the archived ones (`归入卷宗` → `调卷联合审查`),
+  and re-read an archived case with the current rules (`用当前版本重读`). The joint
+  review reports direction — 与本案方向一致 / 与本案冲突 / 已被更晚的明确边界覆盖 /
+  无法比较 / 记录不足 — never an average and never a new verdict (`这是卷宗意见，不是
+  新的最终裁决。`). Relative-time wording is flagged and never turned into a date; a date
+  you supply is stored as yours, and only dated pages take part in ordering.
 - **FNBP — Fuyuki Notification Branch Predictor.** A Lab easter egg that simulates
   mispredicting every notification as being from one specific person, complete with
   pipeline flushes and wasted cycles.
@@ -559,8 +602,9 @@ NED v0.1 is **local-first**:
 
 - no uploads, no cloud, no third-party API calls;
 - no files written from your input by an analysis, and no accounts;
-- the casebook is a local database file, and it exists only if you switch it on and file
-  something into it yourself; anything you file is kept until you delete it;
+- the casebook is a local database file and it is off by default; switching it on is
+  what puts a file on this machine, that file stays empty until you file something into
+  it yourself, and anything you file is kept until you delete it;
 - re-reading an archived case is computed on the spot and stored nowhere;
 - no telemetry, no analytics, no trackers, no cookies;
 - the web UI keeps your text in the browser and stores only the selected mode in

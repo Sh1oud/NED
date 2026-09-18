@@ -206,6 +206,10 @@ Release name: **NED v0.1.9 — Hard-line Maintenance**
 
 ## 13. v0.1.10 Release Preparation
 
+> **Superseded by §14.** The candidate this section records was re-sealed before
+> publication: its release evidence and its archive are void, and the sections below are
+> kept as the record of that preparation only.
+
 Front Desk Renewal, the boundary-ownership and material-layer corrections merged after `v0.1.9`,
 and one quoted-boundary fix. The local page reads as a service hall whose copy comes from the
 shared catalogue (shell, intake window, staged material registry, review record, serious
@@ -245,3 +249,23 @@ stays `1` because no REST contract changed.
 | Front-desk cosmetics | Mobile directory swipe, 10.2-10.6 px label register, 26 px nested disclosure hit area: recorded, not fixed |
 
 Release name: **NED v0.1.10 — Front Desk Renewal** (prepared, not yet published)
+
+## 14. v0.1.10 Final Release Reseal
+
+The §13 candidate was superseded before publication, so every document and every formal
+screenshot is now bound to the resealed candidate, and the older candidate's release
+evidence and archive are void.
+
+| Check | Result |
+| --- | --- |
+| Release commit | the commit carrying this section; its identity and the authorised archive bytes are recorded together in `_rc/rh4/RELEASE_0110_EVIDENCE.json` and `_rc/rh4/artifact_0110.json`, and `_rc/rh4/release_0110_execute.py` refuses to run against any other HEAD or any other archive |
+| Superseded candidate | the §13 candidate `f3f6d9a` and its archive (2,638,725 bytes, sha256 `199cf15b…`) are **void**: kept only under `_rc/rh4/superseded_f3f6d9a/` with a marker saying so, and not to be uploaded |
+| Screenshots | all four re-taken from the resealed tree (`docs/screenshots/analysis.png`, `asymmetry.png`, `fnbp-lab.png`, `cli-extreme.png`), each web shot released only after its own readiness condition held; `docs/cli-extreme.txt` re-verified byte-for-byte against a live 99-column CLI capture and the CLI image re-rendered from it twice to identical bytes |
+| Documentation | README ("What's new in 0.1.10", Features, Screenshots, Privacy), `CHANGELOG.md`, this checklist and `_rc/rh4/RELEASE_RUNBOOK_v0.1.10.md` re-read against the product; the casebook, joint-review and re-read layers are documented for the first time, and the README's casebook-file sentence now says what the file actually does |
+| Full gates | the release gate set re-run on the resealed commit — product health, the casebook and review suites, the discipline batches, the semantic matrices against the pre-casebook baseline, docs and asset checks, the shipped-JS harnesses, the real-browser sequences, and the release-evidence checks: `FINAL GATE FAILURES (must be 0): 0` |
+| Source archive | rebuilt from the resealed commit; entry set equal to `git ls-tree -r`, every file byte-identical to that commit's tree, reproduced twice with the same sha256 |
+| Smoke | the archive extracted into scratch reports the release version, exercises the seven shipped boundary cases, and passes the full test suite from inside the extracted tree |
+| Rehearsal | the five mutating commands printed verbatim, with HEAD, worktree, tag list and archive bytes asserted unchanged afterwards |
+| Not part of this reseal | tag creation, push, release publication — none performed |
+
+Release name: **NED v0.1.10 — Front Desk Renewal** (resealed, not yet published)
