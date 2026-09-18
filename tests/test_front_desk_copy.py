@@ -201,10 +201,23 @@ def test_the_hall_has_exactly_the_five_frozen_labels() -> None:
         "submit_pending",
         "submit_done",
         "stage_submit_state",
+        # PR-4R: the state words, the stage leads, the way back to the counter, and
+        # the wording for a case that was adjudicated without a separate material.
+        "stamp_signed",
+        "stamp_unsigned",
+        "stamp_boundary",
+        "stamp_material_pending",
+        "material_lead",
+        "review_lead",
+        "issuance_lead",
+        "submit_another",
+        "stage_material_independent_none",
+        "material_empty_independent_none",
+        "fact_material_only",
     }
 
 
-@pytest.mark.parametrize("key", sorted(FRONT_DESK))
+@pytest.mark.parametrize("key", sorted(p.FRONT_DESK_COPY))
 def test_every_hall_label_is_complete_in_both_languages(key: str) -> None:
     values = p.FRONT_DESK_COPY[key]
     assert set(values) == {"zh", "en"}, key

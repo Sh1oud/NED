@@ -136,10 +136,13 @@ def test_the_renderer_takes_its_copy_from_the_catalogue() -> None:
         assert key in body, key
 
 
-def test_the_renderer_checks_the_boundary_situations_first() -> None:
-    body = function_body("renderMaterialRegistry")
-    assert '"boundary_situations"' in body
-    assert body.index('"boundary_situations"') < body.index("card.hidden = false")
+def test_the_renderer_shows_every_registered_material() -> None:
+    """PR-4R: the payload's material list decides the card, not the situation."""
+
+    body = code_lines(function_body("renderMaterialRegistry"))
+    assert "obj(d).materials" in body
+    assert "boundary_situations" not in body, "a stated boundary never destroys a material"
+    assert body.index("materials.length === 0") < body.index("card.hidden = false")
 
 
 def test_the_renderer_is_wired_into_the_result_page() -> None:

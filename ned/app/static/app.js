@@ -609,11 +609,11 @@
     // Only the registry: material_aspects is a different display object with a
     // different source, and the two are never merged into one material view.
     var materials = list(obj(d).materials);
-    // Under a stated boundary the card is not shown at all. An explicit boundary
-    // outranks any material presentation, and one input can carry both a reported
-    // attitude and a plainly stated boundary.
-    if (materials.length === 0
-        || catalogueList("boundary_situations").indexOf(String(situation || "")) !== -1) {
+    // PR-4R: a registered material is shown whatever the situation is. A stated boundary is
+    // serious because of how the register is styled and because the conclusion is not
+    // signed - never because a real attachment is destroyed. The payload's material list is
+    // the only input to this decision.
+    if (materials.length === 0) {
       card.hidden = true;
       clear(host);
       return;
@@ -778,7 +778,12 @@
 
   // The reader has supplied their own discount of real positive evidence: NED
   // should answer that instead of running a generic good-news joke.
-  function displaySituation(baseSituation, evidence, payload) {
+  function displaySituation(baseSituation, evidence, payload, recognition) {
+    // PR-4R: a filed material record owns its own screen. The engine files
+    // recognition === "material_registered" under the material-only screen before any other
+    // promotion, so the page mirrors that precedence and reads the payload's own state -
+    // never the absence of evidence, and never the empty screen while material is on file.
+    if (String(recognition || "") === "material_registered") { return "material_only"; }
     // The reader submitted their own explanation: audit it instead of answering
     // it with the old self-service-denial screen.
     if (obj(obj(payload).interpretation_audit).reading) {
@@ -834,6 +839,12 @@
   }
 
   function screenFact(d, situation) {
+    // PR-4R: the material-only screen says how much is on file. The no-signal wording
+    // must never be used here: nothing was adjudicated, but material was filed.
+    if (situation === "material_only") {
+      var filed = list(obj(d).materials).length;
+      return deskCopy("fact_material_only").replace("{n}", String(filed));
+    }
     var fixed = obj(catalogueObj("fact_fixed")[situation]);
     if (keys(fixed).length > 0) {
       return txt(languageOf(d) === "en" ? fixed.en : fixed.zh);
@@ -943,6 +954,15 @@
     if (situation === String(CATALOG.multiple_aspects_situation || "")) {
       lines = fillMaterials(list(copy.lines), materialTexts(d), language);
     }
+    // PR-4R: the material-only screen names the filed records verbatim, exactly as
+    // the CLI screen does. Its slot used to reach the reader as a raw token, because
+    // only the aspects screen filled it.
+    if (situation === "material_only") {
+      var registered = list(obj(d).materials).map(function (item) {
+        return String(obj(item).reported_content || "");
+      });
+      lines = fillMaterials(list(copy.lines), registered, language);
+    }
     if (basis && list(copy.lines_with_basis).length > 0) {
       var filled = fillReading(list(copy.lines_with_basis), capturedReading(d));
       lines = filled === null ? list(copy.lines) : filled;
@@ -1006,7 +1026,13 @@
       strip.setAttribute("data-situation", "neutral");
     }
     var stamp = $("issuance-stamp");
-    if (stamp) { stamp.textContent = "\u672a\u7b7e"; }
+    if (stamp) { stamp.textContent = deskCopy("stamp_unsigned") || "\u672a\u7b7e"; }
+    // PR-4R: keep the shipped empty-state sentence, so the script can restore it verbatim
+    // when nothing at all was recognised.
+    var emptyNote = $("material-empty");
+    if (emptyNote && !emptyNote.getAttribute("data-shipped")) {
+      emptyNote.setAttribute("data-shipped", emptyNote.textContent);
+    }
     var details = $("technical-details");
     if (details) { details.open = false; }
   }
@@ -1032,7 +1058,9 @@
       setText("stage-material-state", deskCopy("stage_material_count").replace("{n}", String(materials)));
       markStage("stage-material", "", "done");
     } else {
-      setText("stage-material-state", deskCopy("stage_material_none"));
+      // PR-4R: evidence was adjudicated with no separate material record. That is not the
+      // empty state, and it must not read as "NED did not recognise what you said".
+      setText("stage-material-state", deskCopy("stage_material_independent_none"));
       markStage("stage-material", "", "empty");
     }
 
@@ -1070,7 +1098,14 @@
 
     var signed = recognition === "adjudicated";
     var boundary = situation === "boundary" || situation === "timeline_boundary";
-    stamp.textContent = boundary ? "\u8fb9\u754c" : (signed ? "\u5df2\u7b7e" : "\u672a\u7b7e");
+    // PR-4R: the stamp states the recognition state, and it is looked up like every other
+    // label so an English interface does not stamp Chinese.
+    var stampKey = boundary
+      ? "stamp_boundary"
+      : (signed
+        ? "stamp_signed"
+        : (recognition === "material_registered" ? "stamp_material_pending" : "stamp_unsigned"));
+    stamp.textContent = deskCopy(stampKey) || stamp.textContent;
 
     var verdict = obj(d.verdict);
     if (boundary) {
@@ -1103,11 +1138,19 @@
   }
 
   function renderMaterialStage(d, recognition) {
+    // PR-4R: whether a material is shown is decided by the real material list and by nothing
+    // else - not by the situation, the verdict, or how serious the register is.
     var materials = (d.materials && d.materials.length) || 0;
-    if (recognition === "nothing_recognized" || materials === 0) {
+    if (materials === 0) {
       setText("material-count", deskCopy("material_count_none"));
       setHidden("material-registry", true);
       setHidden("material-empty", false);
+      var emptyNote = $("material-empty");
+      var shipped = emptyNote ? emptyNote.getAttribute("data-shipped") : "";
+      // "no material was recognised" stays true only when nothing at all was recognised.
+      setText("material-empty", recognition === "nothing_recognized"
+        ? (shipped || deskCopy("material_empty_independent_none"))
+        : deskCopy("material_empty_independent_none"));
       return;
     }
     setHidden("material-empty", true);
@@ -1126,13 +1169,14 @@
     var reason = asym ? obj(obj(asym).evidence_profile).comparison_reason : "";
     var baseSituation = situationFor(v.code, reason);
     var attached = asym ? obj(obj(asym).user_interpretation) : null;
-    var situation = displaySituation(baseSituation, d.evidence, d);
-    var basis = basisFromSignals(d.evidence) || Boolean(attached && attached.reading_present);
-
+    // PR-4R: the payload decides which screen this case belongs to, so its recognition
+    // state is read before the screen is chosen.
     var recognition = txt(d.recognition) || (
       (d.evidence && d.evidence.length) ? "adjudicated"
         : ((d.materials && d.materials.length) ? "material_registered" : "nothing_recognized")
     );
+    var situation = displaySituation(baseSituation, d.evidence, d, recognition);
+    var basis = basisFromSignals(d.evidence) || Boolean(attached && attached.reading_present);
 
     resetDossier();
     report.hidden = false;
@@ -1589,6 +1633,10 @@
      ["stage-title-review", "stage_name_review"],
      ["stage-title-issuance", "stage_name_issuance"],
      ["issuance-kicker", "issuance_kicker"],
+     ["material-lead", "material_lead"],
+     ["review-lead", "review_lead"],
+     ["issuance-lead", "issuance_lead"],
+     ["submit-another", "submit_another"],
      ["satire-line", "satire_line"]].forEach(function (pair) {
       var node = $(pair[0]);
       var text = frontDeskText(pair[1]);
@@ -1672,6 +1720,17 @@
     var asymBtn = $("asym-submit");
     var fnbpBtn = $("fnbp-submit");
     if (analyzeBtn) { analyzeBtn.addEventListener("click", runAnalyze); }
+    var anotherBtn = $("submit-another");
+    if (anotherBtn) {
+      anotherBtn.addEventListener("click", function () {
+        // PR-4R: one obvious step back to the counter after reading the outcome. What the
+        // reader submitted is left exactly where it was - this control never clears it, and
+        // it never asks the engine for anything.
+        var input = $("analyze-input");
+        if (input && input.focus) { input.focus(); }
+        if (input && input.scrollIntoView) { input.scrollIntoView({ block: "center" }); }
+      });
+    }
     if (asymBtn) { asymBtn.addEventListener("click", runAsymmetry); }
     if (fnbpBtn) { fnbpBtn.addEventListener("click", runFnbp); }
     document.addEventListener("keydown", onKeydown);

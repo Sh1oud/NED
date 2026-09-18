@@ -2167,6 +2167,52 @@ FRONT_DESK_COPY: dict[str, dict[str, str]] = {
         "zh": "本输出是讽刺作品，不测量任何人的感情。",
         "en": "This output is satire. It does not measure anyone's feelings.",
     },
+    # PR-4R: the issuance stamp is a state word, so it follows the interface language like the
+    # rest of the flow. Short labels only - the sentence beside them carries the meaning.
+    "stamp_signed": {"zh": "已签", "en": "SIGNED"},
+    "stamp_unsigned": {"zh": "未签", "en": "NOT SIGNED"},
+    # a withheld conclusion with material on file says so on the stamp itself, so a
+    # reader never has to guess why nothing was signed
+    "stamp_material_pending": {
+        "zh": "未签\n材料在卷",
+        "en": "NOT SIGNED\nMATERIAL ON FILE",
+    },
+    "stamp_boundary": {"zh": "边界", "en": "BOUNDARY"},
+    # PR-4R: the one-line leads of stages 02-04, so an English interface does not run the
+    # four-stage flow in Chinese.
+    "material_lead": {
+        "zh": "本机构到底听到了什么。",
+        "en": "What this agency actually heard.",
+    },
+    "review_lead": {
+        "zh": "这些材料能不能支持你准备下的那个结论。",
+        "en": "Whether this file can carry the conclusion you came for.",
+    },
+    "issuance_lead": {
+        "zh": "本机构这次究竟签没签。",
+        "en": "Whether this agency signed anything at all.",
+    },
+    # PR-4R: one obvious step back to the counter after reading the outcome. It returns the
+    # reader to the intake and never clears what they submitted.
+    "submit_another": {"zh": "继续交材料", "en": "Submit another"},
+    # PR-4R: stage 02 when evidence was adjudicated without any separate material record. That
+    # is not the same as "nothing was recognised", and it must never read as "NED did not
+    # understand you"; the wording states the architecture instead.
+    "stage_material_independent_none": {
+        "zh": "本次无独立材料登记项",
+        "en": "no separate material item",
+    },
+    # PR-4R: the fact row of the material-only screen, worded exactly as the CLI
+    # screen words it, so the two surfaces cannot disagree.
+    "fact_material_only": {
+        "zh": "已登记材料 {n} 条，均不足以单独签发结论。",
+        "en": "Material on file: {n}. None of it can be signed on its own.",
+    },
+    "material_empty_independent_none": {
+        "zh": "本次没有独立材料登记项；审查意见直接来自输入中识别到的证据。",
+        "en": "No separate material item was filed; this opinion rests on the evidence "
+        "recognised in the input.",
+    },
 }
 
 

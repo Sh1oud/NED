@@ -1207,8 +1207,8 @@ textarea.input { min-height: 84px; }
   font-style: normal;
 }
 
-#analyze-results[data-situation="boundary"] #material-registry,
-#analyze-results[data-situation="timeline_boundary"] #material-registry,
+/* PR-4R: the register keeps its serious tone, but a material that is really on file is
+   never suppressed - the emblem alone is withheld under a stated boundary. */
 #analyze-results[data-situation="boundary"] #verdict-emoji,
 #analyze-results[data-situation="timeline_boundary"] #verdict-emoji {
   display: none;
@@ -1412,6 +1412,7 @@ textarea.input { min-height: 84px; }
 .issuance-stamp {
   flex: 0 0 auto;
   min-width: 54px;
+  white-space: pre-line;
   padding: 8px 10px;
   border: 2px solid var(--accent);
   border-radius: 6px;
@@ -1527,4 +1528,108 @@ textarea.input { min-height: 84px; }
   .issuance-stamp { transform: none; }
   .review-grid { grid-template-columns: 1fr; }
   #analyze-submit { width: 100%; min-height: 48px; }
+}
+
+/* ------------------------------------- front desk: first screen and counter action  */
+
+/* PR-4R. Geometry, spacing and action placement only: on a phone the counter and its submit
+   action belong on the first screen, and the primary action has to stay reachable while the
+   soft keyboard is open. Nothing here is fixed or sticky, so no control can ever cover the
+   input or the result. */
+
+@media (max-width: 720px) {
+  .btn-lang,
+  .btn-inline {
+    width: auto;
+  }
+  .issuance-strip .report-tools {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 520px) {
+  .app {
+    padding: 12px 10px 36px;
+  }
+  .hero {
+    padding: 12px 12px 10px;
+  }
+  .hero-meta {
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .badge {
+    padding: 3px 8px;
+    font-size: 0.68rem;
+  }
+  .btn-lang {
+    min-height: 40px;
+    padding: 6px 12px;
+  }
+  .hero-title {
+    margin: 0 0 6px;
+    gap: 6px 10px;
+    padding-bottom: 6px;
+  }
+  .hero-title-main {
+    font-size: 1.6rem;
+    letter-spacing: 0.1em;
+    padding: 1px 9px 3px;
+  }
+  .hero-title-sub {
+    font-size: 0.82rem;
+    letter-spacing: 0.1em;
+  }
+  #institution-purpose {
+    margin: 6px 0;
+    font-size: 0.86rem;
+  }
+  .hero-quote {
+    margin: 4px 0;
+    padding: 5px 9px;
+    font-size: 0.78rem;
+  }
+  .hero-tagline {
+    margin: 0 0 4px;
+    font-size: 0.78rem;
+  }
+  .hall-directory {
+    margin-top: 6px;
+    padding: 4px 4px 0;
+  }
+  .window-card {
+    padding: 11px 11px 12px;
+  }
+  .hall-directory .tab {
+    min-height: 44px;
+    padding: 6px 8px;
+    font-size: 0.72rem;
+  }
+  .window-card > .card-head {
+    padding-right: 0;
+  }
+  .card-head .label {
+    font-size: 0.94rem;
+  }
+  .hint {
+    font-size: 0.8rem;
+  }
+  .row-inline {
+    margin-top: 8px;
+    gap: 8px;
+  }
+  textarea.input {
+    min-height: 64px;
+  }
+  /* the counter action sits directly under the material field, so it stays reachable while
+     the soft keyboard is open. The engine is asked for nothing by this order. */
+  .row-inline .field-actions {
+    order: -1;
+  }
+  .field-actions {
+    gap: 8px;
+  }
+  #analyze-submit {
+    min-height: 48px;
+  }
 }

@@ -38,12 +38,22 @@ def test_the_register_covers_exactly_the_boundary_situations() -> None:
     assert covered == set(SERIOUS), covered
 
 
-def test_the_register_suppresses_the_registry_and_the_emblem() -> None:
-    for needle in ("#material-registry", "#verdict-emoji"):
-        covered = _situations_covered(
-            lambda head, body, needle=needle: needle in head and "display: none" in body
-        )
-        assert covered == set(SERIOUS), (needle, covered)
+def test_the_register_suppresses_the_emblem() -> None:
+    """PR-4R: the serious register keeps the emblem down, and nothing else."""
+
+    covered = _situations_covered(
+        lambda head, body: "#verdict-emoji" in head and "display: none" in body
+    )
+    assert covered == set(SERIOUS), covered
+
+
+def test_the_register_never_suppresses_a_registered_material() -> None:
+    """A material that is really on file is shown whatever the register says."""
+
+    hidden = _situations_covered(
+        lambda head, body: "#material-registry" in head and "display: none" in body
+    )
+    assert not hidden, hidden
 
 
 def test_ordinary_situations_never_enter_the_serious_register() -> None:
