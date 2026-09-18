@@ -146,6 +146,18 @@ LEGACY_DIGESTS = {
 #: PR-4R's state words, PR-6R2's labels, PR-6M2's casebook copy and PR-6M3's review copy.
 #: The set is frozen: adding or removing a key is a copy change and belongs in a batch that
 #: says so.
+#: Every key the desk block carries besides the four frozen labels: PR-3's stage chrome,
+#: PR-4R's state words, PR-6R2's labels, PR-6M2's casebook copy and PR-6M3's review copy.
+#: The set is frozen: adding or removing a key is a copy change and belongs in a batch that
+#: says so.
+#: Every key the desk block carries besides the four frozen labels: PR-3's stage chrome,
+#: PR-4R's state words, PR-6R2's labels, PR-6M2's casebook copy and PR-6M3's review copy.
+#: The set is frozen: adding or removing a key is a copy change and belongs in a batch that
+#: says so.
+#: Every key the desk block carries besides the four frozen labels: PR-3's stage chrome,
+#: PR-4R's state words, PR-6R2's labels, PR-6M2's casebook copy and PR-6M3's review copy.
+#: The set is frozen: adding or removing a key is a copy change and belongs in a batch that
+#: says so.
 DESK_KEYS = {
     "tab_intake",
     "tab_others",
@@ -210,6 +222,27 @@ DESK_KEYS = {
     "casebook_deleted",
     "casebook_delete_failed",
     "casebook_archive_failed",
+    "casebook_reread_action",
+    "casebook_reread_input",
+    "casebook_reread_running",
+    "casebook_reread_failed",
+    "casebook_reread_recorded_heading",
+    "casebook_reread_today_heading",
+    "casebook_reread_engine",
+    "casebook_reread_reading",
+    "casebook_reread_entries",
+    "casebook_reread_materials",
+    "casebook_reread_counts",
+    "casebook_reread_rule_id_only",
+    "casebook_reread_case_level",
+    "casebook_reread_fields",
+    "casebook_reread_class_same",
+    "casebook_reread_class_changed",
+    "casebook_reread_class_missing",
+    "casebook_reread_class_ambiguous",
+    "casebook_reread_class_new",
+    "casebook_reread_changed_note",
+    "casebook_reread_same_note",
     "casebook_review_action",
     "casebook_review_heading",
     "casebook_review_choose",

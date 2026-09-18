@@ -1750,6 +1750,7 @@
         pendingDelete: null,
         busy: false,
         reviewBusy: false,
+        rereadBusy: false,
         actionId: null,
         text: "",
         mode: "normal"
@@ -2011,10 +2012,158 @@
     block.appendChild(rows);
 
     var actions = el("div", "casebook-actions");
+    // PR-6M4C: the reread is explicit and per case file. Opening the panel never runs one: the
+    // reader asks, and only then does the server re-read the archived input.
+    var rereadBox = el("div", "casebook-reread");
+    var rereadId = "reread-" + txt(caseFile.case_file_id);
+    rereadBox.id = rereadId;
+    rereadBox.hidden = true;
+    var rereadButton = el("button", "btn btn-ghost btn-inline", casebookCopy("casebook_reread_action"));
+    rereadButton.type = "button";
+    rereadButton.id = "reread-action-" + txt(caseFile.case_file_id);
+    rereadButton.addEventListener("click", function () {
+      runReread(casebookId, txt(caseFile.case_file_id), rereadBox, rereadButton);
+    });
+    actions.appendChild(rereadButton);
     actions.appendChild(deleteControl("case_file", casebookId, txt(caseFile.case_file_id),
       "casebook_delete_case"));
     block.appendChild(actions);
+    block.appendChild(rereadBox);
     return block;
+  }
+
+  /* ------------------------------------------------------------- the reread */
+
+  // The request names a case file and nothing else: the server reads the archived input itself, so
+  // nobody can hand it today's words and call them history.
+  function rereadUrl(casebookId, caseFileId) {
+    return "/api/casebook/" + encodeURIComponent(casebookId) + "/files/"
+      + encodeURIComponent(caseFileId) + "/reread";
+  }
+
+  function runReread(casebookId, caseFileId, box, button) {
+    if (casebookState().rereadBusy === true) { return Promise.resolve(null); }
+    casebookState().rereadBusy = true;
+    if (button) { button.disabled = true; }
+    box.hidden = false;
+    clear(box);
+    box.appendChild(el("p", "note is-busy", casebookCopy("casebook_reread_running")));
+    return fetchJson(rereadUrl(casebookId, caseFileId), "POST")
+      .then(function (payload) {
+        renderReread(box, obj(payload));
+        return payload;
+      })
+      .catch(function (error) {
+        clear(box);
+        box.appendChild(el("p", "note is-error",
+          error && error.message ? error.message : casebookCopy("casebook_reread_failed")));
+        return null;
+      })
+      .then(function (value) {
+        casebookState().rereadBusy = false;
+        if (button) { button.disabled = false; }
+        return value;
+      });
+  }
+
+  var REREAD_CLASS_KEYS = {
+    same: "casebook_reread_class_same",
+    changed: "casebook_reread_class_changed",
+    missing: "casebook_reread_class_missing",
+    ambiguous: "casebook_reread_class_ambiguous",
+    new: "casebook_reread_class_new"
+  };
+
+  function rereadClassLabel(difference) {
+    var key = REREAD_CLASS_KEYS[String(difference)];
+    return casebookCopy(key) || String(difference);
+  }
+
+  function rereadReadingLine(view) {
+    return casebookFill(casebookCopy("casebook_reread_reading"), {
+      recognition: txt(view.recognition),
+      verdict: txt(view.verdict_code)
+    });
+  }
+
+  function rereadEngineLine(view) {
+    return casebookFill(casebookCopy("casebook_reread_engine"), {
+      engine: txt(view.engine),
+      version: txt(view.engine_version),
+      rules: txt(view.rules_fingerprint) || txt(view.rules_version)
+    });
+  }
+
+  function rereadColumn(headingKey, countKey, view, items) {
+    var column = el("div", "casebook-reread-column");
+    column.appendChild(el("p", "label", casebookCopy(headingKey)));
+    column.appendChild(el("p", "note", rereadEngineLine(view)));
+    column.appendChild(el("p", "note", rereadReadingLine(view)));
+    column.appendChild(el("p", "note", casebookFill(casebookCopy(countKey), {
+      count: items.length
+    })));
+    var list = el("ul", "casebook-reread-items");
+    items.forEach(function (raw) {
+      var item = obj(raw);
+      list.appendChild(el("li", "casebook-reread-item", txt(item.reported_content)));
+    });
+    column.appendChild(list);
+    return column;
+  }
+
+  function renderReread(box, result) {
+    clear(box);
+    var recorded = obj(result.as_recorded);
+    var today = obj(result.as_reread);
+    box.appendChild(el("p", "note casebook-reread-input",
+      casebookFill(casebookCopy("casebook_reread_input"), { text: txt(result.input_text) })));
+    var columns = el("div", "casebook-reread-columns");
+    columns.appendChild(rereadColumn("casebook_reread_recorded_heading",
+      "casebook_reread_entries", recorded, list(recorded.entries)));
+    columns.appendChild(rereadColumn("casebook_reread_today_heading",
+      "casebook_reread_materials", today, list(today.materials)));
+    box.appendChild(columns);
+
+    var counts = obj(result.counts);
+    box.appendChild(el("p", "note", casebookFill(casebookCopy("casebook_reread_counts"), {
+      same: int(counts.same), changed: int(counts.changed), missing: int(counts.missing),
+      ambiguous: int(counts.ambiguous), new: int(counts.new)
+    })));
+    if (int(counts.rule_id_only) > 0) {
+      box.appendChild(el("p", "note", casebookFill(casebookCopy("casebook_reread_rule_id_only"), {
+        count: int(counts.rule_id_only)
+      })));
+    }
+    var caseLevel = list(result.case_level_changed);
+    if (caseLevel.length) {
+      box.appendChild(el("p", "note", casebookFill(casebookCopy("casebook_reread_case_level"), {
+        fields: caseLevel.join(", ")
+      })));
+    }
+
+    var rows = el("ul", "casebook-reread-rows");
+    list(result.alignment).forEach(function (raw) {
+      var row = obj(raw);
+      var line = el("li", "casebook-reread-row");
+      line.setAttribute("data-difference", txt(row.difference));
+      line.appendChild(el("span", "casebook-reread-class", rereadClassLabel(row.difference)));
+      line.appendChild(el("span", "casebook-reread-recorded",
+        txt(row.recorded_slice) || txt(row.recorded_kind) || "-"));
+      line.appendChild(el("span", "casebook-reread-today",
+        txt(row.reread_slice) || txt(row.reread_kind) || "-"));
+      var fields = list(row.changed_fields);
+      line.appendChild(el("span", "casebook-reread-fields",
+        fields.length ? casebookFill(casebookCopy("casebook_reread_fields"), {
+          fields: fields.join(", ")
+        }) : (row.rule_id_changed === true ? casebookCopy("casebook_reread_class_same") : "")));
+      rows.appendChild(line);
+    });
+    box.appendChild(rows);
+    box.appendChild(el("p", "note casebook-reread-note",
+      casebookCopy(result.identical === true
+        ? "casebook_reread_same_note"
+        : "casebook_reread_changed_note")));
+    return box;
   }
 
   // Item 6 of the batch: a delete says what it will remove, in two steps, with no modal dialog.

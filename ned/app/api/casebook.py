@@ -18,10 +18,16 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ned.app.api.routes import get_analyzer
-from ned.app.api.store_access import open_store
+from ned.app.api.store_access import open_store, open_store_read_only_for_casebook
 from ned.app.config import MAX_INPUT_CHARS
 from ned.app.core.analyzer import NedAnalyzer
 from ned.app.core.models import Mode
+from ned.app.review import (
+    RecordedCaseFile,
+    RecordedEntry,
+    RereadResult,
+    reread_case_file,
+)
 from ned.app.store import (
     CasebookConfigError,
     CasebookCorruptError,
@@ -35,6 +41,7 @@ from ned.app.store import (
     SchemaTooNewError,
     casebook_enabled,
     casebook_path,
+    rules_fingerprint,
 )
 from ned.app.store.snapshot import build_case_file_snapshot
 
@@ -323,6 +330,72 @@ def delete_case_file(casebook_id: str, case_file_id: str) -> DeleteResult:
             identifier=outcome.identifier,
             detail=outcome.detail,
         )
+
+
+@router.post(
+    "/{casebook_id}/files/{case_file_id}/reread",
+    response_model=RereadResult,
+    summary="Re-read one archived case with today's rules (read-only)",
+)
+def reread(casebook_id: str, case_file_id: str, request: Request) -> RereadResult:
+    """Re-run today's engine on the *stored* input of one archived case file.
+
+    Three rules are structural rather than promises:
+
+    * the request carries no text. The server reads the archived ``input_text`` itself, so a
+      client cannot pass today's words off as history;
+    * the store is opened **read-only**, so even a bug in this function cannot write;
+    * nothing is stored. The reread is ephemeral: it is computed, returned, and forgotten.
+    """
+
+    analyzer: NedAnalyzer = get_analyzer(request)
+    with open_store_read_only_for_casebook(casebook_id) as store:
+        try:
+            casebook = store.get_casebook(casebook_id)
+            case_file = store.find_case_file(casebook_id, case_file_id)
+        except CasebookNotFoundError as error:
+            raise _not_found(error) from error
+        entries = tuple(
+            RecordedEntry(
+                entry_id=entry.entry_id,
+                entry_kind=entry.entry_kind,
+                material_index=entry.material_index,
+                material_kind=entry.material_kind,
+                reported_content=entry.reported_content,
+                start_offset=int(entry.start_offset if entry.start_offset is not None else -1),
+                end_offset=int(entry.end_offset if entry.end_offset is not None else -1),
+                polarity=entry.polarity,
+                epistemic_status=entry.epistemic_status,
+                proposition_owner=entry.proposition_owner,
+                reporter_role=entry.reporter_role,
+                target=entry.target,
+                origin_rule_id=entry.origin_rule_id,
+            )
+            for entry in store.list_entries(case_file_id=case_file_id)
+        )
+        label = casebook.label
+        recorded = RecordedCaseFile(
+            case_file_id=case_file.case_file_id,
+            input_text=case_file.input_text,
+            generated_at=case_file.generated_at,
+            engine_name=case_file.engine_name,
+            engine_version=case_file.engine_version,
+            rules_version=case_file.rules_version,
+            rules_fingerprint=case_file.rules_fingerprint,
+            recognition=case_file.recognition,
+            verdict_code=case_file.verdict_code,
+            verdict_text=case_file.verdict_text,
+            signal_type=case_file.signal_type,
+        )
+    return reread_case_file(
+        casebook_id=casebook_id,
+        casebook_label=label,
+        case_file=recorded,
+        entries=entries,
+        engine=analyzer,
+        rules_version=str(getattr(analyzer.book, "version", "") or ""),
+        rules_fingerprint=rules_fingerprint(getattr(analyzer.book, "source_dir", None)),
+    )
 
 
 @router.delete(

@@ -2205,6 +2205,52 @@ FRONT_DESK_COPY: dict[str, dict[str, str]] = {
     # browser storage) and would now be wrong in a second way.
     # PR-6M3: the longitudinal review. It is a second, parallel reading, so the copy says both
     # what it is and what it is not - and the opinion lines never carry a number.
+    # PR-6M4C: the reread. It is a comparison, never a rewrite, and the copy has to say so.
+    "casebook_reread_action": {"zh": "用当前版本重读", "en": "Re-read with the current version"},
+    "casebook_reread_input": {"zh": "归档原文：{text}", "en": "archived input: {text}"},
+    "casebook_reread_running": {"zh": "正在重读…", "en": "Re-reading…"},
+    "casebook_reread_failed": {"zh": "重读失败。", "en": "The reread failed."},
+    "casebook_reread_recorded_heading": {"zh": "当时记录", "en": "As recorded"},
+    "casebook_reread_today_heading": {"zh": "当前重读", "en": "As read today"},
+    "casebook_reread_engine": {
+        "zh": "{engine} {version} · 规则 {rules}",
+        "en": "{engine} {version} · rules {rules}",
+    },
+    "casebook_reread_reading": {
+        "zh": "读数 {recognition} / {verdict}",
+        "en": "reading {recognition} / {verdict}",
+    },
+    "casebook_reread_entries": {"zh": "当时材料 {count} 条", "en": "{count} recorded entr(ies)"},
+    "casebook_reread_materials": {"zh": "当前材料 {count} 条", "en": "{count} material(s) today"},
+    "casebook_reread_counts": {
+        "zh": "一致 {same} 项 · 变化 {changed} 项 · 今天读不到 {missing} 项 · "
+        "无法唯一对齐 {ambiguous} 项 · 今天新增 {new} 项",
+        "en": "same {same} · changed {changed} · missing today {missing} · "
+        "ambiguous {ambiguous} · new today {new}",
+    },
+    "casebook_reread_rule_id_only": {
+        "zh": "其中 {count} 项仅内部规则编号变化，读数未变。",
+        "en": "{count} of them differ only by an internal rule id; the reading did not change.",
+    },
+    "casebook_reread_case_level": {
+        "zh": "案级读数变化：{fields}",
+        "en": "Case-level reading changed: {fields}",
+    },
+    "casebook_reread_fields": {"zh": "字段：{fields}", "en": "fields: {fields}"},
+    "casebook_reread_class_same": {"zh": "一致", "en": "same"},
+    "casebook_reread_class_changed": {"zh": "变化", "en": "changed"},
+    "casebook_reread_class_missing": {"zh": "今天读不到", "en": "missing today"},
+    "casebook_reread_class_ambiguous": {"zh": "无法唯一对齐", "en": "ambiguous"},
+    "casebook_reread_class_new": {"zh": "今天新增", "en": "new today"},
+    "casebook_reread_changed_note": {
+        "zh": "本版规则与归档当时不同；历史记录未被修改。",
+        "en": "This version's rules differ from the ones used at archive time; "
+        "the historical record was not modified.",
+    },
+    "casebook_reread_same_note": {
+        "zh": "本版规则与归档当时相同，未发现差异。",
+        "en": "This version's rules match the archive's; nothing differed.",
+    },
     "casebook_review_action": {"zh": "与卷宗一并审查", "en": "Review with a casebook"},
     "casebook_review_heading": {"zh": "卷宗联合审查", "en": "Casebook review"},
     "casebook_review_choose": {"zh": "与哪个卷宗一并审查", "en": "Review against which casebook"},

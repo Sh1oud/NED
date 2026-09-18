@@ -23,6 +23,8 @@ from ned.app.store import (
     CasebookNotFoundError,
     CasebookStore,
     SchemaTooNewError,
+    casebook_enabled,
+    casebook_path,
     open_casebook,
 )
 
@@ -54,6 +56,57 @@ def open_store() -> Iterator[CasebookStore]:
 
 
 @contextmanager
+def open_store_read_only() -> Iterator[CasebookStore]:
+    """Open the casebook read-only. A reread is a read, and this makes that structural.
+
+    ``CasebookStore.open_read_only`` never migrates, never writes and refuses every write method,
+    so the reread path cannot touch the archive even if a later change tried to. A file that does
+    not exist yet is a 404 rather than a reason to create one.
+    """
+
+    try:
+        enabled = casebook_enabled()
+        path = casebook_path() if enabled else None
+    except CasebookConfigError as error:
+        raise HTTPException(status_code=500, detail=str(error)) from error
+    if not enabled or path is None:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "the casebook is switched off on this machine (NED_CASEBOOK=off); "
+                "nothing has been stored, and nothing can be read back"
+            ),
+        )
+    if not path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="there is no casebook file on this machine yet",
+        )
+    try:
+        store = CasebookStore.open_read_only(path)
+    except CasebookNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except (CasebookCorruptError, CasebookBusyError) as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    try:
+        yield store
+    finally:
+        store.close()
+
+
+@contextmanager
+def open_store_read_only_for_casebook(casebook_id: str) -> Iterator[CasebookStore]:
+    """Read-only, and the casebook must be on file."""
+
+    with open_store_read_only() as store:
+        try:
+            store.get_casebook(casebook_id)
+        except CasebookNotFoundError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        yield store
+
+
+@contextmanager
 def open_store_for_casebook(casebook_id: str) -> Iterator[CasebookStore]:
     """Open the store and prove the casebook exists, with every store failure mapped to HTTP.
 
@@ -70,4 +123,9 @@ def open_store_for_casebook(casebook_id: str) -> Iterator[CasebookStore]:
         yield store
 
 
-__all__ = ["open_store", "open_store_for_casebook"]
+__all__ = [
+    "open_store",
+    "open_store_for_casebook",
+    "open_store_read_only",
+    "open_store_read_only_for_casebook",
+]

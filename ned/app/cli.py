@@ -33,7 +33,13 @@ from ned.app.core.models import (
     Mode,
     Verdict,
 )
-from ned.app.review import CasebookReview
+from ned.app.review import (
+    CasebookReview,
+    RecordedCaseFile,
+    RecordedEntry,
+    RereadResult,
+    reread_case_file,
+)
 from ned.app.store import (
     CasebookConfigError,
     CasebookDisabledError,
@@ -48,6 +54,7 @@ from ned.app.store import (
     casebook_enabled,
     casebook_path,
     open_casebook,
+    rules_fingerprint,
 )
 from ned.app.ui.personality import (
     ASPECT_CARD_SITUATIONS,
@@ -859,6 +866,73 @@ def examine_occurred(occurred: str | None, precision: str) -> OccurredTime:
     )
 
 
+REREAD_LABELS: dict[str, str] = {
+    "same": "same",
+    "changed": "changed",
+    "missing": "missing today",
+    "ambiguous": "ambiguous (not guessed)",
+    "new": "new today",
+}
+
+
+def render_reread(result: RereadResult, out: Console) -> None:
+    """Print the two readings side by side: what was recorded, and what today says."""
+
+    out.print()
+    out.print(
+        Text(
+            f"Reread - {result.casebook_label} / {result.case_file_id}",
+            style="bold white",
+        )
+    )
+    out.print(Text("This is a reread, not a rewrite: the archive below is unchanged.", style="dim"))
+    out.print(Text(f"input      {result.input_text}", style="dim"))
+    recorded = result.as_recorded
+    reread = result.as_reread
+    out.print(
+        Text(
+            f"recorded   {recorded.engine} {recorded.engine_version} · "
+            f"rules {recorded.rules_version} ({recorded.rules_fingerprint})"
+        )
+    )
+    out.print(
+        Text(f"           {result.as_recorded.recognition} / {result.as_recorded.verdict_code}")
+    )
+    out.print(
+        Text(
+            f"today      {reread.engine} {reread.engine_version} · "
+            f"rules {reread.rules_version} ({reread.rules_fingerprint})"
+        )
+    )
+    out.print(Text(f"           {result.as_reread.recognition} / {result.as_reread.verdict_code}"))
+    table = Table(box=None, show_header=True, header_style="bold", padding=(0, 1))
+    table.add_column("class")
+    table.add_column("recorded")
+    table.add_column("today")
+    table.add_column("fields")
+    for row in result.alignment:
+        table.add_row(
+            REREAD_LABELS.get(str(row.difference), str(row.difference)),
+            row.recorded_slice or row.recorded_kind or "-",
+            row.reread_slice or row.reread_kind or "-",
+            ", ".join(row.changed_fields) or ("rule id" if row.rule_id_changed else "-"),
+        )
+    out.print(table)
+    counts = result.counts
+    out.print(
+        Text(
+            "counts: "
+            f"same {counts.same} · changed {counts.changed} · missing {counts.missing} · "
+            f"ambiguous {counts.ambiguous} · new {counts.new} · rule-id only {counts.rule_id_only}",
+            style="dim",
+        )
+    )
+    if result.case_level_changed:
+        out.print(Text("case level: " + ", ".join(result.case_level_changed), style="bold"))
+    out.print(Text(f"note: {result.note_code}", style="dim"))
+    out.print()
+
+
 def render_casebook_review(review: CasebookReview, out: Console) -> None:
     """The casebook opinion, printed beside the report: relations and counts, never a score."""
 
@@ -1389,6 +1463,71 @@ def casebook_archive(
         f"({outcome.entry_count} entr(ies)) · {result.recognition} / {result.verdict.code}"
     )
     out.print()
+
+
+@casebook_app.command("reread")
+def casebook_reread(
+    casebook: Annotated[str, typer.Option("--casebook", help="Casebook id or label.")],
+    case_file: Annotated[
+        str, typer.Option("--case-file", help="The archived case file to re-read.")
+    ],
+    as_json: Annotated[bool, typer.Option("--json", help="Emit the raw JSON result.")] = False,
+) -> None:
+    """Re-read one archived case with the current rules. Read-only: nothing is stored."""
+
+    out = console()
+    analyzer = get_analyzer()
+    store = _open_store()
+    with store:
+        casebook_id = _resolve_casebook(store, casebook)
+        try:
+            record = store.find_case_file(casebook_id, case_file)
+            label = store.get_casebook(casebook_id).label
+            entries = tuple(
+                RecordedEntry(
+                    entry_id=entry.entry_id,
+                    entry_kind=entry.entry_kind,
+                    material_index=entry.material_index,
+                    material_kind=entry.material_kind,
+                    reported_content=entry.reported_content,
+                    start_offset=int(entry.start_offset if entry.start_offset is not None else -1),
+                    end_offset=int(entry.end_offset if entry.end_offset is not None else -1),
+                    polarity=entry.polarity,
+                    epistemic_status=entry.epistemic_status,
+                    proposition_owner=entry.proposition_owner,
+                    reporter_role=entry.reporter_role,
+                    target=entry.target,
+                    origin_rule_id=entry.origin_rule_id,
+                )
+                for entry in store.list_entries(case_file_id=case_file)
+            )
+        except CasebookNotFoundError as error:
+            raise _casebook_error(error) from error
+        recorded = RecordedCaseFile(
+            case_file_id=record.case_file_id,
+            input_text=record.input_text,
+            generated_at=record.generated_at,
+            engine_name=record.engine_name,
+            engine_version=record.engine_version,
+            rules_version=record.rules_version,
+            rules_fingerprint=record.rules_fingerprint,
+            recognition=record.recognition,
+            verdict_code=record.verdict_code,
+            verdict_text=record.verdict_text,
+            signal_type=record.signal_type,
+        )
+    result = reread_case_file(
+        casebook_id=casebook_id,
+        casebook_label=label,
+        case_file=recorded,
+        entries=entries,
+        engine=analyzer,
+        rules_version=str(getattr(analyzer.book, "version", "") or ""),
+        rules_fingerprint=rules_fingerprint(getattr(analyzer.book, "source_dir", None)),
+    )
+    if emit(result, as_json):
+        return
+    render_reread(result, out)
 
 
 @casebook_app.command("delete")
