@@ -172,6 +172,19 @@ def test_the_review_block_renders_from_the_payload_it_came_with() -> None:
     assert 'mode.setAttribute("data-run-mode", "single")' in module
 
 
+def test_a_hidden_governing_line_is_emptied() -> None:
+    """No governing boundary means no text: a hidden line must not keep the last one."""
+
+    module = casebook_module()
+    line = module[module.index("function renderGoverningLine") :]
+    line = line[: line.index("function fillReviewPicker")]
+    assert "node.hidden = true;" in line
+    assert 'node.textContent = "";' in line
+    hide = line.index("node.hidden = true;")
+    empty = line.index('node.textContent = "";')
+    assert hide < empty
+
+
 def test_the_review_block_carries_no_score_vocabulary() -> None:
     module = casebook_module()
     review = module[module.index("function renderCasebookReviewBlock") :]

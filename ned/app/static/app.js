@@ -2244,6 +2244,13 @@
     casebookState().mode = txt(obj(state.analyze).mode) || "normal";
     setHidden("casebook-filebox", false);
     setStatus("casebook-file-status", "", null);
+    // Every filing starts from nothing the reader has not repeated: the date of the last case is
+    // not this case's date, and a name typed for one casebook is not a name for the next. Nothing
+    // here writes a date - it only makes sure an old one cannot be inherited by accident.
+    var dateField = $("casebook-occurred");
+    if (dateField) { dateField.value = ""; }
+    var newNameField = $("casebook-file-new");
+    if (newNameField) { newNameField.value = ""; }
     // A hint, from the server, about the wording of the input. It never fills the date field:
     // the reader either leaves it empty or types a date of their own.
     showRelativeHint(casebookState().text);
@@ -2341,15 +2348,19 @@
         var key = data.created === true ? "casebook_filed" : "casebook_filed_again";
         var message = casebookCopy(key);
         var cues = list(data.relative_time_cues);
+        // Read the stored date raw: the display helper turns "nothing" into a dash, which is
+        // truthy, and the page would then claim the reader supplied a date they did not.
+        var storedAt = data.occurred_at;
         if (data.created === true && txt(data.occurred_source) === "input_relative") {
           message = casebookFill(casebookCopy("casebook_relative_filed"), {
             label: chosen.label,
             cues: cues.join("、")
           });
-        } else if (data.created === true && txt(data.occurred_at)) {
+        } else if (data.created === true && storedAt !== null && storedAt !== undefined
+                   && String(storedAt) !== "") {
           message = casebookFill(casebookCopy("casebook_dated_filed"), {
             label: chosen.label,
-            when: txt(data.occurred_at)
+            when: String(storedAt)
           });
         } else if (message.indexOf("{label}") >= 0) {
           message = casebookFill(message, { label: chosen.label });
@@ -2488,7 +2499,10 @@
     var node = $("casebook-review-governing");
     if (!node) { return; }
     if (!governing || typeof governing !== "object") {
+      // Hide it *and* empty it: a hidden line that still carries the last boundary would put a
+      // claim in the document that this review did not make.
       node.hidden = true;
+      node.textContent = "";
       return;
     }
     var info = obj(governing);

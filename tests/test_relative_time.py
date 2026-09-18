@@ -334,10 +334,25 @@ def test_the_client_asks_for_the_hint_once_and_never_fills_the_date() -> None:
         )
     ]
     assert "function showRelativeHint" in module
-    # the only writer of the date control is the reader: no code assigns a value to it
+    # the only writer of the date control is the reader - and the chooser empties it on open, so a
+    # date confirmed for one case cannot be inherited by the next
     assert "casebook-occurred').value =" not in SCRIPT
     assert 'casebook-occurred").value =' not in SCRIPT
     assert 'setValue("casebook-occurred"' not in SCRIPT
+    module = SCRIPT[
+        SCRIPT.index(
+            "/* -------------------------------------------------------------- casebook */"
+        ) :
+    ]
+    module = module[
+        : module.index(
+            "/* ------------------------------------------------------------- hall copy */"
+        )
+    ]
+    # read once when filing, cleared once when the chooser opens
+    assert module.count('$("casebook-occurred")') == 2
+    assert 'dateField.value = ""' in module
+    assert 'newNameField.value = ""' in module
 
 
 def test_the_hint_is_rendered_from_the_catalogue() -> None:
