@@ -14,10 +14,14 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 
+from ned.app.api.review import (
+    AnalyzeRequestWithCasebook,
+    AnalyzeResponse,
+    build_review,
+)
+from ned.app.api.store_access import open_store_for_casebook
 from ned.app.core.analyzer import NedAnalyzer
 from ned.app.core.models import (
-    AnalysisResult,
-    AnalyzeRequest,
     AsymmetryRequest,
     AsymmetryResult,
     ExampleCase,
@@ -141,11 +145,28 @@ def easter_eggs(request: Request) -> dict[str, Any]:
     }
 
 
-@router.post("/analyze", response_model=AnalysisResult, summary="Analyze one message or event")
-def analyze(payload: AnalyzeRequest, request: Request) -> AnalysisResult:
-    """Run the full PED / NEA / Semantic Escape pipeline on one input."""
+@router.post("/analyze", response_model=AnalyzeResponse, summary="Analyze one message or event")
+def analyze(payload: AnalyzeRequestWithCasebook, request: Request) -> AnalyzeResponse:
+    """Run the full PED / NEA / Semantic Escape pipeline on one input.
 
-    return get_analyzer(request).analyze(payload)
+    Unchanged by default: with no ``casebook`` in the request this returns exactly the report it
+    always returned, and no database is opened. When the reader explicitly asks for one, the
+    analysis and a **parallel** ``casebook_review`` are returned together - the review never
+    enters the verdict, the evidence, the materials, the breakdown, the recognition state or the
+    capacity figures, all of which stay the engine's own output for this input.
+    """
+
+    result = get_analyzer(request).analyze(payload)
+    if payload.casebook is None:
+        return AnalyzeResponse(**result.model_dump())
+    with open_store_for_casebook(payload.casebook.casebook_id) as store:
+        review = build_review(
+            store,
+            casebook_id=payload.casebook.casebook_id,
+            result=result,
+            occurred=payload.casebook.occurred,
+        )
+    return AnalyzeResponse(**result.model_dump(), casebook_review=review)
 
 
 @router.post("/asymmetry", response_model=AsymmetryResult, summary="Compare two evidence standards")

@@ -21,6 +21,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
+from ned.app.api.review import build_review
 from ned.app.core.analyzer import NedAnalyzer
 from ned.app.core.models import (
     AnalysisResult,
@@ -32,6 +33,7 @@ from ned.app.core.models import (
     Mode,
     Verdict,
 )
+from ned.app.review import CasebookReview
 from ned.app.store import (
     CasebookConfigError,
     CasebookDisabledError,
@@ -821,6 +823,88 @@ def render_fnbp(result: FnbpResult, out: Console) -> None:
     )
 
 
+RELATION_LABELS: dict[str, str] = {
+    "supports": "supports",
+    "conflicts": "conflicts",
+    "superseded": "superseded by a later boundary",
+    "unrelated": "unrelated",
+    "not_comparable": "not comparable",
+    "insufficient": "insufficient record",
+}
+
+SUMMARY_LINES: dict[str, str] = {
+    "no_history": "the casebook holds nothing to compare with this input yet",
+    "nothing_comparable": "nothing in the casebook could be compared with this input",
+    "current_case_has_no_direction": "this input has no direction of its own to compare against",
+    "boundary_governs": "an earlier record does not overturn a later explicit boundary",
+    "order_unknown": "the casebook's order could not be established",
+    "mixed_directions": "the casebook holds records that read both ways about this input",
+    "only_supports": "the casebook reads the same way, which still proves nothing on its own",
+    "only_conflicts": "the casebook reads against this input",
+}
+
+
+def examine_occurred(occurred: str | None, precision: str) -> OccurredTime:
+    """The reader's own event time for the input being analysed, validated by the store's model."""
+
+    allowed = ("year", "month", "day", "hour", "minute", "second", "unknown")
+    if precision not in allowed:
+        raise ValueError(
+            "--precision must be one of {}, not {!r}".format(", ".join(allowed), precision)
+        )
+    return OccurredTime(
+        occurred_at=occurred,
+        occurred_precision=cast(OccurredPrecision, precision if occurred else "unknown"),
+        occurred_source="user" if occurred else "unknown",
+    )
+
+
+def render_casebook_review(review: CasebookReview, out: Console) -> None:
+    """The casebook opinion, printed beside the report: relations and counts, never a score."""
+
+    out.print()
+    out.print(
+        Text(
+            f"Casebook review - {review.casebook_label} "
+            f"({review.case_files_read} case file(s), {review.entries_read} entr(ies))",
+            style="bold white",
+        )
+    )
+    out.print(
+        Text(
+            "This is a parallel reading, not a new verdict: the report above is unchanged.",
+            style="dim",
+        )
+    )
+    table = Table(box=None, show_header=True, header_style="bold", padding=(0, 1))
+    table.add_column("date")
+    table.add_column("relation")
+    table.add_column("record")
+    for item in review.items:
+        label = RELATION_LABELS.get(str(item.relation), str(item.relation))
+        if item.governing:
+            label = "governing boundary"
+        when = item.occurred_at if item.occurred_precision != "unknown" else None
+        table.add_row(when or "-", label, item.reported_content)
+    out.print(table)
+    counts = review.counts
+    out.print(
+        Text(
+            "counts: "
+            f"supports {counts.supports} · conflicts {counts.conflicts} · "
+            f"superseded {counts.superseded} · not comparable {counts.not_comparable} · "
+            f"unrelated {counts.unrelated} · insufficient {counts.insufficient}",
+            style="dim",
+        )
+    )
+    opinion = SUMMARY_LINES.get(str(review.summary_code), str(review.summary_code))
+    out.print(Text(f"casebook opinion: {opinion}", style="bold"))
+    if review.governing is not None:
+        when = review.governing.occurred_at or "no declared date"
+        out.print(Text(f"governing: {when} · {review.governing.reported_content}", style="dim"))
+    out.print()
+
+
 @app.command()
 def analyze(
     text: Annotated[str, typer.Argument(help="A message, or a description of what happened.")],
@@ -834,18 +918,58 @@ def analyze(
     top_k: Annotated[
         int | None, typer.Option("--top-k", help="Limit the number of alternative explanations.")
     ] = None,
+    with_casebook: Annotated[
+        str | None,
+        typer.Option(
+            "--with-casebook",
+            help="Review this input against one casebook (id or label). Off by default.",
+        ),
+    ] = None,
+    occurred: Annotated[
+        str | None,
+        typer.Option("--occurred", help="When *this* input happened, for the review's ordering."),
+    ] = None,
+    precision: Annotated[
+        str, typer.Option("--precision", help="year/month/day/hour/minute/second")
+    ] = "day",
     as_json: Annotated[bool, typer.Option("--json", help="Emit the raw JSON report.")] = False,
 ) -> None:
-    """Analyze one message or event description."""
+    """Analyze one message or event description.
+
+    The review is explicit: without ``--with-casebook`` nothing is read, and the report is exactly
+    the report NED has always printed.
+    """
 
     out = console()
     validated = _validate_mode(mode, out)
     if validated is None:
         raise typer.Exit(code=2)
     result = get_analyzer().analyze_text(text, mode=validated, history=history or [], top_k=top_k)
-    if emit(result, as_json):
+    if with_casebook is None:
+        if occurred is not None or precision != "day":
+            raise _casebook_error(
+                CasebookConfigError(
+                    "--occurred/--precision only mean something with --with-casebook"
+                )
+            )
+        if emit(result, as_json):
+            return
+        render_analysis(result, out)
+        return
+    try:
+        occurred_time = examine_occurred(occurred, precision)
+    except ValueError as error:
+        raise _casebook_error(CasebookConfigError(str(error))) from error
+    store = _open_store()
+    with store:
+        casebook_id = _resolve_casebook(store, with_casebook)
+        review = build_review(store, casebook_id=casebook_id, result=result, occurred=occurred_time)
+    payload = result.model_dump(mode="json")
+    payload["casebook_review"] = review.model_dump(mode="json")
+    if emit(payload, as_json):
         return
     render_analysis(result, out)
+    render_casebook_review(review, out)
 
 
 @app.command()

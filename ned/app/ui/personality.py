@@ -2203,6 +2203,99 @@ FRONT_DESK_COPY: dict[str, dict[str, str]] = {
     # PR-6M2: the footer has to describe what actually happens. The old sentence said input stays
     # "in this browser session", which was never quite true (the interface keeps its mode in
     # browser storage) and would now be wrong in a second way.
+    # PR-6M3: the longitudinal review. It is a second, parallel reading, so the copy says both
+    # what it is and what it is not - and the opinion lines never carry a number.
+    "casebook_review_action": {"zh": "与卷宗一并审查", "en": "Review with a casebook"},
+    "casebook_review_heading": {"zh": "卷宗联合审查", "en": "Casebook review"},
+    "casebook_review_choose": {"zh": "与哪个卷宗一并审查", "en": "Review against which casebook"},
+    "casebook_review_occurred": {
+        "zh": "本案发生时间（可选）",
+        "en": "When this case happened (optional)",
+    },
+    "casebook_review_confirm": {"zh": "开始联合审查", "en": "Run the joint review"},
+    "casebook_review_cancel": {"zh": "取消", "en": "Cancel"},
+    "casebook_review_pick": {"zh": "请选择一个卷宗。", "en": "Choose a casebook."},
+    "casebook_review_none": {
+        "zh": "本机还没有可调取的卷宗。",
+        "en": "There is no casebook to review against yet.",
+    },
+    "casebook_review_running": {"zh": "正在调取历史材料…", "en": "Reading the casebook…"},
+    "casebook_review_failed": {"zh": "联合审查失败。", "en": "The casebook review failed."},
+    "casebook_review_empty": {
+        "zh": "本次没有调取到可比较的历史材料。",
+        "en": "No comparable history was read for this input.",
+    },
+    "casebook_review_mode_single": {"zh": "本次：单案审查", "en": "This run: single case"},
+    "casebook_review_mode_joint": {
+        "zh": "本次：调卷联合审查（{label}）",
+        "en": "This run: joint review ({label})",
+    },
+    "casebook_review_read": {
+        "zh": "调取历史材料 {files} 个案卷 · {entries} 条材料",
+        "en": "Read {files} case file(s) · {entries} entr(ies)",
+    },
+    "casebook_review_counts": {
+        "zh": "其中 {supports} 项与本案方向一致，{conflicts} 项与本案冲突，"
+        "{superseded} 项已被更晚的明确边界覆盖，{not_comparable} 项无法比较",
+        "en": "{supports} read the same way as this case, {conflicts} against it, "
+        "{superseded} overtaken by a later explicit boundary, {not_comparable} not comparable",
+    },
+    "casebook_review_governing": {"zh": "管辖边界", "en": "governing boundary"},
+    "casebook_review_relation_supports": {"zh": "与本案方向一致", "en": "supports"},
+    "casebook_review_relation_conflicts": {"zh": "与本案冲突", "en": "conflicts"},
+    "casebook_review_relation_superseded": {
+        "zh": "已被更晚的边界覆盖",
+        "en": "superseded by a later boundary",
+    },
+    "casebook_review_relation_unrelated": {"zh": "与本案无关", "en": "unrelated"},
+    "casebook_review_relation_not_comparable": {"zh": "无法比较", "en": "not comparable"},
+    "casebook_review_relation_insufficient": {"zh": "记录不足", "en": "insufficient record"},
+    "casebook_review_undated": {"zh": "时间未知", "en": "no declared time"},
+    "casebook_review_governing_line": {
+        "zh": "管辖边界：{when}",
+        "en": "Governing boundary: {when}",
+    },
+    "casebook_review_governing_current": {"zh": "本案", "en": "this case"},
+    "casebook_review_note": {
+        "zh": "这是卷宗意见，不是新的最终裁决。",
+        "en": "This is a casebook opinion, not a new verdict.",
+    },
+    "casebook_opinion_no_history": {
+        "zh": "卷宗意见：这个卷宗还没有可与本案比较的记录。",
+        "en": "Casebook opinion: the casebook holds nothing to compare with this input yet.",
+    },
+    "casebook_opinion_nothing_comparable": {
+        "zh": "卷宗意见：卷宗里没有可与本案比较的材料。",
+        "en": "Casebook opinion: nothing in the casebook could be compared with this input.",
+    },
+    "casebook_opinion_current_case_has_no_direction": {
+        "zh": "卷宗意见：本案没有可比较的方向。",
+        "en": "Casebook opinion: this input has no direction of its own to compare against.",
+    },
+    "casebook_opinion_boundary_governs": {
+        "zh": "卷宗意见：较早的正向互动不能推翻后来明确表达的边界。",
+        "en": "Casebook opinion: an earlier positive reading does not overturn a later "
+        "explicit boundary.",
+    },
+    "casebook_opinion_order_unknown": {
+        "zh": "卷宗意见：先后顺序无法确定，本机构不猜。",
+        "en": "Casebook opinion: the order could not be established, and this agency does not "
+        "guess.",
+    },
+    "casebook_opinion_mixed_directions": {
+        "zh": "卷宗意见：卷宗里既有与本案同向的材料，也有反向的材料；两者不做平均。",
+        "en": "Casebook opinion: the casebook holds records that read both ways about this "
+        "input; they are not averaged.",
+    },
+    "casebook_opinion_only_supports": {
+        "zh": "卷宗意见：卷宗与本案同向，但这本身不证明恋爱。",
+        "en": "Casebook opinion: the casebook reads the same way, which still proves nothing "
+        "on its own.",
+    },
+    "casebook_opinion_only_conflicts": {
+        "zh": "卷宗意见：卷宗里与本案有关的材料与本案方向相反。",
+        "en": "Casebook opinion: the records that bear on this input read against it.",
+    },
     "privacy_footer": {
         "zh": "本机运行：输入只在浏览器内存与本机服务器之间传递，分析不写入任何数据库。"
         "只有你主动「归入卷宗」的内容才会写入本机卷宗文件；分析模式偏好保存在浏览器本地存储，"

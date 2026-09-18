@@ -117,8 +117,10 @@
                   <span class="meta-item">mode <b class="mono" id="result-mode">—</b></span>
                   <span class="meta-item">lang <b class="mono" id="result-language">—</b></span>
                   <span class="meta-item">signal <b class="mono" id="result-signal-type">—</b></span>
+                  <span class="meta-item" id="result-run-mode">单案审查</span>
                 </div>
                 <button type="button" class="btn btn-ghost btn-inline" id="file-to-casebook" hidden>归入卷宗</button>
+                <button type="button" class="btn btn-ghost btn-inline" id="review-with-casebook" hidden>与卷宗一并审查</button>
                 <button type="button" class="btn btn-ghost btn-inline" id="submit-another">继续交材料</button>
               </div>
               <div class="casebook-filebox" id="casebook-filebox" hidden>
@@ -134,6 +136,17 @@
                 </div>
                 <p class="status" id="casebook-file-status" role="status" aria-live="polite"></p>
                 <button type="button" class="btn btn-ghost" id="copy-json">复制 JSON</button>
+              </div>
+              <div class="casebook-filebox" id="casebook-reviewbox" hidden>
+                <label class="field-label" id="casebook-review-choose" for="casebook-review-picker">与哪个卷宗一并审查</label>
+                <select class="input select" id="casebook-review-picker"></select>
+                <label class="field-label" id="casebook-review-occurred-label" for="casebook-review-occurred">本案发生时间（可选）</label>
+                <input class="input" id="casebook-review-occurred" type="date" />
+                <div class="field-actions">
+                  <button type="button" class="btn btn-primary" id="casebook-review-confirm">开始联合审查</button>
+                  <button type="button" class="btn btn-ghost" id="casebook-review-cancel">取消</button>
+                </div>
+                <p class="status" id="casebook-review-status" role="status" aria-live="polite"></p>
               </div>
             </div>
 
@@ -251,6 +264,19 @@
                   </div>
                 </section>
               </div>
+
+              <!-- PR-6M3: the casebook review, a parallel reading of the same input -->
+              <section class="card card-wide casebook-review" id="casebook-review-block" hidden>
+                <div class="label" id="casebook-review-label">卷宗联合审查</div>
+                <div class="stack">
+                  <p class="casebook-review-mode mono" id="casebook-review-mode">—</p>
+                  <p class="casebook-review-counts" id="casebook-review-counts">—</p>
+                  <ul class="casebook-review-rows" id="casebook-review-rows"></ul>
+                  <p class="casebook-review-governing mono" id="casebook-review-governing" hidden>—</p>
+                  <p class="casebook-review-opinion" id="casebook-review-opinion">—</p>
+                  <p class="note" id="casebook-review-note">这是卷宗意见，不是新的最终裁决。</p>
+                </div>
+              </section>
             </section>
 
             <!-- (4) ISSUANCE, THE DECISION ------------------------------------- -->

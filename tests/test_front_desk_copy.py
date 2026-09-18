@@ -138,6 +138,14 @@ LEGACY_DIGESTS = {
 #: Every key the desk block carries besides the four frozen labels: PR-3's stage chrome,
 #: PR-4R's state words, PR-6R2's labels and PR-6M2's casebook copy. The set is frozen: adding
 #: or removing a key is a copy change and belongs in a batch that says so.
+#: Every key the desk block carries besides the four frozen labels: PR-3's stage chrome,
+#: PR-4R's state words, PR-6R2's labels, PR-6M2's casebook copy and PR-6M3's review copy.
+#: The set is frozen: adding or removing a key is a copy change and belongs in a batch that
+#: says so.
+#: Every key the desk block carries besides the four frozen labels: PR-3's stage chrome,
+#: PR-4R's state words, PR-6R2's labels, PR-6M2's casebook copy and PR-6M3's review copy.
+#: The set is frozen: adding or removing a key is a copy change and belongs in a batch that
+#: says so.
 DESK_KEYS = {
     "tab_intake",
     "tab_others",
@@ -202,6 +210,40 @@ DESK_KEYS = {
     "casebook_deleted",
     "casebook_delete_failed",
     "casebook_archive_failed",
+    "casebook_review_action",
+    "casebook_review_heading",
+    "casebook_review_choose",
+    "casebook_review_occurred",
+    "casebook_review_confirm",
+    "casebook_review_cancel",
+    "casebook_review_pick",
+    "casebook_review_none",
+    "casebook_review_running",
+    "casebook_review_failed",
+    "casebook_review_empty",
+    "casebook_review_mode_single",
+    "casebook_review_mode_joint",
+    "casebook_review_read",
+    "casebook_review_counts",
+    "casebook_review_governing",
+    "casebook_review_relation_supports",
+    "casebook_review_relation_conflicts",
+    "casebook_review_relation_superseded",
+    "casebook_review_relation_unrelated",
+    "casebook_review_relation_not_comparable",
+    "casebook_review_relation_insufficient",
+    "casebook_review_undated",
+    "casebook_review_governing_line",
+    "casebook_review_governing_current",
+    "casebook_review_note",
+    "casebook_opinion_no_history",
+    "casebook_opinion_nothing_comparable",
+    "casebook_opinion_current_case_has_no_direction",
+    "casebook_opinion_boundary_governs",
+    "casebook_opinion_order_unknown",
+    "casebook_opinion_mixed_directions",
+    "casebook_opinion_only_supports",
+    "casebook_opinion_only_conflicts",
     "privacy_footer",
     "status_no_input",
     "status_analyze_failed",

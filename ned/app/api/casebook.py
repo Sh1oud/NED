@@ -14,18 +14,15 @@ Three product rules are enforced here rather than trusted to a front end:
 
 from __future__ import annotations
 
-from collections.abc import Iterator
-from contextlib import contextmanager
-
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ned.app.api.routes import get_analyzer
+from ned.app.api.store_access import open_store
 from ned.app.config import MAX_INPUT_CHARS
 from ned.app.core.analyzer import NedAnalyzer
 from ned.app.core.models import Mode
 from ned.app.store import (
-    CasebookBusyError,
     CasebookConfigError,
     CasebookCorruptError,
     CasebookNotFoundError,
@@ -38,7 +35,6 @@ from ned.app.store import (
     SchemaTooNewError,
     casebook_enabled,
     casebook_path,
-    open_casebook,
 )
 from ned.app.store.snapshot import build_case_file_snapshot
 
@@ -184,41 +180,6 @@ class DeleteResult(BaseModel):
     kind: str
     identifier: str
     detail: str = ""
-
-
-# ---------------------------------------------------------------------- the store ---
-@contextmanager
-def open_store() -> Iterator[CasebookStore]:
-    """One store for one request, opened and closed in the request's own thread.
-
-    This is deliberately not a FastAPI dependency: a dependency and the endpoint it feeds can run
-    on different threadpool workers, and a sqlite connection belongs to the thread that made it.
-    Opening the store here, inside the endpoint body, keeps one connection on one thread for the
-    whole request.
-    """
-
-    try:
-        store = open_casebook()
-    except SchemaTooNewError as error:
-        raise HTTPException(status_code=409, detail=str(error)) from error
-    except CasebookCorruptError as error:
-        raise HTTPException(status_code=503, detail=str(error)) from error
-    except CasebookBusyError as error:
-        raise HTTPException(status_code=503, detail=str(error)) from error
-    except CasebookConfigError as error:
-        raise HTTPException(status_code=500, detail=str(error)) from error
-    if store is None:
-        raise HTTPException(
-            status_code=403,
-            detail=(
-                "the casebook is switched off on this machine (NED_CASEBOOK=off); "
-                "nothing has been stored and nothing can be filed"
-            ),
-        )
-    try:
-        yield store
-    finally:
-        store.close()
 
 
 def _not_found(error: CasebookNotFoundError) -> HTTPException:

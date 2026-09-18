@@ -1271,6 +1271,9 @@
         : treatment.treatment_gap * 100);
       setText("analyze-asym-reality", txt(asym.reality_check || d.asymmetry_reality_check));
     }
+    // PR-6M3: the review is drawn from the payload that produced this very report, so the two
+    // can never describe different runs - and a run without a review draws none.
+    renderCasebookReviewBlock(d.casebook_review);
     return report;
   }
 
@@ -1726,7 +1729,14 @@
     ["casebook-file-occurred", "casebook_file_occurred"],
     ["casebook-file-confirm", "casebook_file_confirm"],
     ["casebook-file-cancel", "casebook_file_cancel"],
-    ["privacy-footer", "privacy_footer"]
+    ["privacy-footer", "privacy_footer"],
+    ["review-with-casebook", "casebook_review_action"],
+    ["casebook-review-label", "casebook_review_heading"],
+    ["casebook-review-choose", "casebook_review_choose"],
+    ["casebook-review-occurred-label", "casebook_review_occurred"],
+    ["casebook-review-confirm", "casebook_review_confirm"],
+    ["casebook-review-cancel", "casebook_review_cancel"],
+    ["casebook-review-note", "casebook_review_note"]
   ];
 
   function casebookState() {
@@ -1739,6 +1749,7 @@
         openId: null,
         pendingDelete: null,
         busy: false,
+        reviewBusy: false,
         actionId: null,
         text: "",
         mode: "normal"
@@ -1781,6 +1792,9 @@
     var enabled = casebookOn();
     var action = $("file-to-casebook");
     if (action) { action.hidden = !enabled || !state.analyze; }
+    var review = $("review-with-casebook");
+    // The review action waits for an analysis too: there is nothing to review yet otherwise.
+    if (review) { review.hidden = !enabled || !state.analyze; }
     var create = $("casebook-create-card");
     if (create) { create.hidden = !enabled; }
     var notice = $("casebook-notice");
@@ -1792,6 +1806,7 @@
     }
     if (!enabled) {
       closeFileBox();
+      closeReviewBox();
       clear($("casebook-list"));
     }
   }
@@ -2166,11 +2181,244 @@
     });
   }
 
+  // PR-6M3: the longitudinal review. It is a *parallel* reading of the same input: the report
+  // above keeps the verdict it already had, and nothing in this block may change it. The reader
+  // has to ask for it every time - a selected casebook never rides along on its own.
+  var RELATION_COPY_KEYS = {
+    supports: "casebook_review_relation_supports",
+    conflicts: "casebook_review_relation_conflicts",
+    superseded: "casebook_review_relation_superseded",
+    unrelated: "casebook_review_relation_unrelated",
+    not_comparable: "casebook_review_relation_not_comparable",
+    insufficient: "casebook_review_relation_insufficient"
+  };
+
+  var OPINION_COPY_KEYS = {
+    no_history: "casebook_opinion_no_history",
+    nothing_comparable: "casebook_opinion_nothing_comparable",
+    current_case_has_no_direction: "casebook_opinion_current_case_has_no_direction",
+    boundary_governs: "casebook_opinion_boundary_governs",
+    order_unknown: "casebook_opinion_order_unknown",
+    mixed_directions: "casebook_opinion_mixed_directions",
+    only_supports: "casebook_opinion_only_supports",
+    only_conflicts: "casebook_opinion_only_conflicts"
+  };
+
+  function relationLabel(relation) {
+    var key = RELATION_COPY_KEYS[String(relation)];
+    return casebookCopy(key) || String(relation);
+  }
+
+  function reviewReadLine(review) {
+    var template = casebookCopy("casebook_review_read");
+    if (!template) { return ""; }
+    return casebookFill(template, {
+      files: int(review.case_files_read),
+      entries: int(review.entries_read)
+    });
+  }
+
+  function reviewCountsLine(counts) {
+    var template = casebookCopy("casebook_review_counts");
+    if (!template) { return ""; }
+    return casebookFill(template, {
+      supports: int(counts.supports),
+      conflicts: int(counts.conflicts),
+      superseded: int(counts.superseded),
+      not_comparable: int(counts.not_comparable)
+    });
+  }
+
+  function reviewRow(item) {
+    var row = obj(item);
+    var li = document.createElement("li");
+    li.className = "casebook-review-row";
+    li.setAttribute("data-relation", txt(row.relation));
+    if (row.governing === true) { li.setAttribute("data-governing", "true"); }
+    var when = document.createElement("span");
+    when.className = "casebook-review-date mono";
+    when.textContent = txt(row.occurred_at) || casebookCopy("casebook_review_undated");
+    var what = document.createElement("span");
+    what.className = "casebook-review-record";
+    what.textContent = txt(row.reported_content);
+    var relation = document.createElement("span");
+    relation.className = "casebook-review-relation";
+    relation.textContent = row.governing === true
+      ? (casebookCopy("casebook_review_governing") || relationLabel(row.relation))
+      : relationLabel(row.relation);
+    li.appendChild(when);
+    li.appendChild(what);
+    li.appendChild(relation);
+    return li;
+  }
+
+  function renderCasebookReviewBlock(review) {
+    var block = $("casebook-review-block");
+    var payload = review && typeof review === "object" ? obj(review) : null;
+    var mode = $("result-run-mode");
+    if (mode) {
+      var joint = casebookCopy("casebook_review_mode_joint");
+      var single = casebookCopy("casebook_review_mode_single");
+      if (payload) {
+        mode.textContent = casebookFill(joint, { label: txt(payload.casebook_label) });
+        mode.setAttribute("data-run-mode", "joint");
+      } else {
+        mode.textContent = single;
+        mode.setAttribute("data-run-mode", "single");
+      }
+    }
+    if (!block) { return; }
+    if (!payload) {
+      block.hidden = true;
+      clear($("casebook-review-rows"));
+      return;
+    }
+    var counts = obj(payload.counts);
+    setText("casebook-review-mode", reviewReadLine(payload));
+    setText("casebook-review-counts", reviewCountsLine(counts));
+    var opinionKey = OPINION_COPY_KEYS[txt(payload.summary_code)] || "";
+    setText("casebook-review-opinion", casebookCopy(opinionKey));
+    renderGoverningLine(payload.governing);
+    var list = $("casebook-review-rows");
+    if (list) {
+      clear(list);
+      var items = payload.items && payload.items.length ? payload.items : [];
+      if (!items.length) {
+        var empty = document.createElement("li");
+        empty.className = "casebook-review-row is-empty";
+        empty.textContent = casebookCopy("casebook_review_empty");
+        list.appendChild(empty);
+      }
+      items.forEach(function (item) { list.appendChild(reviewRow(item)); });
+    }
+    block.hidden = false;
+  }
+
+  function renderGoverningLine(governing) {
+    var node = $("casebook-review-governing");
+    if (!node) { return; }
+    if (!governing || typeof governing !== "object") {
+      node.hidden = true;
+      return;
+    }
+    var info = obj(governing);
+    var when = txt(info.occurred_at) || casebookCopy("casebook_review_undated");
+    if (txt(info.item_kind) === "current_case") {
+      when = (casebookCopy("casebook_review_governing_current") || "") + " · " + when;
+    }
+    var template = casebookCopy("casebook_review_governing_line");
+    node.textContent = casebookFill(template, { when: when });
+    node.hidden = false;
+  }
+
+  function fillReviewPicker() {
+    var picker = $("casebook-review-picker");
+    if (!picker) { return; }
+    var list = casebookState().casebooks || [];
+    clear(picker);
+    list.forEach(function (entry) {
+      var card = obj(entry);
+      var option = document.createElement("option");
+      option.value = txt(card.casebook_id);
+      option.textContent = txt(card.label);
+      picker.appendChild(option);
+    });
+    if (!list.length) {
+      setStatus("casebook-review-status", casebookCopy("casebook_review_none"), "is-error");
+    }
+  }
+
+  function openReviewBox() {
+    if (!casebookOn()) { return; }
+    var box = $("casebook-reviewbox");
+    if (!box) { return; }
+    setStatus("casebook-review-status", "", null);
+    var confirm = $("casebook-review-confirm");
+    if (confirm) { confirm.disabled = true; }
+    box.hidden = false;
+    // The list is read again before it is shown: a casebook created a moment ago must be here.
+    refreshCasebookList().then(function () {
+      fillReviewPicker();
+      if (confirm) { confirm.disabled = !casebookState().casebooks.length; }
+    });
+  }
+
+  function closeReviewBox() {
+    var box = $("casebook-reviewbox");
+    if (box) { box.hidden = true; }
+    setStatus("casebook-review-status", "", null);
+  }
+
+  function confirmReview() {
+    if (!casebookOn() || casebookState().reviewBusy) { return Promise.resolve(null); }
+    var input = $("analyze-input");
+    var text = input && input.value ? String(input.value).trim() : "";
+    if (!text) {
+      setStatus("analyze-status", deskCopy("status_no_input"), "is-error");
+      if (input && input.focus) { input.focus(); }
+      return Promise.resolve(null);
+    }
+    var picker = $("casebook-review-picker");
+    var casebookId = picker ? String(picker.value || "") : "";
+    if (!casebookId) {
+      setStatus("casebook-review-status", casebookCopy("casebook_review_pick"), "is-error");
+      return Promise.resolve(null);
+    }
+    var occurredNode = $("casebook-review-occurred");
+    var occurred = occurredNode && occurredNode.value ? String(occurredNode.value) : "";
+    var selection = { casebook_id: casebookId };
+    if (occurred) {
+      selection.occurred = {
+        occurred_at: occurred,
+        occurred_precision: "day",
+        occurred_source: "user"
+      };
+    }
+    var button = $("casebook-review-confirm");
+    casebookState().reviewBusy = true;
+    if (button) { button.disabled = true; }
+    setStatus("casebook-review-status", casebookCopy("casebook_review_running"), "is-busy");
+    var report = $("analyze-results");
+    if (report) { report.hidden = false; report.classList.add("is-loading"); }
+    return postJson("/api/analyze", { text: text, mode: currentMode(), casebook: selection })
+      .then(function (data) {
+        state.analyze = data;
+        closeReviewBox();
+        closeFileBox();
+        applyCasebookAvailability();
+        renderAnalyze(data);
+        setStatus(
+          "analyze-status",
+          (deskCopy("submit_done") || "") + " \u00b7 " + txt(data.generated_at),
+          null
+        );
+        return data;
+      })
+      .catch(function (error) {
+        if (report) { report.classList.remove("is-loading"); }
+        setStatus("casebook-review-status",
+          error && error.message ? error.message : casebookCopy("casebook_review_failed"),
+          "is-error");
+        return null;
+      })
+      .then(function (value) {
+        casebookState().reviewBusy = false;
+        if (button) { button.disabled = false; }
+        return value;
+      });
+  }
+
   function initCasebook() {
     casebookState();
     renderCasebookCopy();
     var action = $("file-to-casebook");
     if (action) { action.addEventListener("click", openFileBox); }
+    var reviewAction = $("review-with-casebook");
+    if (reviewAction) { reviewAction.addEventListener("click", openReviewBox); }
+    var reviewCancel = $("casebook-review-cancel");
+    if (reviewCancel) { reviewCancel.addEventListener("click", closeReviewBox); }
+    var reviewConfirm = $("casebook-review-confirm");
+    if (reviewConfirm) { reviewConfirm.addEventListener("click", confirmReview); }
     var cancel = $("casebook-file-cancel");
     if (cancel) { cancel.addEventListener("click", closeFileBox); }
     var confirm = $("casebook-file-confirm");

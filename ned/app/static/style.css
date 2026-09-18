@@ -2403,3 +2403,69 @@ body {
   .casebook-file { padding-left: 8px; }
   .casebook-actions .btn { width: 100%; }
 }
+
+
+/* ---------------------------------------------------------------- front desk: PR-6M3
+   The casebook review is a parallel reading, so it is drawn as its own block: set apart
+   from the report above it, and visibly not a second verdict. No new colour enters the
+   desk - the block reuses the card, the label and the mono furniture. */
+.casebook-review {
+  margin-top: 18px;
+  border-left: 3px solid var(--line-strong);
+  padding-left: 14px;
+}
+.casebook-review-mode {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  margin: 0 0 6px;
+}
+.casebook-review-counts {
+  font-size: 0.82rem;
+  color: var(--text);
+  margin: 0 0 10px;
+}
+.casebook-review-rows {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.casebook-review-row {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr auto;
+  gap: 10px;
+  align-items: baseline;
+  border-top: 1px solid var(--line);
+  padding-top: 6px;
+}
+.casebook-review-row[data-governing="true"] {
+  border-top-color: var(--seal-dim);
+}
+.casebook-review-date {
+  font-size: 0.68rem;
+  color: var(--text-faint);
+}
+.casebook-review-record {
+  font-size: 0.86rem;
+  color: var(--text);
+}
+.casebook-review-relation {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.casebook-review-row[data-governing="true"] .casebook-review-relation {
+  color: var(--seal-bright);
+}
+.casebook-review-opinion {
+  font-size: 0.9rem;
+  color: var(--text);
+  margin: 0;
+}
+@media (max-width: 520px) {
+  .casebook-review-row { grid-template-columns: 1fr; gap: 2px; }
+}
