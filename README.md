@@ -5,52 +5,178 @@
 **“NED 不相信好得可疑的现实。”**\
 **“它的职责，是在结论跑到证据前面时，把不确定性还回去。”**
 
----
-
-## Overview
-
-Everything may be affection.\
-Everything may also be 人好. 👍
-
-("人好" means "just a kind person" — NED's classic alternative explanation.)
-
 [![tests](https://github.com/Sh1oud/NED/actions/workflows/test.yml/badge.svg)](https://github.com/Sh1oud/NED/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](pyproject.toml)
 
-<!-- Publication identity and conduct contact are recorded in RELEASE_CHECKLIST.md. -->
+---
+
+## What NED is
+
+NED (Nov1ce Evidence Denier) is a small offline tool that checks one thing: whether your
+conclusion has run ahead of your evidence.
+
+Give it a message, an event, or a piece of relationship material. It takes the sentence
+apart — what is only material, what counts as evidence, and whether any of that actually
+supports the conclusion you walked in with.
+
+It does not read minds, and it will not tell you what someone "really" thinks. Some
+questions end with one answer: the evidence is not enough. That is an answer too.
+
+Everything may be affection. Everything may also be 人好. 👍
+("人好" means "just a kind person" — NED's classic alternative explanation.)
 
 ---
 
-## Table of contents
+## What NED does
 
-- [Overview](#overview)
-- [Screenshots](#screenshots)
-- [Features](#features)
-- [Installation](#installation)
-- [Windows quick start](#windows-quick-start)
-- [Quick start](#quick-start)
-- [CLI usage](#cli-usage)
-- [API usage](#api-usage)
-- [Modes](#modes)
-- [How the score works](#how-the-score-works)
-- [Examples](#examples)
-- [Architecture](#architecture)
-- [Configuration: rule packs](#configuration-rule-packs)
-- [Privacy](#privacy)
-- [Philosophy](#philosophy)
-- [Disclaimer](#disclaimer)
-- [Development](#development)
-- [Testing](#testing)
-- [Docker](#docker)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-- [License](#license)
+- **Finds the good news** in what you wrote — an invitation, being remembered, a run of
+  attention, affection itself — and then argues it down.
+- **Argues it down out loud**, with every alternative explanation labelled a *hypothesis*
+  and never a fact. The classic one is 人好: probably just being nice.
+- **Measures the double standard.** The same engine weighs what you accept as good news
+  against what you accept as bad news, and scores the gap from 0 to 100.
+- **Treats a stated boundary as a boundary.** `她说别再联系我了` is not ambiguous
+  evidence, and NED does not invent a way around it.
+- **Escalates across turns.** Hand it the earlier messages and it keeps explaining until
+  it has run out of explanations, then it says so.
+- **Shows its work.** Each reading comes with a reality check that says how little it is
+  worth, and the whole report is available as JSON.
+- **Runs on your machine.** A terminal command, a local web page (`ned serve`) and a REST
+  API over one engine. No account, no network call, no telemetry.
 
-NED takes one message or one event description, finds the possible positive-affection
-signals in it, and then — with a rigour that is both real and ridiculous — generates
-alternative explanations for them, discounts the evidence, measures how hard it had to
-reach, and prints a verdict.
+The method underneath the register is real: it finds the possible positive-affection
+signals in what you wrote, generates alternative explanations for them, discounts the
+evidence, measures how hard it had to reach, and prints a verdict — with a rigour that is
+both real and ridiculous.
+
+---
+
+## What NED does not do
+
+- **It does not read minds**, and it will not tell you what anyone actually feels. The
+  strongest thing it can say is that the evidence is insufficient.
+- **It does not know whether she likes you.** It cannot, and neither can any other text
+  tool.
+- **It is not an instrument, a diagnosis, or professional advice** — and it is not for
+  medical, legal, political or financial decisions.
+- **It does not send your text anywhere.** Analysis happens in-process on your machine and
+  writes nothing to disk; the one exception is the casebook, and only when you switch it
+  on and file something yourself.
+- **It does not cover every relationship yet.** This version is built around romantic
+  interpretation, and the English side recognises less than the Chinese side — both limits
+  are written down in [Features](#features).
+
+---
+
+## Quick start
+
+Three commands, and you have seen most of it. From source it is three more — see
+[Installation](#installation).
+
+```bash
+# 1. The terminal
+ned analyze "我想你了"
+
+# 2. The web UI and the API (defaults to 127.0.0.1:8000)
+ned serve
+#   UI:       http://127.0.0.1:8000/
+#   API docs: http://127.0.0.1:8000/docs
+
+# 3. The demo
+ned demo
+```
+
+---
+
+## Windows quick start
+
+下载或解压项目后，直接双击项目根目录中的 `start_ned.bat`。
+
+启动器会确认当前目录、检查 Python、安装 NED，并在浏览器可访问的本地地址启动服务。
+它使用 Python 模块入口启动，不依赖 `ned` 命令是否已经加入 Windows `PATH`。若提示找不到
+Python，请安装 Python 3.12+ 后重试；出错时窗口会保持打开并显示原因。
+
+---
+
+## Casebook
+
+The casebook is the only thing NED can keep. It is optional, and it is off by default.
+
+- **Optional.** Nothing is stored unless you switch it on (`NED_CASEBOOK=on`).
+- **Analysis is temporary; filing is something you do.** A normal analysis is never
+  archived — neither `ned analyze` nor the Analyse button writes anything. The only thing
+  saved is what you file yourself, with the file button.
+- **Local.** It is one file on your own machine, and it stays there until you delete it.
+
+Switched on, it adds three windows:
+
+- **归入卷宗 — file a case.** Keep this input, the reading it got today, and the rules that
+  produced it.
+- **调卷联合审查 — read beside the archive.** NED reads what you filed next to the message
+  in front of you and reports direction — 与本案方向一致 / 与本案冲突 /
+  已被更晚的明确边界覆盖 / 无法比较 / 记录不足 — without averaging anything, without
+  merging anything, and without pretending the archive is a new verdict
+  (`这是卷宗意见，不是新的最终裁决。`).
+- **用当前版本重读 — re-read an old case.** Today's reading beside the one stored at the
+  time, the differences listed, and the stored copy left alone.
+
+NED will not guess a date. `昨天` is reported as a hint and never converted; a date you
+supply is recorded as yours; a page with no date is marked 无法比较 rather than being
+sorted somewhere plausible.
+
+---
+
+## Roadmap
+
+### 0.1.x — Fix the machine
+
+Strengthen NED's evidence semantics, hard-line safety rules, Front Desk experience, and
+the foundations required for trustworthy longitudinal review.
+
+### 0.2.0 — Let philosophy in
+
+**Classical Philosophy Pack / Philosophy Provider.** Introduce philosophy providers with
+genuine epistemic priors rather than cosmetic quote or personality skins. The first
+providers are planned around:
+
+- **Mencius Mode** — a benevolent prior inspired by the idea that human nature is
+  fundamentally good; ordinary positive-affect evidence may therefore carry less surprise
+  value.
+- **Xunzi Mode** — a more skeptical prior inspired by the idea that human nature requires
+  cultivation; unusually kind behaviour may therefore carry greater evidential weight.
+
+These providers may change how evidence is interpreted, but they must not bypass NED's
+existing evidence-safety rules.
+
+### 0.3.0 — Make the world bigger
+
+**General Interpersonal Inference.** Expand NED beyond primarily romantic interpretation
+into broader everyday interpersonal reasoning, including friendship, family, colleagues,
+social distance, trust, conflict, support, rejection, reconciliation, and other
+relationship contexts.
+
+NED will still evaluate whether a conclusion is supported by the available evidence. It
+will not claim to read minds or determine another person's hidden emotional state.
+
+High-risk professional domains such as medical, legal, political, and financial
+decision-making are outside this expansion.
+
+### Future / additional directions
+
+Still wanted, not yet assigned to a version:
+
+- An opt-in LLM provider behind a flag, with an explicit privacy warning and a hard rule
+  that it can only *add* hypotheses, never change the verdict.
+- Timeline analysis: several events with timestamps, so NED can weigh frequency instead of
+  one message.
+- More languages (Japanese, Korean, Spanish) as rule packs.
+- Report export (PNG/Markdown) and an i18n'd web UI.
+- A rule-pack validator CLI (`ned lint-rules`) and a gallery of community packs.
+
+---
+
+## A look at the output
 
 ```
 $ ned analyze "我想你了"
@@ -87,38 +213,83 @@ you press the button.
 
 ---
 
-## What's new in 0.1.10 — Front Desk Renewal, and the casebook
+## Table of contents
 
-**The hall.** The local page now reads as a service hall: an intake window, a staged
-material registry, a review record, a serious register and an issuance stamp, with
-every label coming from one shared catalogue. Geometry, spacing and typography only —
-the verdict layer, the score, the signal families and the REST/CLI contract are
-unchanged.
+The rest of this document, in order:
 
-**The casebook — the first thing NED ever keeps.** It is opt-in, it is a file on your
-own machine, and it is off until you switch it on (`NED_CASEBOOK=on`). Analysing still
-writes nothing; the only write path is the button you press yourself. Three windows
-come with it:
+- [Screenshots](#screenshots)
+- [What's new in 0.1.10 — Front Desk Renewal](#whats-new-in-0110--front-desk-renewal)
+- [What's new in 0.1.8 — Evidence Standards, Both Ways](#whats-new-in-018--evidence-standards-both-ways)
+- [What's new in 0.1.7 — Comedy Recovery](#whats-new-in-017--comedy-recovery)
+- [Features](#features)
+- [Installation](#installation)
+- [CLI usage](#cli-usage)
+- [API usage](#api-usage)
+- [Modes](#modes)
+- [How the score works](#how-the-score-works)
+- [Examples](#examples)
+- [Architecture](#architecture)
+- [Configuration: rule packs](#configuration-rule-packs)
+- [Privacy](#privacy)
+- [Philosophy](#philosophy)
+- [Disclaimer](#disclaimer)
+- [Development](#development)
+- [Testing](#testing)
+- [Docker](#docker)
+- [Contributing](#contributing)
+- [License](#license)
 
-- **归入卷宗 — file a case.** The filed page keeps the input, the reading it got at the
-  time, and the engine and rule version that produced it. Filing the same sentence
-  twice on purpose files two cases; pressing the button twice files one.
-- **调卷联合审查 — read beside the archive.** NED reads an archived casebook next to
-  the message in front of you and reports direction: 与本案方向一致 / 与本案冲突 /
-  已被更晚的明确边界覆盖 / 无法比较 / 记录不足. It does not average, does not merge,
-  and says so: 这是卷宗意见，不是新的最终裁决。
-- **用当前版本重读 — re-read an archived case.** The reading stored at the time and the
-  reading the current rules produce are shown side by side, with the differences
-  classified; the stored record is never rewritten, and the block says so when nothing
-  changed.
+---
+
+## Screenshots
+
+| View | Image | Status |
+| --- | --- | --- |
+| Web UI — analysis | [`docs/screenshots/analysis.png`](docs/screenshots/analysis.png) | **current** — re-captured from the 0.1.10 UI |
+| Web UI — asymmetry detector | [`docs/screenshots/asymmetry.png`](docs/screenshots/asymmetry.png) | **current** — re-captured from the 0.1.10 UI |
+| Web UI — FNBP lab | [`docs/screenshots/fnbp-lab.png`](docs/screenshots/fnbp-lab.png) | **current** — re-captured from the 0.1.10 UI |
+| CLI — extreme mode | [`docs/screenshots/cli-extreme.png`](docs/screenshots/cli-extreme.png) | **current** — re-captured from the 0.1.10 CLI |
+
+All four images show 0.1.10. The three web shots come from the current UI in its shipped
+default configuration, with no casebook switched on. The fourth is the real CLI report,
+rendered from the capture committed as
+[`docs/cli-extreme.txt`](docs/cli-extreme.txt). An image prints the version it was captured
+from, so a stale screenshot is easy to spot and should be re-taken rather than assumed
+current. To re-capture:
+
+```bash
+ned serve --port 8742                          # terminal 1
+python scripts/capture_screenshots.py          # terminal 2
+```
+
+The capture the fourth image is rendered from is committed, so the image can be re-taken
+at any time; the recipe lives in
+[`docs/screenshots/README.md`](docs/screenshots/README.md).
+
+The web UI is designed to look like a clinical instrument panel: dark, hairline
+borders, monospace read-outs, one accent colour, and progress bars that escalate
+from calm cyan to "Industrial-grade denial" magenta.
+
+---
+
+## What's new in 0.1.10 — Front Desk Renewal
+
+**The hall.** The local page reads as a service hall: an intake window, a staged material
+registry, a review record, a serious register and an issuance stamp, with every label
+coming from one shared catalogue. The page changed; the scoring, the verdicts and the API
+did not.
+
+**The casebook arrives in this version.** It has its own section now —
+[Casebook](#casebook) — covering what it keeps, what it never keeps on its own, and the
+three windows it adds.
 
 **Time is the one thing NED refuses to compute.** A date-like wording (`昨天`, `上周`,
 `a few days ago`) is reported as a hint and nothing more: NED does not convert it, and a
 filed page keeps the fact that the text mentioned time while leaving the date empty. If
 you supply a date yourself, it is stored as *yours* — 事件时间 2026-08-25（由你补充）—
 and only then can that page take part in ordering. A page with no date is shown as
-无法比较 instead of being sorted somewhere plausible, and an unknown order never
-produces a claim that one page overrides another.
+无法比较 instead of being sorted somewhere plausible, and an unknown order never produces
+a claim that one page overrides another.
 
 ## What's new in 0.1.8 — Evidence Standards, Both Ways
 
@@ -165,47 +336,6 @@ whichever department the evidence belongs to.** 👍
 
 ---
 
-## Screenshots
-
-| View | Image | Status |
-| --- | --- | --- |
-| Web UI — analysis | [`docs/screenshots/analysis.png`](docs/screenshots/analysis.png) | **current** — re-captured from the 0.1.10 UI |
-| Web UI — asymmetry detector | [`docs/screenshots/asymmetry.png`](docs/screenshots/asymmetry.png) | **current** — re-captured from the 0.1.10 UI |
-| Web UI — FNBP lab | [`docs/screenshots/fnbp-lab.png`](docs/screenshots/fnbp-lab.png) | **current** — re-captured from the 0.1.10 UI |
-| CLI — extreme mode | [`docs/screenshots/cli-extreme.png`](docs/screenshots/cli-extreme.png) | **current** — re-captured from the 0.1.10 CLI |
-
-All four views are exercised by the test suite (`tests/test_api.py`,
-`tests/test_cli.py`) and were captured from the real local UI/CLI. The engine
-version each image was captured from is printed inside the image itself, so an
-image always shows its own capture version — which is exactly why it has to be
-re-captured after a UI change or a version bump instead of being assumed current.
-All four images now show 0.1.10 and were taken from the resealed release candidate,
-not from an earlier tree. The three web images were re-captured from that UI: the
-casebook tab is part of the page, the shots are taken in the shipped default
-configuration (no casebook switched on), and each shot was taken only after its own
-readiness gate proved the report had rendered. The CLI capture was re-verified
-byte-for-byte against a live `ned analyze "她说喜欢我" --mode extreme` run at the release
-width (99 columns), and the image was then re-rendered *from* the committed
-`docs/cli-extreme.txt` twice, to identical bytes — so the version printed inside that
-image is the released one as well. Re-capture with:
-
-```bash
-ned serve --port 8742                          # terminal 1
-python scripts/capture_screenshots.py          # terminal 2
-```
-
-The raw CLI output for the fourth shot is committed as
-[`docs/cli-extreme.txt`](docs/cli-extreme.txt), so the image can be re-taken from a
-known-good capture at any time; the recipe for regenerating that capture, and the
-environment-only normalisation it needs, is written down in
-[`docs/screenshots/README.md`](docs/screenshots/README.md).
-
-The web UI is designed to look like a clinical instrument panel: dark, hairline
-borders, monospace read-outs, one accent colour, and progress bars that escalate
-from calm cyan to "Industrial-grade denial" magenta.
-
----
-
 ## Features
 
 - **PED — Positive Evidence Denier.** Detects positive signals and lowers their
@@ -239,13 +369,9 @@ from calm cyan to "Industrial-grade denial" magenta.
 - **Multiple Aspects.** When the input reports several materials that can each stand
   on their own page, NED keeps every page with its own grade and refuses to add them
   up: no average, no merge, no ranking, no overall relationship score.
-- **Casebook (opt-in, local, off by default).** File an analysed input into a named
-  casebook, read a new message *beside* the archived ones (`归入卷宗` → `调卷联合审查`),
-  and re-read an archived case with the current rules (`用当前版本重读`). The joint
-  review reports direction — 与本案方向一致 / 与本案冲突 / 已被更晚的明确边界覆盖 /
-  无法比较 / 记录不足 — never an average and never a new verdict (`这是卷宗意见，不是
-  新的最终裁决。`). Relative-time wording is flagged and never turned into a date; a date
-  you supply is stored as yours, and only dated pages take part in ordering.
+- **Casebook (opt-in, local, off by default).** Described in full under
+  [Casebook](#casebook): filing a case, reading beside the archive, and re-reading an old
+  case with the current rules.
 - **FNBP — Fuyuki Notification Branch Predictor.** A Lab easter egg that simulates
   mispredicting every notification as being from one specific person, complete with
   pipeline flushes and wasted cycles.
@@ -297,31 +423,6 @@ Runtime-only install:
 ```bash
 pip install .
 ```
-
-## Windows quick start
-
-下载或解压项目后，直接双击项目根目录中的 `start_ned.bat`。
-
-启动器会确认当前目录、检查 Python、安装 NED，并在浏览器可访问的本地地址启动服务。
-它使用 Python 模块入口启动，不依赖 `ned` 命令是否已经加入 Windows `PATH`。若提示找不到
-Python，请安装 Python 3.12+ 后重试；出错时窗口会保持打开并显示原因。
-
-## Quick start
-
-```bash
-# 1. The terminal
-ned analyze "我想你了"
-
-# 2. The web UI and the API (defaults to 127.0.0.1:8000)
-ned serve
-#   UI:       http://127.0.0.1:8000/
-#   API docs: http://127.0.0.1:8000/docs
-
-# 3. The demo
-ned demo
-```
-
----
 
 ## CLI usage
 
@@ -727,53 +828,6 @@ docker compose up --build
 The image runs as a non-root user with a read-only root filesystem, mounts nothing
 by default, and makes no network calls at run time. To use custom rule packs, mount
 them read-only and set `NED_RULES_DIR` (see the comments in `docker-compose.yml`).
-
-## Roadmap
-
-### 0.1.x — Fix the machine
-
-Strengthen NED's evidence semantics, hard-line safety rules, Front Desk experience, and
-the foundations required for trustworthy longitudinal review.
-
-### 0.2.0 — Let philosophy in
-
-**Classical Philosophy Pack / Philosophy Provider.** Introduce philosophy providers with
-genuine epistemic priors rather than cosmetic quote or personality skins. The first
-providers are planned around:
-
-- **Mencius Mode** — a benevolent prior inspired by the idea that human nature is
-  fundamentally good; ordinary positive-affect evidence may therefore carry less surprise
-  value.
-- **Xunzi Mode** — a more skeptical prior inspired by the idea that human nature requires
-  cultivation; unusually kind behaviour may therefore carry greater evidential weight.
-
-These providers may change how evidence is interpreted, but they must not bypass NED's
-existing evidence-safety rules.
-
-### 0.3.0 — Make the world bigger
-
-**General Interpersonal Inference.** Expand NED beyond primarily romantic interpretation
-into broader everyday interpersonal reasoning, including friendship, family, colleagues,
-social distance, trust, conflict, support, rejection, reconciliation, and other
-relationship contexts.
-
-NED will still evaluate whether a conclusion is supported by the available evidence. It
-will not claim to read minds or determine another person's hidden emotional state.
-
-High-risk professional domains such as medical, legal, political, and financial
-decision-making are outside this expansion.
-
-### Future / additional directions
-
-Still wanted, not yet assigned to a version:
-
-- An opt-in LLM provider behind a flag, with an explicit privacy warning and a hard rule
-  that it can only *add* hypotheses, never change the verdict.
-- Timeline analysis: several events with timestamps, so NED can weigh frequency instead of
-  one message.
-- More languages (Japanese, Korean, Spanish) as rule packs.
-- Report export (PNG/Markdown) and an i18n'd web UI.
-- A rule-pack validator CLI (`ned lint-rules`) and a gallery of community packs.
 
 ## Contributing
 
