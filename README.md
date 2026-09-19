@@ -730,14 +730,50 @@ them read-only and set `NED_RULES_DIR` (see the comments in `docker-compose.yml`
 
 ## Roadmap
 
-- **v0.2** — an opt-in LLM provider behind a flag, with an explicit privacy warning and
-  a hard rule that it can only *add* hypotheses, never change the verdict.
-- **v0.2** — timeline analysis: several events with timestamps, so NED can weigh
-  frequency instead of one message.
-- **v0.3** — more languages (Japanese, Korean, Spanish) as rule packs.
-- **v0.3** — report export (PNG/Markdown) and an i18n'd web UI.
-- **v0.4** — a rule-pack validator CLI (`ned lint-rules`) and a gallery of
-  community packs.
+### 0.1.x — Fix the machine
+
+Strengthen NED's evidence semantics, hard-line safety rules, Front Desk experience, and
+the foundations required for trustworthy longitudinal review.
+
+### 0.2.0 — Let philosophy in
+
+**Classical Philosophy Pack / Philosophy Provider.** Introduce philosophy providers with
+genuine epistemic priors rather than cosmetic quote or personality skins. The first
+providers are planned around:
+
+- **Mencius Mode** — a benevolent prior inspired by the idea that human nature is
+  fundamentally good; ordinary positive-affect evidence may therefore carry less surprise
+  value.
+- **Xunzi Mode** — a more skeptical prior inspired by the idea that human nature requires
+  cultivation; unusually kind behaviour may therefore carry greater evidential weight.
+
+These providers may change how evidence is interpreted, but they must not bypass NED's
+existing evidence-safety rules.
+
+### 0.3.0 — Make the world bigger
+
+**General Interpersonal Inference.** Expand NED beyond primarily romantic interpretation
+into broader everyday interpersonal reasoning, including friendship, family, colleagues,
+social distance, trust, conflict, support, rejection, reconciliation, and other
+relationship contexts.
+
+NED will still evaluate whether a conclusion is supported by the available evidence. It
+will not claim to read minds or determine another person's hidden emotional state.
+
+High-risk professional domains such as medical, legal, political, and financial
+decision-making are outside this expansion.
+
+### Future / additional directions
+
+Still wanted, not yet assigned to a version:
+
+- An opt-in LLM provider behind a flag, with an explicit privacy warning and a hard rule
+  that it can only *add* hypotheses, never change the verdict.
+- Timeline analysis: several events with timestamps, so NED can weigh frequency instead of
+  one message.
+- More languages (Japanese, Korean, Spanish) as rule packs.
+- Report export (PNG/Markdown) and an i18n'd web UI.
+- A rule-pack validator CLI (`ned lint-rules`) and a gallery of community packs.
 
 ## Contributing
 
