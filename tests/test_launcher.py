@@ -31,10 +31,10 @@ from pathlib import Path
 
 import pytest
 from ned.app.store.paths import (
-    CASEBOOK_ENV,
-    SCHEMA_VERSION,
     _FALSE_VALUES,
     _TRUE_VALUES,
+    CASEBOOK_ENV,
+    SCHEMA_VERSION,
     casebook_enabled,
 )
 
@@ -156,7 +156,9 @@ def test_only_the_exact_answer_two_enables_the_casebook() -> None:
 
 def test_an_unrecognised_answer_is_announced_and_stays_off() -> None:
     assert "Not 1 or 2 - using normal mode." in COMMANDS
-    assert line_containing('set /p "NED_CHOICE=') < line_containing("Not 1 or 2 - using normal mode.")
+    assert line_containing('set /p "NED_CHOICE=') < line_containing(
+        "Not 1 or 2 - using normal mode."
+    )
 
 
 def test_the_menu_offers_both_modes() -> None:
@@ -178,7 +180,9 @@ def test_the_menu_keeps_the_privacy_meaning() -> None:
 # ------------------------------------------------------------- what it exports ---
 def test_the_mode_is_exported_once_and_before_the_server() -> None:
     assert COMMANDS.count('set "NED_CASEBOOK=%NED_CASEBOOK_MODE%"') == 1
-    assert line_number('set "NED_CASEBOOK=%NED_CASEBOOK_MODE%"') < line_containing('"%NED_CLI%" serve')
+    assert line_number('set "NED_CASEBOOK=%NED_CASEBOOK_MODE%"') < line_containing(
+        '"%NED_CLI%" serve'
+    )
 
 
 def test_the_exported_name_is_the_products_switch() -> None:
