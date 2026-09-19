@@ -96,7 +96,12 @@ def test_switched_on_status_never_creates_the_file(client: TestClient, casebook_
     assert response.status_code == 200
     payload = response.json()
     assert payload["enabled"] is True
-    assert payload["path"] == str(casebook_path)
+    # The runner's %TEMP% can be an 8.3 short name (RUNNER~1) while the API reports the
+    # resolved path, and this file must not exist yet - so compare the name exactly and the
+    # parent directories canonically.
+    actual = Path(payload["path"])
+    assert actual.name == casebook_path.name
+    assert actual.parent.resolve() == casebook_path.parent.resolve()
     assert payload["casebooks"] == 0
     assert not casebook_path.exists(), "a status probe must not bring the file into existence"
 
